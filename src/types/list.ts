@@ -19,6 +19,7 @@ export interface List {
   createdAt: Date;
   updatedAt: Date;
   viewCount: number;
+  hasUpdate?: boolean;
 }
 
 export interface CreateListInput {

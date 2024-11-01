@@ -8,9 +8,15 @@ import {
   ChevronLeft,
   LayoutDashboard,
   Compass,
-  BookMarked
+  PinIcon,
+  ListChecks,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+interface SidebarProps {
+  onNavigate?: () => void;
+}
 
 const menuItems = [
   {
@@ -19,8 +25,18 @@ const menuItems = [
     href: "/dashboard",
   },
   {
-    title: "Saved Lists",
-    icon: BookMarked,
+    title: "My Lists",
+    icon: ListChecks,
+    href: "/my-lists",
+  },
+  {
+    title: "Following",
+    icon: Users,
+    href: "/following",
+  },
+  {
+    title: "Pinned Lists",
+    icon: PinIcon,
     href: "/saved",
   },
   {
@@ -30,14 +46,14 @@ const menuItems = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
   return (
     <div
       className={cn(
-        "flex flex-col border-r bg-gray-50/50 transition-all duration-300",
+        "flex flex-col border-r bg-gray-50/50 transition-all duration-300 h-full",
         collapsed ? "w-16" : "w-64"
       )}
     >
@@ -47,7 +63,7 @@ export function Sidebar() {
           variant="ghost"
           size="sm"
           onClick={() => setCollapsed(!collapsed)}
-          className="ml-auto h-8 w-8 p-0"
+          className="ml-auto h-8 w-8 p-0 lg:flex hidden"
         >
           <ChevronLeft
             className={cn(
@@ -65,6 +81,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-gray-500 transition-all hover:text-gray-900",
                 pathname === item.href && "bg-gray-100 text-gray-900",

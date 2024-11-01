@@ -1,14 +1,21 @@
 import Link from "next/link";
 import { List } from "@/types/list";
 import { formatDistanceToNow } from "date-fns";
-import { Eye, Lock } from "lucide-react";
+import { Eye, Lock, Bell } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ListCardProps {
   list: List;
   searchQuery?: string;
+  hasUpdate?: boolean;
 }
 
-export function ListCard({ list, searchQuery }: ListCardProps) {
+export function ListCard({ list, searchQuery, hasUpdate }: ListCardProps) {
   // Find matching items if there's a search query
   const matchingItems = searchQuery 
     ? list.items.filter(item => 
@@ -20,9 +27,25 @@ export function ListCard({ list, searchQuery }: ListCardProps) {
   return (
     <Link 
       href={`/lists/${list.id}`}
-      className="block p-6 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
+      className="block p-4 sm:p-6 bg-sky-50/50 rounded-lg shadow-sm hover:shadow-md transition-shadow relative"
     >
-      <div className="flex justify-between items-start">
+      {hasUpdate && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="absolute top-2 right-2">
+                <Bell className="h-4 w-4 text-primary" />
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>This list has been updated since your last view</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
         <div>
           <h3 className="text-lg font-semibold">{list.title}</h3>
           <p className="text-sm text-muted-foreground">

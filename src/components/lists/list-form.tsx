@@ -121,7 +121,7 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
       }
       
       toast.success(`List ${mode === 'edit' ? 'updated' : 'created'} successfully!`);
-      router.push('/dashboard');
+      router.push('/my-lists');
       router.refresh();
     } catch (error) {
       console.error(`Form submission error:`, error);

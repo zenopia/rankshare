@@ -76,12 +76,12 @@ export function SearchForm({ defaultValues }: SearchFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
           <FormField
             control={form.control}
             name="q"
             render={({ field }) => (
-              <FormItem className="md:col-span-2">
+              <FormItem className="sm:col-span-2">
                 <FormLabel>Search</FormLabel>
                 <FormControl>
                   <Input placeholder="Search lists..." {...field} />

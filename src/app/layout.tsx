@@ -27,7 +27,7 @@ export default async function RootLayout({
           <div className="min-h-screen flex flex-col">
             <Navbar />
             <div className="flex flex-1">
-              {isSignedIn && <Sidebar />}
+              {isSignedIn && <div className="hidden lg:block"><Sidebar /></div>}
               <main className={`flex-1 ${!isSignedIn ? 'container mx-auto' : ''}`}>
                 {children}
               </main>
