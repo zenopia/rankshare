@@ -7,9 +7,10 @@ export interface MongoDoc extends Document {
 }
 
 export interface MongoDocument extends Document {
-  _id: string;
+  _id: any;
   createdAt: Date;
   updatedAt: Date;
+  __v?: number;
 }
 
 export type MongoListDocument = MongoDocument & Partial<ListDocument>;

@@ -1,101 +1,55 @@
-import { ListCard } from "@/components/lists/list-card";
-import { ListModel } from "@/lib/db/models/list";
-import dbConnect from "@/lib/db/mongodb";
+import { Suspense } from "react";
 import { SearchForm } from "@/components/search/search-form";
-import type { List, ListDocument } from "@/types/list";
-import type { FilterQuery, SortOrder } from 'mongoose';
+import { SearchResults } from "@/components/search/search-results";
+import { ListCategory } from "@/types/list";
 
-interface SearchPageProps {
-  searchParams: Promise<{
-    q?: string;
-    category?: string;
-    sort?: 'newest' | 'most-viewed';
-  }> | {
-    q?: string;
-    category?: string;
-    sort?: 'newest' | 'most-viewed';
-  };
+interface SearchParams {
+  q?: string;
+  category?: string;
+  sort?: string;
 }
 
-export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const resolvedParams = await searchParams;
-  let lists: List[] = [];
-  
-  try {
-    await dbConnect();
-    
-    const filter: FilterQuery<ListDocument> = { privacy: "public" };
-    
-    // Search in both title and item titles/comments
-    if (resolvedParams.q) {
-      filter.$or = [
-        { title: { $regex: resolvedParams.q, $options: 'i' } },
-        { 'items.title': { $regex: resolvedParams.q, $options: 'i' } },
-        { 'items.comment': { $regex: resolvedParams.q, $options: 'i' } }
-      ];
-    }
-    
-    if (resolvedParams.category) {
-      filter.category = resolvedParams.category;
-    }
+function isValidCategory(category: string | undefined): category is ListCategory {
+  if (!category) return false;
+  return ['movies', 'books', 'music', 'games', 'other', 'tv-shows', 'restaurants'].includes(category);
+}
 
-    const sortOptions: Record<string, Record<string, SortOrder>> = {
-      'most-viewed': { viewCount: -1, createdAt: -1 },
-      'newest': { createdAt: -1 }
-    };
+function isValidSort(sort: string | undefined): sort is "newest" | "most-viewed" {
+  return sort === "newest" || sort === "most-viewed";
+}
 
-    const sort = sortOptions[resolvedParams.sort || 'newest'];
-
-    const results = await ListModel
-      .find(filter)
-      .sort(sort) as ListDocument[];
-
-    lists = results.map((list: ListDocument) => ({
-      id: list._id.toString(),
-      ownerId: list.ownerId,
-      ownerName: list.ownerName,
-      title: list.title,
-      category: list.category,
-      description: list.description,
-      items: list.items,
-      privacy: list.privacy,
-      createdAt: list.createdAt,
-      updatedAt: list.updatedAt,
-      viewCount: list.viewCount
-    }));
-  } catch (error) {
-    console.error('Search error:', error);
-  }
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  // Validate and transform search parameters
+  const resolvedParams = {
+    q: searchParams.q,
+    category: isValidCategory(searchParams.category) ? searchParams.category : undefined,
+    sort: isValidSort(searchParams.sort) ? searchParams.sort : undefined,
+  };
 
   return (
-    <div className="container py-8">
-      <h1 className="text-4xl font-bold mb-8">Search Lists</h1>
-      
-      <div className="mb-8">
-        <SearchForm 
-          defaultValues={{
-            q: resolvedParams.q,
-            category: resolvedParams.category,
-            sort: resolvedParams.sort,
-          }}
-        />
+    <div className="container py-8 space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold">Search Lists</h1>
+        <p className="text-muted-foreground">
+          Find lists by title, category, or sort by different criteria
+        </p>
       </div>
 
-      {lists.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {lists.map((list) => (
-            <ListCard 
-              key={list.id} 
-              list={list} 
-              searchQuery={resolvedParams.q}
-            />
-          ))}
-        </div>
-      ) : (
-        <p className="text-center text-muted-foreground">
-          No lists found. Try adjusting your search.
-        </p>
-      )}
+      <SearchForm
+        defaultValues={{
+          q: resolvedParams.q,
+          category: resolvedParams.category,
+          sort: resolvedParams.sort,
+        }}
+      />
+
+      <Suspense fallback={<div>Loading...</div>}>
+        <SearchResults searchParams={resolvedParams} />
+      </Suspense>
     </div>
   );
 } 

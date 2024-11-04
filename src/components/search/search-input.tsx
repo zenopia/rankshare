@@ -2,7 +2,6 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { useCallback } from "react";
 import { useDebouncedCallback } from "use-debounce";
 
 interface SearchInputProps {

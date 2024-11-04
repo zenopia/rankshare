@@ -4,53 +4,41 @@ import { PinModel } from "@/lib/db/models/pin";
 import dbConnect from "@/lib/db/mongodb";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs";
-import type { MongoListDocument } from "@/types/mongodb";
+import type { List, ListDocument } from '@/types/list';
+import type { PinDocument } from '@/types/pin';
 
 export default async function HomePage() {
-  let recentLists: Array<{
-    id: string;
-    ownerId: string;
-    ownerName: string;
-    title: string;
-    category: string;
-    description: string;
-    items: any[];
-    privacy: string;
-    viewCount: number;
-    createdAt: Date;
-    updatedAt: Date;
-    hasUpdate: boolean;
-  }> = [];
+  let recentLists: (List & { hasUpdate: boolean })[] = [];
   const { userId } = await auth();
 
   try {
     await dbConnect();
 
-    // Get recent public lists
     const lists = await ListModel
       .find({ privacy: "public" })
       .sort({ createdAt: -1 })
       .limit(10)
-      .lean()
-      .exec() as MongoListDocument[];
+      .lean() as ListDocument[];
 
     // If user is logged in, get their pins to check for updates
-    let pins = [];
+    let pins: PinDocument[] = [];
     if (userId) {
-      pins = await PinModel.find({ userId }).lean();
+      pins = await PinModel
+        .find({ userId })
+        .lean() as PinDocument[];
     }
 
-    // Add update status to lists
+    // Transform MongoDB documents into List objects
     recentLists = lists.map(list => ({
       id: list._id.toString(),
-      ownerId: list.ownerId || '',
-      ownerName: list.ownerName || 'Anonymous',
-      title: list.title || '',
-      category: list.category || 'movies',
-      description: list.description || '',
+      ownerId: list.ownerId,
+      ownerName: list.ownerName,
+      title: list.title,
+      category: list.category,
+      description: list.description,
       items: list.items || [],
-      privacy: list.privacy || 'public',
-      viewCount: list.viewCount || 0,
+      privacy: list.privacy,
+      viewCount: list.viewCount,
       createdAt: new Date(list.createdAt),
       updatedAt: new Date(list.updatedAt),
       hasUpdate: userId ? pins.some(pin => 

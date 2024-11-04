@@ -3,7 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import * as z from "zod";
+import { ListCategory, LIST_CATEGORIES } from "@/types/list";
+
 import {
   Form,
   FormControl,
@@ -19,29 +21,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { ListCategory } from "@/types/list";
 
-const searchSchema = z.object({
+const formSchema = z.object({
   q: z.string().optional(),
-  category: z.enum(['movies', 'tv-shows', 'books', 'restaurants']).optional(),
-  sort: z.enum(['newest', 'most-viewed']).optional(),
+  category: z.enum(['movies', 'books', 'music', 'games', 'other', 'tv-shows', 'restaurants'] as const).optional(),
+  sort: z.enum(["newest", "most-viewed"]).optional(),
 });
 
-type SearchSchema = z.infer<typeof searchSchema>;
-
-const categories: { label: string; value: ListCategory }[] = [
-  { label: "Movies", value: "movies" },
-  { label: "TV Shows", value: "tv-shows" },
-  { label: "Books", value: "books" },
-  { label: "Restaurants", value: "restaurants" },
-];
+type FormData = z.infer<typeof formSchema>;
 
 interface SearchFormProps {
   defaultValues?: {
     q?: string;
-    category?: string;
-    sort?: string;
+    category?: ListCategory;
+    sort?: "newest" | "most-viewed";
   };
 }
 
@@ -49,47 +42,56 @@ export function SearchForm({ defaultValues }: SearchFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const form = useForm<SearchSchema>({
-    resolver: zodResolver(searchSchema),
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       q: defaultValues?.q || "",
-      category: defaultValues?.category as ListCategory | undefined,
-      sort: defaultValues?.sort as "newest" | "most-viewed" | undefined,
+      category: defaultValues?.category,
+      sort: defaultValues?.sort,
     },
   });
 
-  function onSubmit(data: SearchSchema) {
-    const params = new URLSearchParams(searchParams);
+  function onSubmit(data: FormData) {
+    const params = new URLSearchParams(searchParams.toString());
     
-    if (data.q) params.set("q", data.q);
-    else params.delete("q");
-    
-    if (data.category) params.set("category", data.category);
-    else params.delete("category");
-    
-    if (data.sort) params.set("sort", data.sort);
-    else params.delete("sort");
+    if (data.q) {
+      params.set("q", data.q);
+    } else {
+      params.delete("q");
+    }
 
-    router.push(`/search?${params.toString()}`);
+    if (data.category) {
+      params.set("category", data.category);
+    } else {
+      params.delete("category");
+    }
+
+    if (data.sort) {
+      params.set("sort", data.sort);
+    } else {
+      params.delete("sort");
+    }
+
+    router.push(`?${params.toString()}`);
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-          <FormField
-            control={form.control}
-            name="q"
-            render={({ field }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>Search</FormLabel>
-                <FormControl>
-                  <Input placeholder="Search lists..." {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
+        <FormField
+          control={form.control}
+          name="q"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Search</FormLabel>
+              <FormControl>
+                <Input placeholder="Search lists..." {...field} />
+              </FormControl>
+            </FormItem>
+          )}
+        />
 
+        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="category"
@@ -106,7 +108,7 @@ export function SearchForm({ defaultValues }: SearchFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {categories.map((category) => (
+                    {LIST_CATEGORIES.map((category) => (
                       <SelectItem key={category.value} value={category.value}>
                         {category.label}
                       </SelectItem>
@@ -122,7 +124,7 @@ export function SearchForm({ defaultValues }: SearchFormProps) {
             name="sort"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Sort by</FormLabel>
+                <FormLabel>Sort</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
@@ -141,8 +143,6 @@ export function SearchForm({ defaultValues }: SearchFormProps) {
             )}
           />
         </div>
-
-        <Button type="submit">Search</Button>
       </form>
     </Form>
   );

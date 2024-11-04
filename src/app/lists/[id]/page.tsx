@@ -1,81 +1,110 @@
+import { auth } from "@clerk/nextjs";
 import { notFound } from "next/navigation";
-import { ListView } from "@/components/lists/list-view";
+import Link from "next/link";
 import { ListModel } from "@/lib/db/models/list";
-import dbConnect from "@/lib/db/mongodb";
-import { auth } from "@clerk/nextjs/server";
-import type { List, ListDocument } from "@/types/list";
 import { PinModel } from "@/lib/db/models/pin";
-import type { IPin } from "@/lib/db/models/pin";
+import dbConnect from "@/lib/db/mongodb";
+import type { ListDocument } from "@/types/list";
+import type { Pin } from "@/types/pin";
+import { serializeList } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { PinButton } from "@/components/ui/pin-button";
+import { CopyListButton } from "@/components/ui/copy-list-button";
 
 export default async function ListPage({ params }: { params: { id: string } }) {
   try {
     await dbConnect();
+    const { userId } = await auth();
+
+    const list = await ListModel.findById(params.id).lean() as ListDocument;
     
-    const rawList = await ListModel.findById(params.id).lean() as ListDocument | null;
-    
-    if (!rawList) {
+    if (!list) {
       notFound();
     }
 
-    // Serialize the MongoDB document to a plain object
-    const list: List = {
-      id: rawList._id.toString(),
-      ownerId: rawList.ownerId,
-      ownerName: rawList.ownerName,
-      title: rawList.title,
-      category: rawList.category,
-      description: rawList.description,
-      items: rawList.items.map(item => ({
-        title: item.title,
-        rank: item.rank,
-        comment: item.comment,
-      })),
-      privacy: rawList.privacy,
-      viewCount: rawList.viewCount,
-      createdAt: new Date(rawList.createdAt),
-      updatedAt: new Date(rawList.updatedAt),
+    // Update view count
+    await ListModel.findByIdAndUpdate(params.id, { $inc: { viewCount: 1 } });
+
+    // Get pin if user is logged in
+    let pin = null;
+    if (userId) {
+      pin = await PinModel.findOne({ 
+        userId, 
+        listId: params.id 
+      }).lean() as Pin | null;
+    }
+
+    // Serialize the list data
+    const serializedList = {
+      ...serializeList(list),
+      hasUpdate: false, // Since we're viewing it now
+      isOwner: userId === list.ownerId,
+      isPinned: !!pin,
     };
 
-    // Get the current user if they're logged in
-    const { userId } = await auth();
-    const isOwner = userId === list.ownerId;
-
-    // Increment view count if the viewer is not the owner
-    if (!isOwner) {
-      await ListModel.findByIdAndUpdate(params.id, {
-        $inc: { viewCount: 1 }
-      });
-      list.viewCount += 1;
-    }
-
-    const pin = userId ? await PinModel.findOne({ 
-      userId, 
-      listId: params.id 
-    }).lean() as IPin | null : null;
-
-    const isPinned = !!pin;
-    const hasUpdate = pin ? list.updatedAt > new Date(pin.lastViewedAt) : false;
-
-    // Update lastViewedAt if pinned
-    if (pin) {
-      await PinModel.updateOne(
-        { _id: pin._id },
-        { $set: { lastViewedAt: new Date() } }
-      );
-    }
-
     return (
-      <main className="container mx-auto py-8 px-4">
-        <ListView 
-          list={list}
-          isOwner={isOwner} 
-          isPinned={isPinned}
-          hasUpdate={hasUpdate}
-        />
-      </main>
+      <div className="container py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">{serializedList.title}</h1>
+              <p className="text-muted-foreground">
+                Created by {serializedList.ownerName} • {serializedList.viewCount} views
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {userId && (
+                <>
+                  <PinButton 
+                    listId={serializedList.id} 
+                    isPinned={serializedList.isPinned} 
+                  />
+                  <CopyListButton listId={serializedList.id} />
+                </>
+              )}
+              
+              {serializedList.isOwner && (
+                <Link href={`/lists/${params.id}/edit`}>
+                  <Button variant="outline">Edit List</Button>
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {serializedList.description && (
+            <p className="mb-8 text-muted-foreground">
+              {serializedList.description}
+            </p>
+          )}
+
+          <div className="space-y-4">
+            {serializedList.items.map((item, index) => (
+              <div 
+                key={item.id || index}
+                className="bg-card p-4 rounded-lg border"
+              >
+                <div className="flex items-start gap-4">
+                  <span className="text-2xl font-bold text-muted-foreground">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <h3 className="font-medium">{item.title}</h3>
+                    {item.comment && (
+                      <p className="text-muted-foreground mt-1">
+                        {item.comment}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     );
   } catch (error) {
-    console.error('Error loading list:', error);
+    console.error('Error fetching list:', error);
     notFound();
   }
 } 

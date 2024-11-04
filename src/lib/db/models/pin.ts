@@ -1,20 +1,12 @@
-import { Schema, model, models, Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
+import type { PinDocument } from '@/types/pin';
 
-export interface IPin extends Document {
-  userId: string;
-  listId: string;
-  lastViewedAt: Date;
-}
-
-const pinSchema = new Schema<IPin>({
+const pinSchema = new Schema<PinDocument>({
   userId: { type: String, required: true },
   listId: { type: String, required: true },
-  lastViewedAt: { type: Date, default: Date.now }
+  lastViewedAt: { type: Date, default: Date.now },
 }, {
   timestamps: true
 });
 
-// Create compound index for unique pins
-pinSchema.index({ userId: 1, listId: 1 }, { unique: true });
-
-export const PinModel = models.Pin || model<IPin>('Pin', pinSchema); 
+export const PinModel = mongoose.models.Pin || mongoose.model<PinDocument>('Pin', pinSchema); 

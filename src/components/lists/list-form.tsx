@@ -4,10 +4,10 @@ import { useState, KeyboardEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { createListSchema, type CreateListSchema } from "@/lib/validations/list";
 import { ListCategory, ListPrivacy, LIST_CATEGORIES, PRIVACY_OPTIONS } from "@/types/list";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import * as z from "zod";
 
 import {
   Form,
@@ -54,6 +54,15 @@ interface ListFormProps {
   mode?: 'create' | 'edit';
 }
 
+const formSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  category: z.enum(["movies", "books", "music", "games", "other", "tv-shows", "restaurants"] as const),
+  description: z.string(),
+  privacy: z.enum(["public", "private"] as const),
+});
+
+type FormData = z.infer<typeof formSchema>;
+
 export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,8 +70,8 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
     initialData?.items || []
   );
   
-  const form = useForm<CreateListSchema>({
-    resolver: zodResolver(createListSchema),
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       title: initialData?.title || "",
       category: initialData?.category || "movies",
@@ -71,7 +80,7 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
     },
   });
 
-  const onSubmit = async (data: CreateListSchema) => {
+  const onSubmit = async (data: FormData) => {
     try {
       setIsSubmitting(true);
       
@@ -188,14 +197,17 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
+                  disabled={isSubmitting}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                  </FormControl>
                   <SelectContent>
-                    {LIST_CATEGORIES.map(({ label, value }) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
+                    {LIST_CATEGORIES.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -211,16 +223,16 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Privacy</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select privacy setting" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {PRIVACY_OPTIONS.map(({ label, value }) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
+                    {PRIVACY_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>

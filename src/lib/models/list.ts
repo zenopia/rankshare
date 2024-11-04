@@ -12,15 +12,7 @@ const listSchema = new Schema<ListDocument>({
     default: 'movies'
   },
   description: { type: String, default: '' },
-  items: [{
-    title: String,
-    description: String,
-    url: String,
-    comment: String,
-    rank: Number,
-    createdAt: Date,
-    updatedAt: Date
-  }],
+  items: [Schema.Types.Mixed],
   privacy: { 
     type: String, 
     required: true, 
@@ -32,4 +24,4 @@ const listSchema = new Schema<ListDocument>({
   timestamps: true
 });
 
-export const ListModel = mongoose.models.List || mongoose.model<ListDocument>('List', listSchema);
+export const ListModel = mongoose.models.List || mongoose.model<ListDocument>('List', listSchema); 
