@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
-import { ListModel } from "@/lib/db/models/list";
 import { FollowModel } from "@/lib/db/models/follow";
 import { UserModel } from "@/lib/db/models/user";
+import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
 import { UserCard } from "@/components/users/user-card";
 import { SearchInput } from "@/components/search/search-input";
@@ -12,12 +12,12 @@ interface SearchParams {
   q?: string;
 }
 
-interface FollowedUser extends User {
+interface Follower extends User {
   hasNewLists?: boolean;
   lastListCreated?: Date;
 }
 
-export default async function FollowingPage({
+export default async function FollowersPage({
   searchParams,
 }: {
   searchParams: SearchParams;
@@ -27,44 +27,39 @@ export default async function FollowingPage({
 
   await dbConnect();
 
-  // Get users being followed
-  const follows = await FollowModel.find({ followerId: userId }).lean();
-  const followingIds = follows.map(follow => follow.followingId);
+  // Get users following the current user
+  const follows = await FollowModel.find({ followingId: userId }).lean();
+  const followerIds = follows.map(follow => follow.followerId);
 
-  // Get users and their latest public list
-  const followedUsers = await Promise.all(
-    followingIds.map(async (followingId) => {
-      const user = await UserModel.findOne({ clerkId: followingId }).lean() as User | null;
+  // Get followers and their latest public list
+  const followers = await Promise.all(
+    followerIds.map(async (followerId) => {
+      const user = await UserModel.findOne({ clerkId: followerId }).lean() as User | null;
       if (!user) return null;
 
       // Get user's latest public list
       const latestList = await ListModel
         .findOne({ 
-          ownerId: followingId,
+          ownerId: followerId,
           privacy: 'public',
         })
         .sort({ createdAt: -1 })
         .lean()
         .exec() as unknown as MongoListDocument | null;
 
-      // Get follow record to check last viewed time
-      const follow = follows.find(f => f.followingId === followingId);
-      const hasNewLists = latestList && follow && 
-        new Date(latestList.createdAt) > new Date(follow.lastCheckedAt);
-
-      const followedUser: FollowedUser = {
+      const follower: Follower = {
         ...user,
-        hasNewLists: hasNewLists || false,
+        hasNewLists: false, // We don't track updates from followers
         lastListCreated: latestList?.createdAt,
       };
 
-      return followedUser;
+      return follower;
     })
   );
 
   // Filter out null values and apply search
-  const filteredUsers = followedUsers
-    .filter((user): user is FollowedUser => 
+  const filteredUsers = followers
+    .filter((user): user is Follower => 
       user !== null && 
       (!searchParams.q || 
         user.username.toLowerCase().includes(searchParams.q.toLowerCase()))
@@ -73,10 +68,10 @@ export default async function FollowingPage({
   return (
     <div className="container py-8">
       <div className="mb-8 space-y-4">
-        <h1 className="text-3xl font-bold">Following</h1>
+        <h1 className="text-3xl font-bold">Followers</h1>
         <div className="max-w-md">
           <SearchInput 
-            placeholder="Search users..." 
+            placeholder="Search followers..." 
             defaultValue={searchParams.q}
           />
         </div>
@@ -95,8 +90,8 @@ export default async function FollowingPage({
         <div className="text-center">
           <p className="text-muted-foreground">
             {searchParams.q 
-              ? "No users found matching your search."
-              : "You're not following anyone yet. Find users to follow!"}
+              ? "No followers found matching your search."
+              : "You don't have any followers yet. Share your lists to get noticed!"}
           </p>
         </div>
       )}

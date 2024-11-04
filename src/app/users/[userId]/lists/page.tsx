@@ -1,32 +1,48 @@
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { ListModel } from "@/lib/db/models/list";
+import { UserModel } from "@/lib/db/models/user";
+import { FollowModel } from "@/lib/db/models/follow";
 import dbConnect from "@/lib/db/mongodb";
 import { ListCard } from "@/components/lists/list-card";
 import { DashboardSearchForm } from "@/components/search/dashboard-search-form";
-import type { List } from "@/types/list";
-import type { SortOrder } from 'mongoose';
-import { serializeLists } from '@/lib/utils';
+import { FollowButton } from "@/components/users/follow-button";
+import { serializeLists } from "@/lib/utils";
+import { notFound } from "next/navigation";
 import type { MongoListDocument } from "@/types/mongodb";
 
 interface SearchParams {
   q?: string;
   category?: string;
   sort?: 'newest' | 'oldest' | 'most-viewed';
-  privacy?: 'all' | 'public' | 'private';
 }
 
-export default async function MyListsPage({
+export default async function UserListsPage({
+  params,
   searchParams,
 }: {
+  params: { userId: string };
   searchParams: SearchParams;
 }) {
-  const { userId } = await auth();
-  if (!userId) return null;
+  const { userId: currentUserId } = await auth();
+  if (!currentUserId) return null;
 
   await dbConnect();
 
+  // Get user
+  const user = await UserModel.findOne({ clerkId: params.userId }).lean() as { username: string } | null;
+  if (!user) notFound();
+
+  // Check if following
+  const follow = await FollowModel.findOne({
+    followerId: currentUserId,
+    followingId: params.userId,
+  }).lean();
+
   // Build filter
-  const filter: any = { ownerId: userId };
+  const filter: any = { 
+    ownerId: params.userId,
+    privacy: 'public',
+  };
   
   if (searchParams.q) {
     filter.$or = [
@@ -40,57 +56,58 @@ export default async function MyListsPage({
     filter.category = searchParams.category;
   }
 
-  if (searchParams.privacy && searchParams.privacy !== 'all') {
-    filter.privacy = searchParams.privacy;
-  }
-
-  // Determine sort order
-  const sortOptions: Record<string, Record<string, SortOrder>> = {
-    'newest': { createdAt: -1 },
-    'oldest': { createdAt: 1 },
-    'most-viewed': { viewCount: -1, createdAt: -1 },
-  };
-
-  const sort = sortOptions[searchParams.sort || 'newest'];
-
   // Fetch lists
   const lists = await ListModel
     .find(filter)
-    .sort(sort)
+    .sort({ createdAt: -1 })
     .lean()
     .exec() as unknown as MongoListDocument[];
 
   const serializedLists = serializeLists(lists);
 
+  // Update last checked time if following
+  if (follow && !Array.isArray(follow)) {
+    await FollowModel.updateOne(
+      { _id: follow._id },
+      { $set: { lastCheckedAt: new Date() } }
+    );
+  }
+
   return (
     <div className="container py-8">
       <div className="mb-8 space-y-4">
-        <h1 className="text-3xl font-bold">My Lists</h1>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">{user?.username || 'User'}'s Lists</h1>
+            <p className="text-muted-foreground">Public lists</p>
+          </div>
+          <FollowButton 
+            userId={params.userId}
+            isFollowing={!!follow}
+          />
+        </div>
         <DashboardSearchForm 
           defaultValues={{
             q: searchParams.q,
             category: searchParams.category,
             sort: searchParams.sort,
-            privacy: searchParams.privacy,
           }}
         />
       </div>
 
       {serializedLists.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {serializedLists.map((list: List) => (
+          {serializedLists.map((list) => (
             <ListCard 
               key={list.id} 
               list={list}
-              showPrivacyBadge
-              showActions
             />
           ))}
         </div>
       ) : (
         <div className="text-center">
           <p className="text-muted-foreground">
-            No lists found. Try adjusting your filters or create a new list.
+            No public lists found.
           </p>
         </div>
       )}

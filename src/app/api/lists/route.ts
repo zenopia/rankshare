@@ -67,11 +67,10 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
+    await dbConnect();
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
     const query = searchParams.get("query");
-
-    await dbConnect();
 
     const filter: FilterQuery<List> = { privacy: "public" };
     if (category) filter.category = category;
@@ -87,6 +86,11 @@ export async function GET(req: Request) {
     return NextResponse.json(lists);
   } catch (error) {
     console.error("[LISTS_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    return new NextResponse(
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : "Internal Server Error" 
+      }), 
+      { status: 500 }
+    );
   }
 } 

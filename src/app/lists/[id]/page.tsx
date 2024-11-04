@@ -3,23 +3,38 @@ import { ListView } from "@/components/lists/list-view";
 import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
 import { auth } from "@clerk/nextjs/server";
-import type { List } from "@/types/list";
+import type { List, ListDocument } from "@/types/list";
 import { PinModel } from "@/lib/db/models/pin";
+import type { IPin } from "@/lib/db/models/pin";
 
-interface ListPageProps {
-  params: Promise<{ id: string }> | { id: string };
-}
-
-export default async function ListPage({ params }: ListPageProps) {
+export default async function ListPage({ params }: { params: { id: string } }) {
   try {
-    const resolvedParams = await params;
     await dbConnect();
     
-    const list = await ListModel.findById(resolvedParams.id).lean() as unknown as List & { _id: string };
+    const rawList = await ListModel.findById(params.id).lean() as ListDocument | null;
     
-    if (!list) {
+    if (!rawList) {
       notFound();
     }
+
+    // Serialize the MongoDB document to a plain object
+    const list: List = {
+      id: rawList._id.toString(),
+      ownerId: rawList.ownerId,
+      ownerName: rawList.ownerName,
+      title: rawList.title,
+      category: rawList.category,
+      description: rawList.description,
+      items: rawList.items.map(item => ({
+        title: item.title,
+        rank: item.rank,
+        comment: item.comment,
+      })),
+      privacy: rawList.privacy,
+      viewCount: rawList.viewCount,
+      createdAt: new Date(rawList.createdAt),
+      updatedAt: new Date(rawList.updatedAt),
+    };
 
     // Get the current user if they're logged in
     const { userId } = await auth();
@@ -27,34 +42,19 @@ export default async function ListPage({ params }: ListPageProps) {
 
     // Increment view count if the viewer is not the owner
     if (!isOwner) {
-      await ListModel.findByIdAndUpdate(resolvedParams.id, {
+      await ListModel.findByIdAndUpdate(params.id, {
         $inc: { viewCount: 1 }
       });
-      list.viewCount += 1; // Update the local list object
+      list.viewCount += 1;
     }
-
-    // Create a clean object without MongoDB-specific properties
-    const cleanList: List = {
-      id: list._id.toString(),
-      ownerId: list.ownerId,
-      ownerName: list.ownerName || 'Anonymous',
-      title: list.title,
-      category: list.category,
-      description: list.description,
-      items: list.items,
-      privacy: list.privacy,
-      createdAt: list.createdAt,
-      updatedAt: list.updatedAt,
-      viewCount: list.viewCount
-    };
 
     const pin = userId ? await PinModel.findOne({ 
       userId, 
-      listId: resolvedParams.id 
-    }).lean() : null;
+      listId: params.id 
+    }).lean() as IPin | null : null;
 
     const isPinned = !!pin;
-    const hasUpdate = pin ? new Date(list.updatedAt) > new Date(pin.lastViewedAt) : false;
+    const hasUpdate = pin ? list.updatedAt > new Date(pin.lastViewedAt) : false;
 
     // Update lastViewedAt if pinned
     if (pin) {
@@ -65,9 +65,9 @@ export default async function ListPage({ params }: ListPageProps) {
     }
 
     return (
-      <main className="container py-8">
+      <main className="container mx-auto py-8 px-4">
         <ListView 
-          list={cleanList} 
+          list={list}
           isOwner={isOwner} 
           isPinned={isPinned}
           hasUpdate={hasUpdate}

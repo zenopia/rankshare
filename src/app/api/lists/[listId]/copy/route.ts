@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import dbConnect from "@/lib/db/mongodb";
 import { ListModel } from "@/lib/db/models/list";
+import type { ListItem } from "@/types/list";
 
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ listId: string }> | { listId: string } }
+  { params }: { params: { listId: string } }
 ) {
   try {
-    const resolvedParams = await params;
     const { userId } = await auth();
     const user = await currentUser();
     
@@ -21,8 +21,8 @@ export async function POST(
 
     await dbConnect();
 
-    // Get the original list
-    const originalList = await ListModel.findById(resolvedParams.listId).lean();
+    const originalList = await ListModel.findById(params.listId);
+    
     if (!originalList) {
       return new NextResponse(
         JSON.stringify({ error: "List not found" }), 
@@ -30,36 +30,30 @@ export async function POST(
       );
     }
 
-    // Create a new list with copied content
     const newList = await ListModel.create({
       ownerId: userId,
       ownerName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Anonymous',
       title: `Copy of ${originalList.title}`,
       category: originalList.category,
       description: originalList.description,
-      items: originalList.items.map((item: any, index: number) => ({
+      items: originalList.items.map((item: ListItem, index: number) => ({
         title: item.title,
         rank: index + 1,
         comment: item.comment,
       })),
-      privacy: 'private', // Default to private for copied lists
+      privacy: 'private',
       viewCount: 0,
     });
 
     return new NextResponse(
       JSON.stringify(newList), 
-      { 
-        status: 201,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
+      { status: 201 }
     );
   } catch (error) {
-    console.error("[LIST_COPY]", error);
+    console.error('Error copying list:', error);
     return new NextResponse(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Failed to copy list"
+        error: error instanceof Error ? error.message : 'Failed to copy list'
       }), 
       { status: 500 }
     );

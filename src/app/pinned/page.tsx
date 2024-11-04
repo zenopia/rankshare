@@ -1,21 +1,24 @@
-import { auth } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { ListModel } from "@/lib/db/models/list";
+import { PinModel } from "@/lib/db/models/pin";
 import dbConnect from "@/lib/db/mongodb";
 import { ListCard } from "@/components/lists/list-card";
 import { DashboardSearchForm } from "@/components/search/dashboard-search-form";
 import type { List } from "@/types/list";
-import type { SortOrder } from 'mongoose';
-import { serializeLists } from '@/lib/utils';
 import type { MongoListDocument } from "@/types/mongodb";
+import type { SortOrder } from 'mongoose';
 
 interface SearchParams {
   q?: string;
   category?: string;
   sort?: 'newest' | 'oldest' | 'most-viewed';
-  privacy?: 'all' | 'public' | 'private';
 }
 
-export default async function MyListsPage({
+interface PinnedList extends List {
+  hasUpdate: boolean;
+}
+
+export default async function PinnedListsPage({
   searchParams,
 }: {
   searchParams: SearchParams;
@@ -25,8 +28,14 @@ export default async function MyListsPage({
 
   await dbConnect();
 
+  // Get user's pins with last viewed time
+  const pins = await PinModel.find({ userId }).lean();
+  const pinnedListIds = pins.map(pin => pin.listId);
+
   // Build filter
-  const filter: any = { ownerId: userId };
+  const filter: any = { 
+    _id: { $in: pinnedListIds }
+  };
   
   if (searchParams.q) {
     filter.$or = [
@@ -38,10 +47,6 @@ export default async function MyListsPage({
 
   if (searchParams.category) {
     filter.category = searchParams.category;
-  }
-
-  if (searchParams.privacy && searchParams.privacy !== 'all') {
-    filter.privacy = searchParams.privacy;
   }
 
   // Determine sort order
@@ -60,37 +65,52 @@ export default async function MyListsPage({
     .lean()
     .exec() as unknown as MongoListDocument[];
 
-  const serializedLists = serializeLists(lists);
+  // Add update status to lists
+  const pinnedLists: PinnedList[] = lists.map(list => ({
+    id: list._id.toString(),
+    ownerId: list.ownerId || '',
+    ownerName: list.ownerName || 'Anonymous',
+    title: list.title || '',
+    category: list.category || 'movies',
+    description: list.description || '',
+    items: list.items || [],
+    privacy: list.privacy || 'public',
+    viewCount: list.viewCount || 0,
+    createdAt: new Date(list.createdAt),
+    updatedAt: new Date(list.updatedAt),
+    hasUpdate: pins.some(pin => 
+      pin.listId === list._id.toString() && 
+      new Date(list.updatedAt) > new Date(pin.lastViewedAt)
+    ),
+  }));
 
   return (
     <div className="container py-8">
       <div className="mb-8 space-y-4">
-        <h1 className="text-3xl font-bold">My Lists</h1>
+        <h1 className="text-3xl font-bold">Pinned Lists</h1>
         <DashboardSearchForm 
           defaultValues={{
             q: searchParams.q,
             category: searchParams.category,
             sort: searchParams.sort,
-            privacy: searchParams.privacy,
           }}
         />
       </div>
 
-      {serializedLists.length > 0 ? (
+      {pinnedLists.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {serializedLists.map((list: List) => (
+          {pinnedLists.map((list) => (
             <ListCard 
               key={list.id} 
               list={list}
-              showPrivacyBadge
-              showActions
+              showUpdateBadge={list.hasUpdate}
             />
           ))}
         </div>
       ) : (
         <div className="text-center">
           <p className="text-muted-foreground">
-            No lists found. Try adjusting your filters or create a new list.
+            No pinned lists yet. Browse lists and pin them to save them here!
           </p>
         </div>
       )}

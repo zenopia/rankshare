@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useForm, ControllerRenderProps } from "react-hook-form";
+import { useState, KeyboardEvent } from "react";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { createListSchema, type CreateListSchema } from "@/lib/validations/list";
-import { ListCategory, ListPrivacy } from "@/types/list";
+import { ListCategory, ListPrivacy, LIST_CATEGORIES, PRIVACY_OPTIONS } from "@/types/list";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -28,13 +28,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { X } from "lucide-react";
-
-const categories: { label: string; value: ListCategory }[] = [
-  { label: "Movies", value: "movies" },
-  { label: "TV Shows", value: "tv-shows" },
-  { label: "Books", value: "books" },
-  { label: "Restaurants", value: "restaurants" },
-];
 
 interface DragEndResult {
   destination?: {
@@ -149,11 +142,24 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
     setItems(newItems);
   };
 
-  type FieldType = ControllerRenderProps<CreateListSchema, keyof CreateListSchema>;
-
   const handleSubmit = form.handleSubmit((data) => {
     onSubmit(data);
   });
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (items[index].title.trim()) {
+        addItem();
+        // Focus the new input after a short delay to allow for DOM update
+        setTimeout(() => {
+          const inputs = document.querySelectorAll<HTMLInputElement>('input[placeholder="Item title"]');
+          const newInput = inputs[inputs.length - 1];
+          newInput?.focus();
+        }, 0);
+      }
+    }
+  };
 
   return (
     <Form {...form}>
@@ -161,7 +167,7 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
         <FormField
           control={form.control}
           name="title"
-          render={({ field }: { field: FieldType }) => (
+          render={({ field }) => (
             <FormItem>
               <FormLabel>Title</FormLabel>
               <FormControl>
@@ -172,35 +178,63 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="category"
-          render={({ field }: { field: FieldType }) => (
-            <FormItem>
-              <FormLabel>Category</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  <SelectContent>
+                    {LIST_CATEGORIES.map(({ label, value }) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="privacy"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Privacy</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select privacy setting" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {PRIVACY_OPTIONS.map(({ label, value }) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
           name="description"
-          render={({ field }: { field: FieldType }) => (
+          render={({ field }) => (
             <FormItem>
               <FormLabel>Description (Optional)</FormLabel>
               <FormControl>
@@ -212,12 +246,7 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
         />
 
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium">Items</h3>
-            <Button type="button" onClick={addItem}>
-              Add Item
-            </Button>
-          </div>
+          <h3 className="text-lg font-medium">Items</h3>
 
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="items">
@@ -245,6 +274,7 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
                               newItems[index].title = e.target.value;
                               setItems(newItems);
                             }}
+                            onKeyDown={(e) => handleKeyDown(e, index)}
                           />
                           <Input
                             placeholder="Comment (optional)"
@@ -268,33 +298,19 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
                     </Draggable>
                   ))}
                   {provided.placeholder}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={addItem}
+                  >
+                    Add Item
+                  </Button>
                 </div>
               )}
             </Droppable>
           </DragDropContext>
         </div>
-
-        <FormField
-          control={form.control}
-          name="privacy"
-          render={({ field }: { field: FieldType }) => (
-            <FormItem>
-              <FormLabel>Privacy</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select privacy setting" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <Button 
           type="submit" 

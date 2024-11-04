@@ -20,7 +20,7 @@ async function dbConnect() {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(process.env.MONGODB_URI!, opts);
+    cached.promise = mongoose.connect(process.env.MONGODB_URI!, opts) as unknown as Promise<mongoose.Connection>;
   }
 
   try {

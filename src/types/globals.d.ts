@@ -1,8 +1,14 @@
-import mongoose from 'mongoose';
+import type { Connection } from 'mongoose';
 
 declare global {
-  var mongoose: {
-    conn: typeof mongoose | null;
-    promise: Promise<typeof mongoose> | null;
-  };
-} 
+  namespace NodeJS {
+    interface Global {
+      mongoose: {
+        conn: Connection | null;
+        promise: Promise<Connection> | null;
+      };
+    }
+  }
+}
+
+export {}; 

@@ -1,12 +1,15 @@
 import { Schema, model, models } from 'mongoose';
 
-interface Follow {
+export interface IFollow {
+  _id: string;
   followerId: string;
   followingId: string;
   lastCheckedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const FollowSchema = new Schema<Follow>({
+const followSchema = new Schema({
   followerId: { type: String, required: true },
   followingId: { type: String, required: true },
   lastCheckedAt: { type: Date, default: Date.now },
@@ -15,8 +18,8 @@ const FollowSchema = new Schema<Follow>({
 });
 
 // Create compound index for unique follows and efficient queries
-FollowSchema.index({ followerId: 1, followingId: 1 }, { unique: true });
-FollowSchema.index({ followerId: 1 });
-FollowSchema.index({ followingId: 1 });
+followSchema.index({ followerId: 1, followingId: 1 }, { unique: true });
+followSchema.index({ followerId: 1 });
+followSchema.index({ followingId: 1 });
 
-export const FollowModel = models.Follow || model<Follow>('Follow', FollowSchema); 
+export const FollowModel = models.Follow || model('Follow', followSchema); 

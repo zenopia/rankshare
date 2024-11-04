@@ -2,8 +2,8 @@ import { ListCard } from "@/components/lists/list-card";
 import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
 import { SearchForm } from "@/components/search/search-form";
-import type { List } from "@/types/list";
-import type { SortOrder } from 'mongoose';
+import type { List, ListDocument } from "@/types/list";
+import type { FilterQuery, SortOrder } from 'mongoose';
 
 interface SearchPageProps {
   searchParams: Promise<{
@@ -24,7 +24,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   try {
     await dbConnect();
     
-    const filter: any = { privacy: "public" };
+    const filter: FilterQuery<ListDocument> = { privacy: "public" };
     
     // Search in both title and item titles/comments
     if (resolvedParams.q) {
@@ -48,11 +48,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
     const results = await ListModel
       .find(filter)
-      .sort(sort)
-      .limit(20)
-      .lean();
+      .sort(sort) as ListDocument[];
 
-    lists = results.map(list => ({
+    lists = results.map((list: ListDocument) => ({
       id: list._id.toString(),
       ownerId: list.ownerId,
       ownerName: list.ownerName,

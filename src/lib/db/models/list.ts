@@ -1,16 +1,20 @@
-import mongoose, { Schema, model, models } from 'mongoose';
+import { Schema, model, models, Document } from 'mongoose';
 import type { List } from '@/types/list';
+
+interface ListDocument extends Document, Omit<List, 'id'> {
+  _id: string;
+}
 
 const ListItemSchema = new Schema({
   title: { type: String, required: true },
   rank: { type: Number, required: true },
   comment: { type: String },
 }, {
-  _id: false, // Disable auto _id for subdocuments
-  id: false // Disable virtual id
+  _id: false,
+  id: false
 });
 
-const ListSchema = new Schema<List>({
+const ListSchema = new Schema<ListDocument>({
   ownerId: { type: String, required: true },
   ownerName: { type: String, required: true },
   title: { type: String, required: true },
@@ -46,4 +50,11 @@ ListSchema.index({ category: 1 });
 ListSchema.index({ privacy: 1 });
 ListSchema.index({ title: 'text' });
 
-export const ListModel = models.List || model<List>('List', ListSchema);
+// Add after existing indexes
+ListSchema.index({ 
+  title: 'text',
+  'items.title': 'text',
+  'items.comment': 'text'
+});
+
+export const ListModel = models.List || model<ListDocument>('List', ListSchema);

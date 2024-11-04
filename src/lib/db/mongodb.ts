@@ -2,16 +2,16 @@ import mongoose from 'mongoose';
 
 declare global {
   var mongoose: {
-    conn: typeof mongoose | null;
-    promise: Promise<typeof mongoose> | null;
+    conn: mongoose.Connection | null;
+    promise: Promise<mongoose.Connection> | null;
   };
 }
 
 if (!process.env.MONGODB_URI) {
-  throw new Error('Please add your MONGODB_URI to .env.local');
+  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
 }
 
-const MONGODB_URI: string = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI;
 
 let cached = global.mongoose;
 
@@ -19,33 +19,38 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-async function dbConnect() {
+async function dbConnect(): Promise<mongoose.Connection> {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
+    };
+
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      return mongoose.connection;
+    });
+  }
+
   try {
-    if (cached.conn) {
-      return cached.conn;
-    }
-
-    if (!cached.promise) {
-      const opts = {
-        bufferCommands: false,
-        serverSelectionTimeoutMS: 5000,
-        connectTimeoutMS: 10000,
-      };
-
-      cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongooseInstance) => {
-        console.log('Connected to MongoDB');
-        return mongooseInstance as typeof mongoose;
-      });
-    }
-
-    const mongooseInstance = await cached.promise;
-    cached.conn = mongooseInstance;
-    return mongooseInstance;
+    cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
-    console.error('MongoDB connection error:', e);
-    throw new Error('Failed to connect to MongoDB');
+    throw e;
   }
+
+  return cached.conn;
 }
+
+// Add connection logging
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB connected successfully');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err);
+});
 
 export default dbConnect; 
