@@ -10,6 +10,8 @@ import { serializeList } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PinButton } from "@/components/ui/pin-button";
 import { CopyListButton } from "@/components/ui/copy-list-button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Pencil } from "lucide-react";
 
 export default async function ListPage({ params }: { params: { id: string } }) {
   try {
@@ -56,18 +58,55 @@ export default async function ListPage({ params }: { params: { id: string } }) {
             <div className="flex items-center gap-2">
               {userId && (
                 <>
-                  <PinButton 
-                    listId={serializedList.id} 
-                    isPinned={serializedList.isPinned} 
-                  />
-                  <CopyListButton listId={serializedList.id} />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <PinButton 
+                            listId={serializedList.id} 
+                            isPinned={serializedList.isPinned} 
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{serializedList.isPinned ? 'Unpin list' : 'Pin list'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <CopyListButton listId={serializedList.id} />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Copy list</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </>
               )}
               
               {serializedList.isOwner && (
-                <Link href={`/lists/${params.id}/edit`}>
-                  <Button variant="outline">Edit List</Button>
-                </Link>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link href={`/lists/${params.id}/edit`}>
+                        <Button 
+                          variant="outline"
+                          size="default"
+                          className="w-10 h-10 p-0"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Edit list</span>
+                        </Button>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Edit list</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
           </div>
