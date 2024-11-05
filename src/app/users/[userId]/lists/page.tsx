@@ -23,6 +23,9 @@ interface MongoUserDocument extends Omit<User, '_id'> {
   __v?: number;
 }
 
+// Add revalidation for user list pages
+export const revalidate = 3600; // Revalidate every hour
+
 export default async function UserListsPage({
   params,
   searchParams,

@@ -5,8 +5,13 @@ export default authMiddleware({
     '/',
     '/search',
     '/lists/(.*)',
-    '/users/(.*)/lists',
+    '/api/lists/search',
+    '/sign-in(.*)',
+    '/sign-up(.*)',
   ],
+  ignoredRoutes: [
+    '/api/webhooks(.*)',
+  ]
 });
 
 export const config = {

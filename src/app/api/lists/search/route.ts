@@ -6,6 +6,8 @@ import dbConnect from "@/lib/db/mongodb";
 import type { ListDocument } from "@/types/list";
 import type { PinDocument } from "@/types/pin";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     const { userId } = await auth();

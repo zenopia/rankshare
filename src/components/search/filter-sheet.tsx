@@ -10,7 +10,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useState } from "react";
-import { LIST_CATEGORIES, PRIVACY_OPTIONS, ListCategory, ListPrivacy, ListPrivacyFilter } from "@/types/list";
+import { LIST_CATEGORIES, PRIVACY_OPTIONS, ListCategory, ListPrivacyFilter } from "@/types/list";
 import { useRouter, useSearchParams } from "next/navigation";
 
 interface FilterSheetProps {

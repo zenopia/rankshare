@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { notFound } from "next/navigation";
 import { ListForm } from "@/components/lists/list-form";
 import { ListModel } from "@/lib/db/models/list";
@@ -48,7 +49,12 @@ export default async function EditListPage({ params }: EditListPageProps) {
             <h1 className="text-2xl font-bold">Edit List</h1>
             <DeleteListButton listId={list._id.toString()} />
           </div>
-          <ListForm initialData={initialData} mode="edit" />
+          <Suspense fallback={<div className="space-y-4">
+            <div className="h-8 bg-muted animate-pulse rounded" />
+            <div className="h-32 bg-muted animate-pulse rounded" />
+          </div>}>
+            <ListForm initialData={initialData} mode="edit" />
+          </Suspense>
         </div>
       </ProtectedRoute>
     );

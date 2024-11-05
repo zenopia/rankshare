@@ -6,6 +6,7 @@ import { Providers } from './providers'
 import { Navbar } from '@/components/layout/navbar'
 import { Sidebar } from '@/components/layout/sidebar'
 import { auth } from '@clerk/nextjs'
+import { Metadata } from 'next';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -13,10 +14,28 @@ const inter = Inter({
   preload: true,
 })
 
-export const metadata = {
-  title: 'RankShare',
-  description: 'Create and share ranked lists',
-}
+export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://rankshare.app'),
+  title: {
+    default: 'RankShare',
+    template: '%s | RankShare'
+  },
+  description: 'Create and share ranked lists of your favorite things',
+  keywords: ['ranking', 'lists', 'recommendations', 'sharing'],
+  authors: [{ name: 'RankShare Team' }],
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://rankshare.app',
+    siteName: 'RankShare',
+    title: 'RankShare - Create and Share Ranked Lists',
+    description: 'Create and share ranked lists of your favorite things',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default async function RootLayout({
   children,

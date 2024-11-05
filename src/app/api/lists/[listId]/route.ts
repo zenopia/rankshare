@@ -5,15 +5,22 @@ import { ListModel } from "@/lib/db/models/list";
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ listId: string }> | { listId: string } }
+  { params }: { params: { listId: string } }
 ) {
   try {
-    const resolvedParams = await params;
     await dbConnect();
-
-    const list = await ListModel.findById(resolvedParams.listId);
+    const list = await ListModel.findById(params.listId);
+    
     if (!list) {
       return new NextResponse("Not Found", { status: 404 });
+    }
+
+    // Add cache headers for public lists
+    const headers = new Headers();
+    if (list.privacy === "public") {
+      headers.set('Cache-Control', 's-maxage=3600, stale-while-revalidate');
+    } else {
+      headers.set('Cache-Control', 'no-store');
     }
 
     // Increment view count
@@ -22,7 +29,10 @@ export async function GET(
       await list.save();
     }
 
-    return NextResponse.json(list);
+    return new NextResponse(JSON.stringify(list), {
+      headers,
+      status: 200
+    });
   } catch (error) {
     console.error("[LIST_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });

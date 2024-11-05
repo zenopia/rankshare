@@ -19,6 +19,9 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
+// Increase max listeners to prevent warning
+mongoose.connection.setMaxListeners(15);
+
 async function dbConnect(): Promise<mongoose.Connection> {
   if (cached.conn) {
     return cached.conn;
@@ -44,13 +47,26 @@ async function dbConnect(): Promise<mongoose.Connection> {
   return cached.conn;
 }
 
-// Add connection logging
-mongoose.connection.on('connected', () => {
-  console.log('MongoDB connected successfully');
-});
+// Clean up function for connection
+async function disconnect() {
+  if (cached.conn) {
+    await cached.conn.close();
+    cached.conn = null;
+    cached.promise = null;
+  }
+}
 
-mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
-});
+// Handle cleanup on app shutdown
+if (process.env.NODE_ENV !== 'production') {
+  process.on('SIGTERM', async () => {
+    await disconnect();
+    process.exit(0);
+  });
+
+  process.on('SIGINT', async () => {
+    await disconnect();
+    process.exit(0);
+  });
+}
 
 export default dbConnect; 

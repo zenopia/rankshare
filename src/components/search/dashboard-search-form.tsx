@@ -2,7 +2,7 @@
 
 import { SearchInput } from "@/components/search/search-input";
 import { FilterSheet } from "@/components/search/filter-sheet";
-import { ListCategory, ListPrivacy, ListPrivacyFilter } from "@/types/list";
+import { ListCategory, ListPrivacyFilter } from "@/types/list";
 
 interface DashboardSearchFormProps {
   defaultValues?: {

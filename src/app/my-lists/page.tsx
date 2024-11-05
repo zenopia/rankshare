@@ -27,18 +27,15 @@ export default async function MyListsPage({
   if (!userId) return null;
 
   await dbConnect();
-
-  // Add this line to ensure user exists
   await ensureUserExists();
 
   // Build filter
   const filter: any = { ownerId: userId };
-  
+
   if (searchParams.q) {
     filter.$or = [
       { title: { $regex: searchParams.q, $options: 'i' } },
-      { 'items.title': { $regex: searchParams.q, $options: 'i' } },
-      { 'items.comment': { $regex: searchParams.q, $options: 'i' } },
+      { description: { $regex: searchParams.q, $options: 'i' } },
     ];
   }
 
@@ -46,26 +43,28 @@ export default async function MyListsPage({
     filter.category = searchParams.category;
   }
 
-  // Ensure privacy is of type ListPrivacy and not 'all'
   if (searchParams.privacy && searchParams.privacy !== 'all') {
-    filter.privacy = searchParams.privacy as ListPrivacy;
+    filter.privacy = searchParams.privacy;
   }
 
-  // Determine sort order
-  const sortOptions: Record<string, Record<string, SortOrder>> = {
-    'newest': { createdAt: -1 },
-    'oldest': { createdAt: 1 },
-    'most-viewed': { viewCount: -1, createdAt: -1 },
-  };
+  // Build sort
+  const sort: { [key: string]: SortOrder } = {};
+  switch (searchParams.sort) {
+    case 'oldest':
+      sort.createdAt = 1;
+      break;
+    case 'most-viewed':
+      sort.viewCount = -1;
+      break;
+    case 'newest':
+    default:
+      sort.createdAt = -1;
+  }
 
-  const sort = sortOptions[searchParams.sort || 'newest'];
-
-  // Fetch lists
   const lists = await ListModel
     .find(filter)
     .sort(sort)
-    .lean()
-    .exec() as unknown as MongoListDocument[];
+    .lean() as MongoListDocument[];
 
   const serializedLists = serializeLists(lists);
 
@@ -73,42 +72,43 @@ export default async function MyListsPage({
     <div className="container py-8">
       <div className="space-y-2 mb-6">
         <h1 className="text-3xl font-bold">My Lists</h1>
-        <p className="text-muted-foreground">Manage your created lists</p>
+        <p className="text-muted-foreground">
+          Manage and organize your created lists
+        </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[300px,1fr]">
-        <div className="space-y-4">
+      {/* Search and Filter Controls */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex-1">
           <SearchInput 
             placeholder="Search your lists..."
             defaultValue={searchParams.q}
           />
-          <FilterSheet 
-            defaultCategory={searchParams.category}
-            defaultSort={searchParams.sort}
-            defaultPrivacy={searchParams.privacy}
-          />
         </div>
-
-        <div>
-          {serializedLists.length > 0 ? (
-            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {serializedLists.map((list: List) => (
-                <ListCard 
-                  key={list.id} 
-                  list={list}
-                  showPrivacyBadge
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center">
-              <p className="text-muted-foreground">
-                No lists found. Try adjusting your filters or create a new list.
-              </p>
-            </div>
-          )}
-        </div>
+        <FilterSheet 
+          defaultCategory={searchParams.category}
+          defaultSort={searchParams.sort}
+          defaultPrivacy={searchParams.privacy}
+          showPrivacyFilter={true}
+        />
       </div>
+
+      {/* Results */}
+      {serializedLists.length > 0 ? (
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {serializedLists.map((list: List) => (
+            <ListCard 
+              key={list.id} 
+              list={list}
+              showPrivacyBadge
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No lists found.</p>
+        </div>
+      )}
     </div>
   );
 } 
