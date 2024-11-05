@@ -16,6 +16,10 @@ import { ensureUserExists } from "@/lib/actions/user";
 
 export default async function ListPage({ params }: { params: { id: string } }) {
   try {
+    if (!params.id) {
+      notFound();
+    }
+
     await dbConnect();
     const { userId } = await auth();
 
@@ -51,32 +55,30 @@ export default async function ListPage({ params }: { params: { id: string } }) {
     }
 
     return (
-      <div className="container py-8">
+      <div className="container py-4 sm:py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">{serializedList.title}</h1>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
-                  <span>Created by <Link href={`/users/${serializedList.ownerId}/lists`} className="hover:underline">
-                    {serializedList.ownerName}
-                  </Link></span>
-                  <span>•</span>
-                  <span>{serializedList.viewCount} views</span>
-                  {serializedList.privacy === 'private' && (
-                    <>
-                      <span>•</span>
-                      <div className="flex items-center gap-1">
-                        <Lock className="h-4 w-4" />
-                        <span className="text-sm">Private</span>
-                      </div>
-                    </>
-                  )}
-                </div>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-bold">{serializedList.title}</h1>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
+                <span>Created by <Link href={`/users/${serializedList.ownerId}/lists`} className="hover:underline">
+                  {serializedList.ownerName}
+                </Link></span>
+                <span>•</span>
+                <span>{serializedList.viewCount} views</span>
+                {serializedList.privacy === 'private' && (
+                  <>
+                    <span>•</span>
+                    <div className="flex items-center gap-1">
+                      <Lock className="h-4 w-4" />
+                      <span className="text-sm">Private</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 self-end sm:self-auto">
               {userId && (
                 <>
                   <TooltipProvider>
@@ -133,25 +135,25 @@ export default async function ListPage({ params }: { params: { id: string } }) {
           </div>
 
           {serializedList.description && (
-            <p className="mb-8 text-muted-foreground">
+            <p className="mb-6 sm:mb-8 text-muted-foreground">
               {serializedList.description}
             </p>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {serializedList.items.map((item, index) => (
               <div 
                 key={item.id || index}
-                className="bg-card p-4 rounded-lg border"
+                className="bg-card p-3 sm:p-4 rounded-lg border"
               >
-                <div className="flex items-start gap-4">
-                  <span className="text-2xl font-bold text-muted-foreground">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <span className="text-xl sm:text-2xl font-bold text-muted-foreground">
                     {index + 1}
                   </span>
                   <div>
                     <h3 className="font-medium">{item.title}</h3>
                     {item.comment && (
-                      <p className="text-muted-foreground mt-1">
+                      <p className="text-muted-foreground mt-1 text-sm sm:text-base">
                         {item.comment}
                       </p>
                     )}

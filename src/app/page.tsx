@@ -63,12 +63,13 @@ export default async function HomePage() {
       </div>
 
       {recentLists.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {recentLists.map((list) => (
             <ListCard 
               key={list.id} 
               list={list}
               showUpdateBadge={list.hasUpdate}
+              showPrivacyBadge
             />
           ))}
         </div>

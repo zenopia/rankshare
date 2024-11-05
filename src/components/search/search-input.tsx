@@ -2,32 +2,40 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { useDebouncedCallback } from "use-debounce";
+import { Search } from "lucide-react";
+import { useDebounce } from "@/hooks/use-debounce";
+import { useEffect, useState } from "react";
 
 interface SearchInputProps {
   placeholder?: string;
   defaultValue?: string;
 }
 
-export function SearchInput({ placeholder = "Search...", defaultValue }: SearchInputProps) {
+export function SearchInput({ placeholder = "Search...", defaultValue = "" }: SearchInputProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [value, setValue] = useState(defaultValue);
+  const debouncedValue = useDebounce(value, 500);
 
-  const handleSearch = useDebouncedCallback((term: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (term) {
-      params.set("q", term);
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    if (debouncedValue) {
+      params.set("q", debouncedValue);
     } else {
       params.delete("q");
     }
     router.push(`?${params.toString()}`);
-  }, 300);
+  }, [debouncedValue, router, searchParams]);
 
   return (
-    <Input 
-      placeholder={placeholder}
-      defaultValue={defaultValue}
-      onChange={(e) => handleSearch(e.target.value)}
-    />
+    <div className="relative">
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="pl-10 h-12 sm:h-10 text-base sm:text-sm"
+      />
+    </div>
   );
 } 

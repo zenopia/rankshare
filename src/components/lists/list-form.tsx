@@ -151,10 +151,6 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
     setItems(newItems);
   };
 
-  const handleSubmit = form.handleSubmit((data) => {
-    onSubmit(data);
-  });
-
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, index: number) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -172,22 +168,22 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Title</FormLabel>
-              <FormControl>
-                <Input placeholder="My Top Movies..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-4">
+        <div className="grid gap-6 sm:gap-4">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-base sm:text-sm">Title</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Enter list title" />
+                </FormControl>
+                <FormMessage className="text-sm" />
+              </FormItem>
+            )}
+          />
+          
           <FormField
             control={form.control}
             name="category"
@@ -241,21 +237,21 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
               </FormItem>
             )}
           />
-        </div>
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description (Optional)</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Add a description..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Add a description..." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="space-y-4">
           <h3 className="text-lg font-medium">Items</h3>
@@ -327,6 +323,7 @@ export function ListForm({ initialData, mode = 'create' }: ListFormProps) {
         <Button 
           type="submit" 
           disabled={isSubmitting}
+          className="w-full sm:w-auto"
         >
           {isSubmitting 
             ? (mode === 'edit' ? 'Updating...' : 'Creating...') 

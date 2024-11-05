@@ -2,18 +2,20 @@ import { auth } from "@clerk/nextjs";
 import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
 import { ListCard } from "@/components/lists/list-card";
-import { DashboardSearchForm } from "@/components/search/dashboard-search-form";
 import type { List } from "@/types/list";
 import type { SortOrder } from 'mongoose';
 import { serializeLists } from '@/lib/utils';
 import type { MongoListDocument } from "@/types/mongodb";
 import { ensureUserExists } from "@/lib/actions/user";
+import type { ListCategory, ListPrivacy } from "@/types/list";
+import { SearchInput } from "@/components/search/search-input";
+import { FilterSheet } from "@/components/search/filter-sheet";
 
 interface SearchParams {
   q?: string;
-  category?: string;
+  category?: ListCategory;
   sort?: 'newest' | 'oldest' | 'most-viewed';
-  privacy?: 'all' | 'public' | 'private';
+  privacy?: ListPrivacy | 'all';
 }
 
 export default async function MyListsPage({
@@ -44,8 +46,9 @@ export default async function MyListsPage({
     filter.category = searchParams.category;
   }
 
+  // Ensure privacy is of type ListPrivacy and not 'all'
   if (searchParams.privacy && searchParams.privacy !== 'all') {
-    filter.privacy = searchParams.privacy;
+    filter.privacy = searchParams.privacy as ListPrivacy;
   }
 
   // Determine sort order
@@ -68,35 +71,44 @@ export default async function MyListsPage({
 
   return (
     <div className="container py-8">
-      <div className="mb-8 space-y-4">
+      <div className="space-y-2 mb-6">
         <h1 className="text-3xl font-bold">My Lists</h1>
-        <DashboardSearchForm 
-          defaultValues={{
-            q: searchParams.q,
-            category: searchParams.category,
-            sort: searchParams.sort,
-            privacy: searchParams.privacy,
-          }}
-        />
+        <p className="text-muted-foreground">Manage your created lists</p>
       </div>
 
-      {serializedLists.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {serializedLists.map((list: List) => (
-            <ListCard 
-              key={list.id} 
-              list={list}
-              showPrivacyBadge
-            />
-          ))}
+      <div className="grid gap-6 md:grid-cols-[300px,1fr]">
+        <div className="space-y-4">
+          <SearchInput 
+            placeholder="Search your lists..."
+            defaultValue={searchParams.q}
+          />
+          <FilterSheet 
+            defaultCategory={searchParams.category}
+            defaultSort={searchParams.sort}
+            defaultPrivacy={searchParams.privacy}
+          />
         </div>
-      ) : (
-        <div className="text-center">
-          <p className="text-muted-foreground">
-            No lists found. Try adjusting your filters or create a new list.
-          </p>
+
+        <div>
+          {serializedLists.length > 0 ? (
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {serializedLists.map((list: List) => (
+                <ListCard 
+                  key={list.id} 
+                  list={list}
+                  showPrivacyBadge
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="text-muted-foreground">
+                No lists found. Try adjusting your filters or create a new list.
+              </p>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 } 

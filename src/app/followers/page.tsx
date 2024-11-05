@@ -74,8 +74,8 @@ export default async function FollowersPage({
 
   return (
     <div className="container py-8">
-      <div className="mb-8 space-y-4">
-        <h1 className="text-3xl font-bold">Followers</h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-4">Followers</h1>
         <div className="max-w-md">
           <SearchInput 
             placeholder="Search followers..." 
@@ -84,24 +84,24 @@ export default async function FollowersPage({
         </div>
       </div>
 
-      {filteredUsers.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredUsers.map((user) => (
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {filteredUsers.length > 0 ? (
+          filteredUsers.map((user) => (
             <UserCard 
               key={user.clerkId} 
               user={user}
             />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center">
-          <p className="text-muted-foreground">
-            {searchParams.q 
-              ? "No followers found matching your search."
-              : "You don't have any followers yet. Share your lists to get noticed!"}
-          </p>
-        </div>
-      )}
+          ))
+        ) : (
+          <div className="text-center">
+            <p className="text-muted-foreground">
+              {searchParams.q 
+                ? "No followers found matching your search."
+                : "You don't have any followers yet. Share your lists to get noticed!"}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

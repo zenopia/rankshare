@@ -6,8 +6,9 @@ import dbConnect from "@/lib/db/mongodb";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { ListChecks, Eye, Users, Bookmark } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDistanceToNow } from "date-fns";
 import type { MongoListDocument } from '@/types/mongodb';
+import { ListCard } from "@/components/lists/list-card";
+import { serializeLists } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -38,6 +39,7 @@ export default async function DashboardPage() {
   ]);
 
   const totalViewCount = totalViews[0]?.total || 0;
+  const serializedLists = serializeLists(recentActivity);
 
   return (
     <div className="container space-y-8 py-8">
@@ -71,22 +73,13 @@ export default async function DashboardPage() {
           <CardTitle>Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {recentActivity.map((list) => (
-              <div
-                key={list._id?.toString()}
-                className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
-              >
-                <div>
-                  <p className="font-medium">{list.title}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {list.privacy === "private" ? "Private" : `${list.viewCount} views`}
-                  </p>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Updated {formatDistanceToNow(new Date(list.updatedAt || ''), { addSuffix: true })}
-                </p>
-              </div>
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {serializedLists.map((list) => (
+              <ListCard 
+                key={list.id} 
+                list={list}
+                showPrivacyBadge
+              />
             ))}
           </div>
         </CardContent>

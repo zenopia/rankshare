@@ -4,12 +4,12 @@ import { PinModel } from "@/lib/db/models/pin";
 import dbConnect from "@/lib/db/mongodb";
 import { ListCard } from "@/components/lists/list-card";
 import { DashboardSearchForm } from "@/components/search/dashboard-search-form";
-import type { List } from "@/types/list";
+import type { List, ListCategory } from "@/types/list";
 import type { MongoListDocument } from "@/types/mongodb";
 
 interface SearchParams {
   q?: string;
-  category?: string;
+  category?: ListCategory;
   sort?: 'newest' | 'oldest' | 'most-viewed';
 }
 
@@ -88,11 +88,12 @@ export default async function SavedPage({
       </div>
 
       {savedLists.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {savedLists.map((list) => (
             <ListCard 
               key={list.id} 
               list={list}
+              showPrivacyBadge
               showUpdateBadge={list.hasUpdate}
             />
           ))}

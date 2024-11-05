@@ -46,9 +46,10 @@ export const LIST_CATEGORIES: { label: string; value: ListCategory }[] = [
 ];
 
 // Helper constant for privacy options
-export const PRIVACY_OPTIONS: { label: string; value: ListPrivacy }[] = [
+export const PRIVACY_OPTIONS: { label: string; value: ListPrivacy | 'all' }[] = [
   { label: "Public", value: "public" },
   { label: "Private", value: "private" },
+  { label: "All", value: "all" },
 ];
 
 // Define the User type if it doesn't exist

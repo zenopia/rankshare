@@ -7,10 +7,11 @@ import { DashboardSearchForm } from "@/components/search/dashboard-search-form";
 import type { List } from "@/types/list";
 import type { MongoListDocument } from "@/types/mongodb";
 import type { SortOrder } from 'mongoose';
+import type { ListCategory } from "@/types/list";
 
 interface SearchParams {
   q?: string;
-  category?: string;
+  category?: ListCategory;
   sort?: 'newest' | 'oldest' | 'most-viewed';
 }
 
@@ -98,12 +99,13 @@ export default async function PinnedListsPage({
       </div>
 
       {pinnedLists.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {pinnedLists.map((list) => (
             <ListCard 
               key={list.id} 
               list={list}
               showUpdateBadge={list.hasUpdate}
+              showPrivacyBadge
             />
           ))}
         </div>
