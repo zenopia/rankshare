@@ -1,20 +1,21 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs";
 import { FollowModel } from "@/lib/db/models/follow";
 import { UserModel } from "@/lib/db/models/user";
 import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
 import { UserCard } from "@/components/users/user-card";
 import { SearchInput } from "@/components/search/search-input";
-import type { User } from "@/types/list";
+import type { User } from "@/types/user";
 import type { MongoListDocument } from "@/types/mongodb";
 
 interface SearchParams {
   q?: string;
 }
 
-interface Follower extends User {
-  hasNewLists?: boolean;
+interface UserWithStats extends User {
+  hasNewLists: boolean;
   lastListCreated?: Date;
+  listCount: number;
 }
 
 export default async function FollowersPage({
@@ -31,26 +32,32 @@ export default async function FollowersPage({
   const follows = await FollowModel.find({ followingId: userId }).lean();
   const followerIds = follows.map(follow => follow.followerId);
 
-  // Get followers and their latest public list
+  // Get followers and their stats
   const followers = await Promise.all(
     followerIds.map(async (followerId) => {
       const user = await UserModel.findOne({ clerkId: followerId }).lean() as User | null;
       if (!user) return null;
 
-      // Get user's latest public list
-      const latestList = await ListModel
-        .findOne({ 
+      // Get user's latest public list and count
+      const [latestList, listCount] = await Promise.all([
+        ListModel
+          .findOne({ 
+            ownerId: followerId,
+            privacy: 'public',
+          })
+          .sort({ createdAt: -1 })
+          .lean() as Promise<MongoListDocument | null>,
+        ListModel.countDocuments({
           ownerId: followerId,
           privacy: 'public',
         })
-        .sort({ createdAt: -1 })
-        .lean()
-        .exec() as unknown as MongoListDocument | null;
+      ]);
 
-      const follower: Follower = {
+      const follower: UserWithStats = {
         ...user,
-        hasNewLists: false, // We don't track updates from followers
+        hasNewLists: false,
         lastListCreated: latestList?.createdAt,
+        listCount,
       };
 
       return follower;
@@ -59,7 +66,7 @@ export default async function FollowersPage({
 
   // Filter out null values and apply search
   const filteredUsers = followers
-    .filter((user): user is Follower => 
+    .filter((user): user is UserWithStats => 
       user !== null && 
       (!searchParams.q || 
         user.username.toLowerCase().includes(searchParams.q.toLowerCase()))
@@ -97,4 +104,4 @@ export default async function FollowersPage({
       )}
     </div>
   );
-} 
+}

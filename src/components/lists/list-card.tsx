@@ -58,7 +58,7 @@ export function ListCard({
             {list.viewCount}
           </div>
           <span>
-            Updated {formatDistanceToNow(new Date(list.updatedAt), { addSuffix: true })}
+            Edited {formatDistanceToNow(new Date(list.lastEditedAt || list.createdAt), { addSuffix: true })}
           </span>
         </div>
       </div>

@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import dbConnect from "@/lib/db/mongodb";
 import { ListModel } from "@/lib/db/models/list";
-import { createListSchema } from "@/lib/validations/list";
-
-interface ListItem {
-  title: string;
-  comment?: string;
-}
 
 export async function GET(
   req: Request,
@@ -37,14 +31,11 @@ export async function GET(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: Promise<{ listId: string }> | { listId: string } }
+  { params }: { params: { listId: string } }
 ) {
   try {
-    const resolvedParams = await params;
     const { userId } = await auth();
-    const user = await currentUser();
-    
-    if (!userId || !user) {
+    if (!userId) {
       return new NextResponse(
         JSON.stringify({ error: "Unauthorized" }), 
         { status: 401 }
@@ -52,11 +43,10 @@ export async function PATCH(
     }
 
     const json = await req.json();
-    const validatedData = createListSchema.parse(json);
-
+    
     await dbConnect();
 
-    const list = await ListModel.findById(resolvedParams.listId);
+    const list = await ListModel.findById(params.listId);
     if (!list) {
       return new NextResponse(
         JSON.stringify({ error: "List not found" }), 
@@ -66,39 +56,30 @@ export async function PATCH(
 
     if (list.ownerId !== userId) {
       return new NextResponse(
-        JSON.stringify({ error: "Not authorized to edit this list" }), 
-        { status: 403 }
+        JSON.stringify({ error: "Unauthorized" }), 
+        { status: 401 }
       );
     }
 
+    // Add lastEditedAt when updating the list
     const updatedList = await ListModel.findByIdAndUpdate(
-      resolvedParams.listId,
-      {
-        ...validatedData,
-        ownerName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Anonymous',
-        items: json.items.map((item: ListItem, index: number) => ({
-          title: item.title,
-          rank: index + 1,
-          comment: item.comment,
-        })),
+      params.listId,
+      { 
+        ...json,
+        lastEditedAt: new Date(),
       },
       { new: true }
-    ).lean();
+    );
 
     return new NextResponse(
       JSON.stringify(updatedList), 
-      { 
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
+      { status: 200 }
     );
   } catch (error) {
     console.error('Error updating list:', error);
     return new NextResponse(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Failed to update list'
+        error: error instanceof Error ? error.message : "Failed to update list"
       }), 
       { status: 500 }
     );

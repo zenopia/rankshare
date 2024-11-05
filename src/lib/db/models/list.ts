@@ -28,6 +28,7 @@ const listSchema = new Schema<ListDocument>({
     default: 'public'
   },
   viewCount: { type: Number, default: 0 },
+  lastEditedAt: { type: Date },
 }, {
   timestamps: true
 });

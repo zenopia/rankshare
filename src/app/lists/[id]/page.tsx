@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { PinButton } from "@/components/ui/pin-button";
 import { CopyListButton } from "@/components/ui/copy-list-button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Pencil } from "lucide-react";
-import { Lock } from "lucide-react";
+import { Pencil, Lock } from "lucide-react";
+import { ensureUserExists } from "@/lib/actions/user";
 
 export default async function ListPage({ params }: { params: { id: string } }) {
   try {
@@ -45,6 +45,11 @@ export default async function ListPage({ params }: { params: { id: string } }) {
       isPinned: !!pin,
     };
 
+    // Add to list view page when user is logged in
+    if (userId) {
+      await ensureUserExists();
+    }
+
     return (
       <div className="container py-8">
         <div className="max-w-4xl mx-auto">
@@ -53,7 +58,9 @@ export default async function ListPage({ params }: { params: { id: string } }) {
               <div>
                 <h1 className="text-3xl font-bold mb-2">{serializedList.title}</h1>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
-                  <span>Created by <Link href={`/users/${list.ownerId}/lists`} className="hover:underline">{serializedList.ownerName}</Link></span>
+                  <span>Created by <Link href={`/users/${serializedList.ownerId}/lists`} className="hover:underline">
+                    {serializedList.ownerName}
+                  </Link></span>
                   <span>•</span>
                   <span>{serializedList.viewCount} views</span>
                   {serializedList.privacy === 'private' && (

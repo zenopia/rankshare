@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { Bell } from "lucide-react";
+import { Bell, ListChecks } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { User } from "@/types/list";
 
@@ -8,6 +8,7 @@ interface UserCardProps {
   user: User & { 
     hasNewLists?: boolean;
     lastListCreated?: Date;
+    listCount: number;
   };
 }
 
@@ -23,9 +24,10 @@ export function UserCard({ user }: UserCardProps) {
             <h3 className="font-semibold leading-none tracking-tight">
               {user.username}
             </h3>
-            <p className="text-sm text-muted-foreground">
-              {user.email}
-            </p>
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <ListChecks className="h-4 w-4" />
+              {user.listCount} {user.listCount === 1 ? 'list' : 'lists'}
+            </div>
           </div>
           {user.hasNewLists && (
             <Badge variant="success" className="flex items-center gap-1">

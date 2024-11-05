@@ -7,6 +7,7 @@ import type { List } from "@/types/list";
 import type { SortOrder } from 'mongoose';
 import { serializeLists } from '@/lib/utils';
 import type { MongoListDocument } from "@/types/mongodb";
+import { ensureUserExists } from "@/lib/actions/user";
 
 interface SearchParams {
   q?: string;
@@ -24,6 +25,9 @@ export default async function MyListsPage({
   if (!userId) return null;
 
   await dbConnect();
+
+  // Add this line to ensure user exists
+  await ensureUserExists();
 
   // Build filter
   const filter: any = { ownerId: userId };

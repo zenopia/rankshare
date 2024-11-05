@@ -12,9 +12,10 @@ interface SearchParams {
   q?: string;
 }
 
-interface FollowedUser extends User {
-  hasNewLists?: boolean;
+interface UserWithStats extends User {
+  hasNewLists: boolean;
   lastListCreated?: Date;
+  listCount: number;
 }
 
 export default async function FollowingPage({
@@ -27,44 +28,45 @@ export default async function FollowingPage({
 
   await dbConnect();
 
-  // Get users being followed
+  // Get users that the current user follows
   const follows = await FollowModel.find({ followerId: userId }).lean();
   const followingIds = follows.map(follow => follow.followingId);
 
-  // Get users and their latest public list
-  const followedUsers = await Promise.all(
+  // Get following users and their stats
+  const following = await Promise.all(
     followingIds.map(async (followingId) => {
       const user = await UserModel.findOne({ clerkId: followingId }).lean() as User | null;
       if (!user) return null;
 
-      // Get user's latest public list
-      const latestList = await ListModel
-        .findOne({ 
+      // Get user's latest public list and count
+      const [latestList, listCount] = await Promise.all([
+        ListModel
+          .findOne({ 
+            ownerId: followingId,
+            privacy: 'public',
+          })
+          .sort({ createdAt: -1 })
+          .lean() as Promise<MongoListDocument | null>,
+        ListModel.countDocuments({
           ownerId: followingId,
           privacy: 'public',
         })
-        .sort({ createdAt: -1 })
-        .lean()
-        .exec() as unknown as MongoListDocument | null;
+      ]);
 
-      // Get follow record to check last viewed time
-      const follow = follows.find(f => f.followingId === followingId);
-      const hasNewLists = latestList && follow && 
-        new Date(latestList.createdAt) > new Date(follow.lastCheckedAt);
-
-      const followedUser: FollowedUser = {
+      const followingUser: UserWithStats = {
         ...user,
-        hasNewLists: hasNewLists || false,
+        hasNewLists: false,
         lastListCreated: latestList?.createdAt,
+        listCount,
       };
 
-      return followedUser;
+      return followingUser;
     })
   );
 
   // Filter out null values and apply search
-  const filteredUsers = followedUsers
-    .filter((user): user is FollowedUser => 
+  const filteredUsers = following
+    .filter((user): user is UserWithStats => 
       user !== null && 
       (!searchParams.q || 
         user.username.toLowerCase().includes(searchParams.q.toLowerCase()))
@@ -76,7 +78,7 @@ export default async function FollowingPage({
         <h1 className="text-3xl font-bold">Following</h1>
         <div className="max-w-md">
           <SearchInput 
-            placeholder="Search users..." 
+            placeholder="Search following..." 
             defaultValue={searchParams.q}
           />
         </div>

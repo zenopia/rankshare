@@ -20,6 +20,7 @@ export function serializeList(doc: ListDocument | (MongoDocument & Partial<List>
     viewCount: doc.viewCount ?? 0,
     createdAt: new Date(doc.createdAt ?? Date.now()),
     updatedAt: new Date(doc.updatedAt ?? Date.now()),
+    lastEditedAt: doc.lastEditedAt ? new Date(doc.lastEditedAt) : undefined,
   };
 }
 

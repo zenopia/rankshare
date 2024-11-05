@@ -26,6 +26,7 @@ export interface List {
   viewCount: number;
   createdAt: Date;
   updatedAt: Date;
+  lastEditedAt?: Date;
 }
 
 export interface ListDocument extends Omit<List, 'id'> {
