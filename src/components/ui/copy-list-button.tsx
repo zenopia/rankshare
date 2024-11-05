@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface CopyListButtonProps {
   listId: string;
@@ -11,6 +12,7 @@ interface CopyListButtonProps {
 
 export function CopyListButton({ listId }: CopyListButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleClick = async () => {
     setIsLoading(true);
@@ -20,8 +22,12 @@ export function CopyListButton({ listId }: CopyListButtonProps) {
       });
 
       if (!response.ok) throw new Error();
-
+      
+      const data = await response.json();
       toast.success('List copied successfully');
+      
+      // Navigate to edit view of the new list
+      router.push(`/lists/${data._id}/edit`);
     } catch (error) {
       toast.error('Failed to copy list');
     } finally {

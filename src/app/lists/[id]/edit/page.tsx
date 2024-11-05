@@ -5,6 +5,7 @@ import dbConnect from "@/lib/db/mongodb";
 import { auth } from "@clerk/nextjs/server";
 import type { List } from "@/types/list";
 import { ProtectedRoute } from "@/components/auth/protected-route";
+import { DeleteListButton } from "@/components/lists/delete-list-button";
 
 interface EditListPageProps {
   params: Promise<{ id: string }> | { id: string };
@@ -24,10 +25,9 @@ export default async function EditListPage({ params }: EditListPageProps) {
     // Check if the current user is the owner
     const { userId } = await auth();
     if (userId !== list.ownerId) {
-      notFound(); // Or redirect to a forbidden page
+      notFound();
     }
 
-    // Convert MongoDB document to plain object
     const initialData = {
       id: list._id.toString(),
       title: list.title,
@@ -44,7 +44,10 @@ export default async function EditListPage({ params }: EditListPageProps) {
     return (
       <ProtectedRoute>
         <div className="container mx-auto py-8">
-          <h1 className="text-2xl font-bold mb-8">Edit List</h1>
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-2xl font-bold">Edit List</h1>
+            <DeleteListButton listId={list._id.toString()} />
+          </div>
           <ListForm initialData={initialData} mode="edit" />
         </div>
       </ProtectedRoute>

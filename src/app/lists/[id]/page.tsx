@@ -12,6 +12,7 @@ import { PinButton } from "@/components/ui/pin-button";
 import { CopyListButton } from "@/components/ui/copy-list-button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Pencil } from "lucide-react";
+import { Lock } from "lucide-react";
 
 export default async function ListPage({ params }: { params: { id: string } }) {
   try {
@@ -49,10 +50,23 @@ export default async function ListPage({ params }: { params: { id: string } }) {
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-3xl font-bold mb-2">{serializedList.title}</h1>
-              <p className="text-muted-foreground">
-                Created by {serializedList.ownerName} • {serializedList.viewCount} views
-              </p>
+              <div>
+                <h1 className="text-3xl font-bold mb-2">{serializedList.title}</h1>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
+                  <span>Created by <Link href={`/users/${list.ownerId}/lists`} className="hover:underline">{serializedList.ownerName}</Link></span>
+                  <span>•</span>
+                  <span>{serializedList.viewCount} views</span>
+                  {serializedList.privacy === 'private' && (
+                    <>
+                      <span>•</span>
+                      <div className="flex items-center gap-1">
+                        <Lock className="h-4 w-4" />
+                        <span className="text-sm">Private</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
             
             <div className="flex items-center gap-2">

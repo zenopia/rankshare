@@ -8,22 +8,19 @@ interface ListCardProps {
   list: List & { hasUpdate?: boolean };
   showPrivacyBadge?: boolean;
   showUpdateBadge?: boolean;
-  searchQuery?: string;
-  showActions?: boolean;
 }
 
 export function ListCard({ 
   list, 
   showPrivacyBadge = false,
   showUpdateBadge = false,
-  showActions = false,
 }: ListCardProps) {
   return (
     <Link
       href={`/lists/${list.id}`}
       className="block overflow-hidden rounded-lg border bg-card hover:border-primary"
     >
-      <div className="p-6">
+      <div className="p-6 flex flex-col h-full">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <h3 className="font-semibold leading-none tracking-tight">
@@ -49,13 +46,13 @@ export function ListCard({
           </p>
         )}
 
-        <div className="mt-4">
+        <div className="mt-2">
           <p className="text-sm text-muted-foreground">
             Top 3: {list.items.slice(0, 3).map(item => item.title).join(", ")}
           </p>
         </div>
 
-        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+        <div className="mt-auto pt-4 border-t flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Eye className="h-4 w-4" />
             {list.viewCount}
@@ -64,12 +61,6 @@ export function ListCard({
             Updated {formatDistanceToNow(new Date(list.updatedAt), { addSuffix: true })}
           </span>
         </div>
-
-        {showActions && (
-          <div className="mt-4 pt-4 border-t">
-            {/* Add your action buttons here */}
-          </div>
-        )}
       </div>
     </Link>
   );

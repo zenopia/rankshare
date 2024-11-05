@@ -1,19 +1,24 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs";
 import { ListModel } from "@/lib/db/models/list";
-import { UserModel } from "@/lib/db/models/user";
 import { FollowModel } from "@/lib/db/models/follow";
+import { UserModel } from "@/lib/db/models/user";
 import dbConnect from "@/lib/db/mongodb";
 import { ListCard } from "@/components/lists/list-card";
-import { DashboardSearchForm } from "@/components/search/dashboard-search-form";
 import { FollowButton } from "@/components/users/follow-button";
 import { serializeLists } from "@/lib/utils";
-import { notFound } from "next/navigation";
 import type { MongoListDocument } from "@/types/mongodb";
+import type { User } from "@/types/user";
+import { Types } from "mongoose";
 
 interface SearchParams {
   q?: string;
   category?: string;
-  sort?: 'newest' | 'oldest' | 'most-viewed';
+  sort?: string;
+}
+
+interface MongoUserDocument extends Omit<User, '_id'> {
+  _id: Types.ObjectId;
+  __v?: number;
 }
 
 export default async function UserListsPage({
@@ -24,31 +29,42 @@ export default async function UserListsPage({
   searchParams: SearchParams;
 }) {
   const { userId: currentUserId } = await auth();
-  if (!currentUserId) return null;
-
   await dbConnect();
 
-  // Get user
-  const user = await UserModel.findOne({ clerkId: params.userId }).lean() as { username: string } | null;
-  if (!user) notFound();
+  // Get user with proper type casting
+  const userDoc = await UserModel.findOne({ clerkId: params.userId }).lean() as MongoUserDocument;
+  if (!userDoc) return null;
 
-  // Check if following
-  const follow = await FollowModel.findOne({
-    followerId: currentUserId,
-    followingId: params.userId,
-  }).lean();
+  // Cast the MongoDB document to our User type
+  const user: User & { _id: string } = {
+    _id: userDoc._id.toString(),
+    clerkId: userDoc.clerkId,
+    username: userDoc.username,
+    email: userDoc.email,
+    createdAt: userDoc.createdAt,
+    updatedAt: userDoc.updatedAt,
+  };
 
-  // Build filter
+  // Check if current user is following this user
+  let isFollowing = false;
+  if (currentUserId) {
+    const follow = await FollowModel.findOne({
+      followerId: currentUserId,
+      followingId: params.userId,
+    }).lean();
+    isFollowing = !!follow;
+  }
+
+  // Build filter for public lists
   const filter: any = { 
-    ownerId: params.userId,
+    ownerId: params.userId, // Using the Clerk ID directly as it's stored as ownerId
     privacy: 'public',
   };
   
   if (searchParams.q) {
     filter.$or = [
       { title: { $regex: searchParams.q, $options: 'i' } },
-      { 'items.title': { $regex: searchParams.q, $options: 'i' } },
-      { 'items.comment': { $regex: searchParams.q, $options: 'i' } },
+      { description: { $regex: searchParams.q, $options: 'i' } },
     ];
   }
 
@@ -56,7 +72,7 @@ export default async function UserListsPage({
     filter.category = searchParams.category;
   }
 
-  // Fetch lists
+  // Fetch public lists
   const lists = await ListModel
     .find(filter)
     .sort({ createdAt: -1 })
@@ -65,34 +81,21 @@ export default async function UserListsPage({
 
   const serializedLists = serializeLists(lists);
 
-  // Update last checked time if following
-  if (follow && !Array.isArray(follow)) {
-    await FollowModel.updateOne(
-      { _id: follow._id },
-      { $set: { lastCheckedAt: new Date() } }
-    );
-  }
-
   return (
     <div className="container py-8">
-      <div className="mb-8 space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold">{user?.username || 'User'}'s Lists</h1>
+            <h1 className="text-3xl font-bold">{user.username}'s Lists</h1>
             <p className="text-muted-foreground">Public lists</p>
           </div>
-          <FollowButton 
-            userId={params.userId}
-            isFollowing={!!follow}
-          />
+          {currentUserId && currentUserId !== params.userId && (
+            <FollowButton 
+              userId={params.userId}
+              isFollowing={isFollowing}
+            />
+          )}
         </div>
-        <DashboardSearchForm 
-          defaultValues={{
-            q: searchParams.q,
-            category: searchParams.category,
-            sort: searchParams.sort,
-          }}
-        />
       </div>
 
       {serializedLists.length > 0 ? (
@@ -101,6 +104,7 @@ export default async function UserListsPage({
             <ListCard 
               key={list.id} 
               list={list}
+              showPrivacyBadge
             />
           ))}
         </div>

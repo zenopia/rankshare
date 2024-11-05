@@ -83,7 +83,6 @@ export default async function MyListsPage({
               key={list.id} 
               list={list}
               showPrivacyBadge
-              showActions
             />
           ))}
         </div>

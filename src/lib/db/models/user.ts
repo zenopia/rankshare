@@ -1,15 +1,12 @@
-import { Schema, model, models } from 'mongoose';
-import type { User } from '@/types/list';
+import mongoose, { Schema } from 'mongoose';
+import type { User } from '@/types/user';
 
-const UserSchema = new Schema<User>({
+const userSchema = new Schema<User>({
   clerkId: { type: String, required: true, unique: true },
   username: { type: String, required: true },
   email: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
+}, {
+  timestamps: true
 });
 
-// Create indexes
-UserSchema.index({ clerkId: 1 });
-UserSchema.index({ email: 1 });
-
-export const UserModel = models.User || model<User>('User', UserSchema); 
+export const UserModel = mongoose.models.User || mongoose.model<User>('User', userSchema); 
