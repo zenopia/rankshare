@@ -19,6 +19,8 @@ function isValidSort(sort: string | undefined): sort is "newest" | "most-viewed"
   return sort === "newest" || sort === "most-viewed";
 }
 
+export const dynamic = 'force-dynamic'; // Force dynamic rendering for search
+
 export default async function SearchPage({
   searchParams,
 }: {

@@ -19,7 +19,7 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-// Increase max listeners to prevent warning
+// Increase max listeners
 mongoose.connection.setMaxListeners(15);
 
 async function dbConnect(): Promise<mongoose.Connection> {
@@ -45,28 +45,6 @@ async function dbConnect(): Promise<mongoose.Connection> {
   }
 
   return cached.conn;
-}
-
-// Clean up function for connection
-async function disconnect() {
-  if (cached.conn) {
-    await cached.conn.close();
-    cached.conn = null;
-    cached.promise = null;
-  }
-}
-
-// Handle cleanup on app shutdown
-if (process.env.NODE_ENV !== 'production') {
-  process.on('SIGTERM', async () => {
-    await disconnect();
-    process.exit(0);
-  });
-
-  process.on('SIGINT', async () => {
-    await disconnect();
-    process.exit(0);
-  });
 }
 
 export default dbConnect; 

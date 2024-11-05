@@ -12,15 +12,15 @@ export async function GET(
     const list = await ListModel.findById(params.listId);
     
     if (!list) {
-      return new NextResponse("Not Found", { status: 404 });
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     // Add cache headers for public lists
-    const headers = new Headers();
+    const headers: HeadersInit = {};
     if (list.privacy === "public") {
-      headers.set('Cache-Control', 's-maxage=3600, stale-while-revalidate');
+      headers['Cache-Control'] = 's-maxage=3600, stale-while-revalidate';
     } else {
-      headers.set('Cache-Control', 'no-store');
+      headers['Cache-Control'] = 'no-store';
     }
 
     // Increment view count
@@ -29,7 +29,7 @@ export async function GET(
       await list.save();
     }
 
-    return new NextResponse(JSON.stringify(list), {
+    return NextResponse.json(list, {
       headers,
       status: 200
     });

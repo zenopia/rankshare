@@ -71,9 +71,19 @@ export async function GET(request: Request) {
       ) : false,
     }));
 
-    return NextResponse.json({ lists: transformedLists });
+    return NextResponse.json(
+      { lists: transformedLists },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=59',
+        },
+      }
+    );
   } catch (error) {
     console.error('Search error:', error);
-    return NextResponse.json({ error: 'Failed to search lists' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to search lists' }, 
+      { status: 500 }
+    );
   }
 } 

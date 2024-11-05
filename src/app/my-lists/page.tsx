@@ -18,6 +18,8 @@ interface SearchParams {
   privacy?: ListPrivacy | 'all';
 }
 
+export const revalidate = 30; // Revalidate every 30 seconds
+
 export default async function MyListsPage({
   searchParams,
 }: {
