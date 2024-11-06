@@ -1,10 +1,12 @@
-import { auth } from "@clerk/nextjs";
+import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from "next/server";
 import { ListModel } from "@/lib/db/models/list";
 import { PinModel } from "@/lib/db/models/pin";
 import dbConnect from "@/lib/db/mongodb";
-import type { ListDocument } from "@/types/list";
+import type { ListDocument, ListCategory } from "@/types/list";
 import type { PinDocument } from "@/types/pin";
+import type { MongoListFilter, MongoSortOptions } from "@/types/mongodb";
+import type { SortOrder } from 'mongoose';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,32 +18,34 @@ export async function GET(request: Request) {
     await dbConnect();
 
     // Build query
-    const query: any = { privacy: "public" };
+    const filter: MongoListFilter = { privacy: "public" };
     
     if (searchParams.get("q")) {
-      query.$or = [
-        { title: { $regex: searchParams.get("q"), $options: "i" } },
-        { description: { $regex: searchParams.get("q"), $options: "i" } },
+      filter.$or = [
+        { title: { $regex: searchParams.get("q") || '', $options: "i" } },
+        { description: { $regex: searchParams.get("q") || '', $options: "i" } },
       ];
     }
 
     if (searchParams.get("category")) {
-      query.category = searchParams.get("category");
+      filter.category = searchParams.get("category") as ListCategory;
     }
 
     // Build sort
-    const sort: any = {};
+    const sort: MongoSortOptions = {};
+    const sortOrder: SortOrder = -1;
+    
     switch (searchParams.get("sort")) {
       case "most-viewed":
-        sort.viewCount = -1;
+        sort.viewCount = sortOrder;
         break;
       case "newest":
       default:
-        sort.createdAt = -1;
+        sort.createdAt = sortOrder;
     }
 
     const lists = await ListModel
-      .find(query)
+      .find(filter)
       .sort(sort)
       .limit(20)
       .lean() as ListDocument[];

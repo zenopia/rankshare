@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs";
+import { auth } from '@clerk/nextjs/server';
 import { ListModel } from "@/lib/db/models/list";
 import { FollowModel } from "@/lib/db/models/follow";
 import { UserModel } from "@/lib/db/models/user";
@@ -6,15 +6,16 @@ import dbConnect from "@/lib/db/mongodb";
 import { ListCard } from "@/components/lists/list-card";
 import { FollowButton } from "@/components/users/follow-button";
 import { serializeLists } from "@/lib/utils";
-import type { MongoListDocument } from "@/types/mongodb";
+import type { MongoListDocument, MongoListFilter } from "@/types/mongodb";
 import type { User } from "@/types/user";
+import type { ListCategory } from "@/types/list";
 import { Types } from "mongoose";
 import { ensureUserExists } from "@/lib/actions/user";
 import { notFound } from "next/navigation";
 
 interface SearchParams {
   q?: string;
-  category?: string;
+  category?: ListCategory;
   sort?: string;
 }
 
@@ -83,7 +84,7 @@ export default async function UserListsPage({
     }
 
     // Build filter for public lists
-    const filter: any = { 
+    const filter: MongoListFilter = { 
       ownerId: params.userId,
       privacy: 'public',
     };

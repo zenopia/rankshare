@@ -1,11 +1,13 @@
 "use server"
 
-import { auth } from "@clerk/nextjs";
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { UserModel } from "@/lib/db/models/user";
 import dbConnect from "@/lib/db/mongodb";
 
 export async function ensureUserExists() {
-  const { userId, user } = await auth();
+  const { userId } = await auth();
+  const user = await currentUser();
+  
   if (!userId || !user) return null;
 
   await dbConnect();

@@ -1,15 +1,15 @@
-import { auth } from "@clerk/nextjs";
+import { auth } from '@clerk/nextjs/server';
 import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
 import { ListCard } from "@/components/lists/list-card";
 import type { List } from "@/types/list";
-import type { SortOrder } from 'mongoose';
 import { serializeLists } from '@/lib/utils';
-import type { MongoListDocument } from "@/types/mongodb";
+import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/types/mongodb";
 import { ensureUserExists } from "@/lib/actions/user";
 import type { ListCategory, ListPrivacy } from "@/types/list";
 import { SearchInput } from "@/components/search/search-input";
 import { FilterSheet } from "@/components/search/filter-sheet";
+import type { SortOrder } from 'mongoose';
 
 interface SearchParams {
   q?: string;
@@ -32,7 +32,7 @@ export default async function MyListsPage({
   await ensureUserExists();
 
   // Build filter
-  const filter: any = { ownerId: userId };
+  const filter: MongoListFilter = { ownerId: userId };
 
   if (searchParams.q) {
     filter.$or = [
@@ -50,17 +50,19 @@ export default async function MyListsPage({
   }
 
   // Build sort
-  const sort: { [key: string]: SortOrder } = {};
+  const sort: MongoSortOptions = {};
+  const sortOrder: SortOrder = -1;
+
   switch (searchParams.sort) {
     case 'oldest':
       sort.createdAt = 1;
       break;
     case 'most-viewed':
-      sort.viewCount = -1;
+      sort.viewCount = sortOrder;
       break;
     case 'newest':
     default:
-      sort.createdAt = -1;
+      sort.createdAt = sortOrder;
   }
 
   const lists = await ListModel

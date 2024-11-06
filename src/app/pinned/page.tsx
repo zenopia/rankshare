@@ -5,7 +5,7 @@ import dbConnect from "@/lib/db/mongodb";
 import { ListCard } from "@/components/lists/list-card";
 import { DashboardSearchForm } from "@/components/search/dashboard-search-form";
 import type { List } from "@/types/list";
-import type { MongoListDocument } from "@/types/mongodb";
+import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/types/mongodb";
 import type { SortOrder } from 'mongoose';
 import type { ListCategory } from "@/types/list";
 
@@ -34,13 +34,15 @@ export default async function PinnedListsPage({
   const pinnedListIds = pins.map(pin => pin.listId);
 
   // Build filter
-  const filter: any = { 
-    _id: { $in: pinnedListIds }
+  const filter: MongoListFilter = { 
+    _id: { $in: pinnedListIds },
+    privacy: 'public',
   };
   
   if (searchParams.q) {
     filter.$or = [
       { title: { $regex: searchParams.q, $options: 'i' } },
+      { description: { $regex: searchParams.q, $options: 'i' } },
       { 'items.title': { $regex: searchParams.q, $options: 'i' } },
       { 'items.comment': { $regex: searchParams.q, $options: 'i' } },
     ];
@@ -51,13 +53,19 @@ export default async function PinnedListsPage({
   }
 
   // Determine sort order
-  const sortOptions: Record<string, Record<string, SortOrder>> = {
-    'newest': { createdAt: -1 },
-    'oldest': { createdAt: 1 },
-    'most-viewed': { viewCount: -1, createdAt: -1 },
-  };
+  const sort: MongoSortOptions = {};
+  const sortOrder: SortOrder = -1;
 
-  const sort = sortOptions[searchParams.sort || 'newest'];
+  switch (searchParams.sort) {
+    case 'oldest':
+      sort.createdAt = 1;
+      break;
+    case 'most-viewed':
+      sort.viewCount = sortOrder;
+      break;
+    default:
+      sort.createdAt = sortOrder;
+  }
 
   // Fetch lists
   const lists = await ListModel

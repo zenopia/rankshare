@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs";
+import { auth } from '@clerk/nextjs/server';
 import { FollowModel } from "@/lib/db/models/follow";
 import { UserModel } from "@/lib/db/models/user";
 import { ListModel } from "@/lib/db/models/list";

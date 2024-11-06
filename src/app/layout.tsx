@@ -1,11 +1,11 @@
 import './globals.css'
 import { ClerkProvider } from '@clerk/nextjs'
+import { auth } from '@clerk/nextjs/server'
 import { Inter } from 'next/font/google'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Providers } from './providers'
 import { Navbar } from '@/components/layout/navbar'
 import { Sidebar } from '@/components/layout/sidebar'
-import { auth } from '@clerk/nextjs'
 import { Metadata, Viewport } from 'next';
 
 const inter = Inter({
@@ -19,6 +19,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   themeColor: '#ffffff',
 };
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://rankshare.app'),
@@ -44,11 +46,12 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/favicon.ico' },
-      { url: '/icon.png', type: 'image/png', sizes: '192x192' },
+      { url: '/images/favicon.ico' },
+      { url: '/images/icon-192.png', type: 'image/png', sizes: '192x192' },
+      { url: '/images/icon-512.png', type: 'image/png', sizes: '512x512' },
     ],
     apple: [
-      { url: '/apple-icon.png', sizes: '180x180' },
+      { url: '/images/apple-icon.png', sizes: '180x180' },
     ],
   },
 };
@@ -58,13 +61,25 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { userId } = await auth();
-  const isAuthenticated = !!userId;
+  let isAuthenticated = false;
+
+  try {
+    const { userId } = await auth();
+    isAuthenticated = !!userId;
+  } catch (error) {
+    console.error('Auth initialization error:', error);
+  }
+
+  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    throw new Error('Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY');
+  }
 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`min-h-screen bg-background font-sans antialiased ${inter.className}`}>
-        <ClerkProvider>
+        <ClerkProvider
+          publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        >
           <Providers>
             <div className="relative flex min-h-screen flex-col">
               <Navbar />

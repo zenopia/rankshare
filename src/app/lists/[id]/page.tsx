@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs";
+import { auth } from '@clerk/nextjs/server';
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ListModel } from "@/lib/db/models/list";

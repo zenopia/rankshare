@@ -1,23 +1,37 @@
-import { authMiddleware } from '@clerk/nextjs';
+import { authMiddleware } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import type { ClerkState } from '@clerk/nextjs/server';
 
 export default authMiddleware({
   publicRoutes: [
     '/',
+    '/sign-in',
+    '/sign-up',
     '/search',
-    '/lists/(.*)',
+    '/lists/:id',
     '/api/lists/search',
+    '/api/health',
+    '/manifest.json',
   ],
   ignoredRoutes: [
-    '/_next(.*)',
+    '/_next',
     '/favicon.ico',
-    '/api/webhooks(.*)',
-    '/images/(.*)',
-  ]
+    '/api/webhooks',
+    '/images',
+    '/static',
+  ],
+  afterAuth(auth: ClerkState, req: NextRequest) {
+    if (!auth.userId && !auth.isPublicRoute) {
+      const signInUrl = new URL('/sign-in', req.url);
+      signInUrl.searchParams.set('redirect_url', req.url);
+      return NextResponse.redirect(signInUrl);
+    }
+  },
 });
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-    '/api/((?!webhooks).*)',
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };

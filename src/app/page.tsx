@@ -3,7 +3,7 @@ import { ListModel } from "@/lib/db/models/list";
 import { PinModel } from "@/lib/db/models/pin";
 import dbConnect from "@/lib/db/mongodb";
 import Link from "next/link";
-import { auth } from "@clerk/nextjs";
+import { auth } from '@clerk/nextjs/server';
 import type { List, ListDocument } from '@/types/list';
 import type { PinDocument } from '@/types/pin';
 

@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { Connection, ConnectOptions } from 'mongoose';
 
 if (!process.env.MONGODB_URI) {
   throw new Error('Missing MONGODB_URI');
@@ -10,27 +10,35 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-async function dbConnect() {
-  if (cached.conn) {
+async function dbConnect(): Promise<Connection> {
+  if (cached?.conn) {
     return cached.conn;
   }
 
-  if (!cached.promise) {
-    const opts = {
+  if (!cached?.promise) {
+    const opts: ConnectOptions = {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(process.env.MONGODB_URI!, opts) as unknown as Promise<mongoose.Connection>;
+    cached = global.mongoose = {
+      conn: null,
+      promise: mongoose.connect(process.env.MONGODB_URI, opts).then((mongoose) => {
+        return mongoose.connection;
+      })
+    };
   }
 
   try {
-    cached.conn = await cached.promise;
+    const conn = await cached.promise;
+    if (!conn) {
+      throw new Error('MongoDB connection failed');
+    }
+    cached.conn = conn;
+    return conn;
   } catch (e) {
     cached.promise = null;
     throw e;
   }
-
-  return cached.conn;
 }
 
 export default dbConnect;

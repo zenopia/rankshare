@@ -1,0 +1,9 @@
+{
+  "name": "RankShare",
+  "short_name": "RankShare",
+  "description": "Create and share ranked lists of your favorite things",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff"
+} 

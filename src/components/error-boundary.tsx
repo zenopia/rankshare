@@ -1,43 +1,24 @@
 'use client';
 
-import { Component, ErrorInfo, ReactNode } from 'react';
+import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 
-interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
-}
+export function ErrorBoundary({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  useEffect(() => {
+    window.onerror = (message, source, lineno, colno, error) => {
+      console.error('Global error:', error);
+      Sentry.captureException(error);
+    };
 
-interface State {
-  hasError: boolean;
-  error?: Error;
-}
+    window.onunhandledrejection = (event) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      Sentry.captureException(event.reason);
+    };
+  }, []);
 
-export class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false
-  };
-
-  public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
-  }
-
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
-  }
-
-  public render() {
-    if (this.state.hasError) {
-      return this.props.fallback || (
-        <div className="p-4 text-red-500">
-          <h2>Something went wrong.</h2>
-          <details className="mt-2">
-            <summary>Error details</summary>
-            <pre className="mt-2 text-sm">{this.state.error?.message}</pre>
-          </details>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
+  return <>{children}</>;
 } 

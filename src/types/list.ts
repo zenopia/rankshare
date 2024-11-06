@@ -1,17 +1,19 @@
+import type { Types } from 'mongoose';
+
 export type ListCategory = 'movies' | 'books' | 'music' | 'games' | 'other' | 'tv-shows' | 'restaurants';
 export type ListPrivacy = 'public' | 'private';
 export type ListPrivacyFilter = ListPrivacy | 'all';
 export type ListSortOption = 'newest' | 'oldest' | 'most-viewed' | 'least-viewed';
 
 export interface ListItem {
-  id: string;
+  id?: string;
   title: string;
   description?: string;
   url?: string;
   comment?: string;
   rank: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface List {
@@ -20,7 +22,7 @@ export interface List {
   ownerName: string;
   title: string;
   category: ListCategory;
-  description: string;
+  description?: string;
   items: ListItem[];
   privacy: ListPrivacy;
   viewCount: number;
@@ -30,7 +32,7 @@ export interface List {
 }
 
 export interface ListDocument extends Omit<List, 'id'> {
-  _id: any;
+  _id: Types.ObjectId;
   __v?: number;
 }
 
