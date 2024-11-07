@@ -36,8 +36,6 @@ const nextConfig = {
   experimental: {
     webpackBuildWorker: false,
   },
-  dynamicParams: true,
-  dynamic: 'force-dynamic',
 }
 
 module.exports = nextConfig; 

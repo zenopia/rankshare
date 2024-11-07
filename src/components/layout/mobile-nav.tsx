@@ -9,6 +9,8 @@ import {
   PlusCircle,
   ListChecks,
   Bookmark,
+  Users2,
+  UserPlus,
   LayoutDashboard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,29 +34,22 @@ const mobileOnlyNavItems: NavItem[] = [
     description: "Return to homepage"
   },
   {
-    title: "Dashboard",
-    href: "/dashboard",
-    public: false,
-    icon: LayoutDashboard,
-    description: "View your dashboard"
-  },
-];
-
-const navItems: NavItem[] = [
-  {
     title: "Search",
     href: "/search",
     public: true,
     icon: Search,
     description: "Search for lists"
   },
-  {
-    title: "Create List",
-    href: "/lists/create",
-    public: false,
-    icon: PlusCircle,
-    description: "Create a new list"
-  },
+];
+
+const navItems: NavItem[] = [
+    {
+        title: "Dashboard",
+        href: "/dashboard",
+        public: false,
+        icon: LayoutDashboard,
+        description: "View your dashboard"
+    },
   {
     title: "My Lists",
     href: "/my-lists",
@@ -68,6 +63,27 @@ const navItems: NavItem[] = [
     public: false,
     icon: Bookmark,
     description: "View your pinned lists"
+  },
+  {
+    title: "Following",
+    href: "/following",
+    public: false,
+    icon: Users2,
+    description: "Users you follow",
+  },
+  {
+    title: "Followers",
+    href: "/followers",
+    public: false,
+    icon: UserPlus,
+    description: "Users following you",
+  },
+  {
+    title: "Create List",
+    href: "/lists/create",
+    public: false,
+    icon: PlusCircle,
+    description: "Create a new list"
   },
 ];
 

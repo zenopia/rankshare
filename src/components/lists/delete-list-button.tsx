@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -14,78 +14,86 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 interface DeleteListButtonProps {
   listId: string;
-}
-
-function DeleteAlertDialog({ onDelete, isDeleting }: { onDelete: () => void, isDeleting: boolean }) {
-  return (
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>Delete List</AlertDialogTitle>
-        <AlertDialogDescription>
-          Are you sure you want to delete this list? This action cannot be undone.
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <Button
-          variant="destructive"
-          onClick={onDelete}
-          disabled={isDeleting}
-        >
-          {isDeleting ? 'Deleting...' : 'Delete'}
-        </Button>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  );
 }
 
 export function DeleteListButton({ listId }: DeleteListButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
 
-  const handleDelete = async () => {
-    setIsDeleting(true);
+  async function deleteList() {
     try {
+      setIsDeleting(true);
       const response = await fetch(`/api/lists/${listId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-      if (!response.ok) throw new Error();
-      
-      router.push('/my-lists');
+
+      if (!response.ok) {
+        throw new Error("Failed to delete list");
+      }
+
+      toast.success("List deleted successfully");
+      router.push("/my-lists");
       router.refresh();
     } catch (error) {
-      console.error('Error deleting list:', error);
+      console.error("Error deleting list:", error);
+      toast.error("Failed to delete list");
+    } finally {
       setIsDeleting(false);
     }
-  };
+  }
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button 
-                variant="outline"
-                size="default"
-                className="w-10 h-10 p-0"
+    <AlertDialog>
+      <TooltipProvider>
+        <Tooltip>
+          <AlertDialogTrigger asChild>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
                 disabled={isDeleting}
               >
                 <Trash2 className="h-4 w-4" />
                 <span className="sr-only">Delete list</span>
               </Button>
-            </AlertDialogTrigger>
-            <DeleteAlertDialog onDelete={handleDelete} isDeleting={isDeleting} />
-          </AlertDialog>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Delete list</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+            </TooltipTrigger>
+          </AlertDialogTrigger>
+          <TooltipContent>
+            <p>Delete list</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete your list.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={deleteList}
+            disabled={isDeleting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 } 
