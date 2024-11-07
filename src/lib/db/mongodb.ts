@@ -20,7 +20,19 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-mongoose.connection.setMaxListeners(15);
+// Optimize connection pool settings
+const MONGODB_OPTIONS: ConnectOptions = {
+  bufferCommands: false,
+  maxPoolSize: 5, // Reduce from 10 to 5 for shared hosting
+  minPoolSize: 1, // Reduce from 5 to 1
+  socketTimeoutMS: 30000, // Reduce from 45000 to 30000
+  family: 4,
+  serverSelectionTimeoutMS: 5000,
+  heartbeatFrequencyMS: 10000,
+  maxIdleTimeMS: 10000, // Add idle connection timeout
+  connectTimeoutMS: 10000, // Add connection timeout
+  compressors: ['zlib'], // Enable compression
+};
 
 async function dbConnect(): Promise<Connection> {
   if (cached?.conn) {
@@ -28,24 +40,16 @@ async function dbConnect(): Promise<Connection> {
   }
 
   if (!cached?.promise) {
-    const opts: ConnectOptions = {
-      bufferCommands: false,
-      maxPoolSize: 10,
-      minPoolSize: 5,
-      socketTimeoutMS: 45000,
-      family: 4,
-      serverSelectionTimeoutMS: 5000,
-      heartbeatFrequencyMS: 10000,
-    };
-
     try {
       console.log('Connecting to MongoDB...');
       cached = global.mongoose = {
         conn: null,
-        promise: mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-          console.log('MongoDB connected successfully');
-          return mongoose.connection;
-        })
+        promise: mongoose
+          .connect(MONGODB_URI, MONGODB_OPTIONS)
+          .then((mongoose) => {
+            console.log('MongoDB connected successfully');
+            return mongoose.connection;
+          })
       };
     } catch (error) {
       console.error('MongoDB connection error:', error);
@@ -79,5 +83,66 @@ mongoose.connection.on('error', (err) => {
 mongoose.connection.on('disconnected', () => {
   console.log('MongoDB disconnected');
 });
+
+// Add index creation
+async function createIndexes() {
+  try {
+    const conn = await dbConnect();
+    
+    // Create indexes with dropDups and background options
+    const indexPromises = [
+      // Regular indexes
+      conn.collection('lists').createIndex({ ownerId: 1 }, { background: true }),
+      conn.collection('lists').createIndex({ privacy: 1 }, { background: true }),
+      conn.collection('lists').createIndex({ category: 1 }, { background: true }),
+      conn.collection('lists').createIndex({ createdAt: -1 }, { background: true }),
+      conn.collection('lists').createIndex({ viewCount: -1 }, { background: true }),
+      
+      conn.collection('pins').createIndex({ userId: 1 }, { background: true }),
+      conn.collection('pins').createIndex({ listId: 1 }, { background: true }),
+      
+      conn.collection('follows').createIndex({ followerId: 1 }, { background: true }),
+      conn.collection('follows').createIndex({ followingId: 1 }, { background: true }),
+    ];
+
+    // Text index needs special handling
+    try {
+      // First try to drop existing text indexes
+      await conn.collection('lists').dropIndex('title_text');
+      await conn.collection('lists').dropIndex('title_text_description_text');
+    } catch (e) {
+      // Ignore errors if indexes don't exist
+    }
+
+    // Create new text index
+    indexPromises.push(
+      conn.collection('lists').createIndex(
+        { 
+          title: 'text', 
+          description: 'text' 
+        },
+        { 
+          background: true,
+          name: 'title_description_text_v2',
+          weights: {
+            title: 2,
+            description: 1
+          }
+        }
+      )
+    );
+
+    await Promise.all(indexPromises);
+    console.log('MongoDB indexes created successfully');
+  } catch (error) {
+    // Log error but don't throw - indexes are optimization, not critical for function
+    console.error('Warning: Error creating some indexes:', error);
+  }
+}
+
+// Only create indexes in production to avoid development conflicts
+if (process.env.NODE_ENV === 'production') {
+  createIndexes();
+}
 
 export default dbConnect; 

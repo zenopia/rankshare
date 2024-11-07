@@ -1,43 +1,22 @@
-import { Suspense } from "react";
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { useLists } from "@/hooks/use-lists";
+import { ListCard } from "@/components/lists/list-card";
 import { SearchInput } from "@/components/search/search-input";
 import { FilterSheet } from "@/components/search/filter-sheet";
-import { SearchResults } from "@/components/search/search-results";
-import { ListCategory } from "@/types/list";
+import type { ListCategory } from "@/types/list";
 
-interface SearchParams {
-  q?: string;
-  category?: string;
-  sort?: string;
-}
-
-function isValidCategory(category: string | undefined): category is ListCategory {
-  if (!category) return false;
-  return ['movies', 'books', 'music', 'games', 'other', 'tv-shows', 'restaurants'].includes(category);
-}
-
-function isValidSort(sort: string | undefined): sort is "newest" | "most-viewed" {
-  return sort === "newest" || sort === "most-viewed";
-}
-
-export const dynamic = 'force-dynamic'; // Force dynamic rendering for search
-
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const resolvedParams = {
-    q: searchParams.q,
-    category: isValidCategory(searchParams.category) ? searchParams.category : undefined,
-    sort: isValidSort(searchParams.sort) ? searchParams.sort : undefined,
-  };
+export default function SearchPage() {
+  const searchParams = useSearchParams();
+  const { data: lists, isLoading, error } = useLists(searchParams);
 
   return (
     <div className="container py-8">
       <div className="space-y-2 mb-6">
         <h1 className="text-3xl font-bold">Search Lists</h1>
         <p className="text-muted-foreground">
-          Find lists by title, category, or sort by different criteria
+          Find lists created by the community
         </p>
       </div>
 
@@ -46,25 +25,38 @@ export default async function SearchPage({
         <div className="flex-1">
           <SearchInput 
             placeholder="Search lists..."
-            defaultValue={resolvedParams.q}
+            defaultValue={searchParams.get('q') ?? ''}
           />
         </div>
         <FilterSheet 
-          defaultCategory={resolvedParams.category}
-          defaultSort={resolvedParams.sort}
+          defaultCategory={searchParams.get('category') as ListCategory}
+          defaultSort={searchParams.get('sort') ?? 'newest'}
         />
       </div>
 
       {/* Results */}
-      <Suspense fallback={
-        <div className="space-y-4">
-          <div className="h-32 bg-muted animate-pulse rounded-lg" />
-          <div className="h-32 bg-muted animate-pulse rounded-lg" />
-          <div className="h-32 bg-muted animate-pulse rounded-lg" />
+      {isLoading ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading...</p>
         </div>
-      }>
-        <SearchResults searchParams={resolvedParams} />
-      </Suspense>
+      ) : error ? (
+        <div className="text-center py-12">
+          <p className="text-destructive">Error loading lists</p>
+        </div>
+      ) : !lists || lists.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">No lists found</p>
+        </div>
+      ) : (
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {lists.map((list) => (
+            <ListCard 
+              key={list.id} 
+              list={list}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 } 

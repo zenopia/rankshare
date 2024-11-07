@@ -16,19 +16,50 @@ app.prepare().then(() => {
     crossOriginEmbedderPolicy: false,
   }));
   
-  // Enable compression
-  server.use(compression());
-
-  // Basic rate limiting
-  const rateLimit = require('express-rate-limit');
-  server.use(rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // limit each IP to 100 requests per windowMs
+  // Enhanced compression
+  server.use(compression({
+    level: 6,
+    threshold: 0,
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      return compression.filter(req, res);
+    },
   }));
 
-  // Error handling
+  // Improved rate limiting
+  const rateLimit = require('express-rate-limit');
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => {
+      // Skip rate limiting for health checks and static assets
+      return req.path === '/api/health' || 
+             req.path.startsWith('/_next/') ||
+             req.path.startsWith('/images/');
+    },
+  });
+
+  // Apply rate limiting to API routes only
+  server.use('/api/', limiter);
+
+  // Static file caching
+  server.use('/_next/static/', express.static('.next/static/', {
+    maxAge: '1y',
+    immutable: true,
+  }));
+
+  // Error handling with logging
   server.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('Server error:', {
+      error: err.message,
+      stack: err.stack,
+      path: req.path,
+      method: req.method,
+    });
     res.status(500).send('Something broke!');
   });
 
