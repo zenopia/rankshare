@@ -9,7 +9,7 @@ import type { ListCategory } from "@/types/list";
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
-  const { data: lists, isLoading, error } = useLists(searchParams);
+  const { data: lists, isLoading, error } = useLists(searchParams ?? new URLSearchParams());
 
   return (
     <div className="container py-8">
@@ -25,12 +25,12 @@ export default function SearchPage() {
         <div className="flex-1">
           <SearchInput 
             placeholder="Search lists..."
-            defaultValue={searchParams.get('q') ?? ''}
+            defaultValue={searchParams ? searchParams.get('q') ?? '' : ''}
           />
         </div>
         <FilterSheet 
-          defaultCategory={searchParams.get('category') as ListCategory}
-          defaultSort={searchParams.get('sort') ?? 'newest'}
+          defaultCategory={searchParams?.get('category') as ListCategory}
+          defaultSort={searchParams?.get('sort') ?? 'newest'}
         />
       </div>
 

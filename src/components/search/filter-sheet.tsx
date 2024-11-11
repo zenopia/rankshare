@@ -32,7 +32,7 @@ export function FilterSheet({
   const searchParams = useSearchParams();
 
   function updateFilters(key: string, value: string) {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
     
     if (value) {
       params.set(key, value);
