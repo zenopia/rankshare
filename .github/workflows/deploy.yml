@@ -1,0 +1,37 @@
+name: Deploy Application
+
+on:
+  push:
+    branches:
+      - main      # deploys to production
+      - develop   # deploys to development
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set deployment target
+        id: set-target
+        run: |
+          if [ ${{ github.ref }} = 'refs/heads/main' ]; then
+            echo "::set-output name=host::curate.fileopia.com"
+            echo "::set-output name=user::fileopia-curate"
+          else
+            echo "::set-output name=host::curate-dev.fileopia.com"
+            echo "::set-output name=user::fileopia-curate-dev"
+          fi
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ steps.set-target.outputs.user }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/htdocs/${{ steps.set-target.outputs.host }}
+            git pull origin ${{ github.ref_name }}
+            npm install
+            npm run build
+            pm2 restart ${{ steps.set-target.outputs.host }} 
