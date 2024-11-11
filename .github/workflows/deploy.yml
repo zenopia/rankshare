@@ -10,17 +10,17 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Set deployment target
         id: set-target
         run: |
           if [ ${{ github.ref }} = 'refs/heads/main' ]; then
-            echo "::set-output name=host::curate.fileopia.com"
-            echo "::set-output name=user::fileopia-curate"
+            echo "host=curate.fileopia.com" >> $GITHUB_OUTPUT
+            echo "user=fileopia-curate" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=host::curate-dev.fileopia.com"
-            echo "::set-output name=user::fileopia-curate-dev"
+            echo "host=curate-dev.fileopia.com" >> $GITHUB_OUTPUT
+            echo "user=fileopia-curate-dev" >> $GITHUB_OUTPUT
           fi
 
       - name: Deploy to server
@@ -32,6 +32,8 @@ jobs:
           script: |
             cd ~/htdocs/${{ steps.set-target.outputs.host }}
             git pull origin ${{ github.ref_name }}
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             npm install
             npm run build
             pm2 restart ${{ steps.set-target.outputs.host }} 
