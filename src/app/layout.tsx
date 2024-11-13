@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   title: 'Curate',
   description: 'Create and share ranked lists of your favorite things',
   keywords: ['ranking', 'lists', 'recommendations', 'sharing'],
-  authors: [{ name: 'RankShare Team' }],
+  authors: [{ name: 'Curate Team' }],
   openGraph: {
     type: 'website',
     locale: 'en_US',

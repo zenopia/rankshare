@@ -29,7 +29,7 @@ export function Navbar({ className }: { className?: string }) {
       <nav className="container flex h-14 items-center">
         <div className="flex flex-1 items-center justify-between">
           <Link href="/" className="font-bold">
-            RankShare
+            Curate
           </Link>
 
           <div className="flex items-center gap-4">
