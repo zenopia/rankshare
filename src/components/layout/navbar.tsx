@@ -28,7 +28,7 @@ export function Navbar({ className }: { className?: string }) {
     <header className={cn("sticky top-0 z-50 w-full border-b bg-background", className)}>
       <nav className="container flex h-14 items-center">
         <div className="flex flex-1 items-center justify-between">
-          <Link href="/" className="font-bold">
+          <Link href="/" className="font-bold text-xl text-primary">
             Curate
           </Link>
 
