@@ -36,7 +36,9 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "types": [
-      "node"
+      "node",
+      "jest",
+      "@testing-library/jest-dom"
     ],
     "typeRoots": [
       "./node_modules/@types",
@@ -49,7 +51,9 @@
     "**/*.ts",
     "**/*.tsx",
     "src/types/**/*.d.ts",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "**/*.test.ts",
+    "**/*.test.tsx"
   ],
   "exclude": [
     "node_modules"
