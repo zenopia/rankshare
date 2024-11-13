@@ -23,10 +23,10 @@ export const viewport: Viewport = {
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://rankshare.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://curate.fileopia.com'),
   title: {
-    default: 'RankShare',
-    template: '%s | RankShare'
+    default: 'Curate',
+    template: '%s | Curate'
   },
   description: 'Create and share ranked lists of your favorite things',
   keywords: ['ranking', 'lists', 'recommendations', 'sharing'],
@@ -34,9 +34,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://rankshare.app',
-    siteName: 'RankShare',
-    title: 'RankShare - Create and Share Ranked Lists',
+    url: 'https://curate.fileopia.com',
+    siteName: 'Curate',
+    title: 'Curate - Create and Share Ranked Lists',
     description: 'Create and share ranked lists of your favorite things',
   },
   robots: {
