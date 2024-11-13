@@ -24,10 +24,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://curate.fileopia.com'),
-  title: {
-    default: 'Curate',
-    template: '%s | Curate'
-  },
+  title: 'Curate',
   description: 'Create and share ranked lists of your favorite things',
   keywords: ['ranking', 'lists', 'recommendations', 'sharing'],
   authors: [{ name: 'RankShare Team' }],

@@ -1,5 +1,5 @@
 {
-  "name": "rankshare",
+  "name": "curate",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,10 +12,10 @@
     "postinstall": "next build",
     "production:start": "NODE_ENV=production next start -p $PORT",
     "deploy": "pm2 start pm2.config.js --env production",
-    "deploy:stop": "pm2 stop rankshare",
-    "deploy:reload": "pm2 reload rankshare",
-    "deploy:logs": "pm2 logs rankshare",
-    "deploy:monitor": "pm2 monit rankshare",
+    "deploy:stop": "pm2 stop curate",
+    "deploy:reload": "pm2 reload curate",
+    "deploy:logs": "pm2 logs curate",
+    "deploy:monitor": "pm2 monit curate",
     "deploy:script": "./scripts/deploy.sh"
   },
   "dependencies": {

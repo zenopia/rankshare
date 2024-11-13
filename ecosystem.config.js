@@ -7,7 +7,7 @@ module.exports = {
       cwd: '/home/fileopia-curate-dev/htdocs/curate-dev.fileopia.com',
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3001
       },
       watch: false,
       instances: 1,
