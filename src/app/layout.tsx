@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://curate.fileopia.com',
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://curate.fileopia.com',
     siteName: 'Curate',
     title: 'Curate - Create and Share Ranked Lists',
     description: 'Create and share ranked lists of your favorite things',

@@ -1,0 +1,68 @@
+name: Deploy Application
+
+on:
+  push:
+    branches:
+      - main      # deploys to production
+      - develop   # deploys to development
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for proper deployment
+
+      - name: Set deployment target
+        id: set-target
+        run: |
+          if [ ${{ github.ref }} = 'refs/heads/main' ]; then
+            echo "host=curate.fileopia.com" >> $GITHUB_OUTPUT
+            echo "user=fileopia-curate" >> $GITHUB_OUTPUT
+          else
+            echo "host=curate-dev.fileopia.com" >> $GITHUB_OUTPUT
+            echo "user=fileopia-curate-dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ steps.set-target.outputs.user }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "Starting deployment..."
+            
+            # Ensure directory exists
+            mkdir -p ~/htdocs/${{ steps.set-target.outputs.host }}
+            cd ~/htdocs/${{ steps.set-target.outputs.host }}
+            
+            # Force clean state
+            echo "Cleaning repository state..."
+            git fetch origin ${{ github.ref_name }}
+            git reset --hard origin/${{ github.ref_name }}
+            
+            # Setup Node environment
+            echo "Setting up Node environment..."
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            
+            # Install dependencies and build
+            echo "Installing dependencies..."
+            npm install
+            
+            echo "Building application..."
+            npm run build
+            
+            # Restart application
+            echo "Restarting application..."
+            pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+            
+            echo "Deployment complete!"
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting for application to start..."
+          sleep 30
+          curl -f https://${{ steps.set-target.outputs.host }} || exit 1

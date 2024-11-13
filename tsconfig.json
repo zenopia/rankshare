@@ -36,7 +36,7 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "types": [
-      "node"
+      "node",
     ],
     "typeRoots": [
       "./node_modules/@types",
@@ -48,7 +48,6 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "src/types/**/*.d.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": [
