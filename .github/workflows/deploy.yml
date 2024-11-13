@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for proper deployment
 
       - name: Set deployment target
         id: set-target
@@ -30,35 +32,37 @@ jobs:
           username: ${{ steps.set-target.outputs.user }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            echo "Starting deployment..."
+            
             # Ensure directory exists
             mkdir -p ~/htdocs/${{ steps.set-target.outputs.host }}
             cd ~/htdocs/${{ steps.set-target.outputs.host }}
             
-            # Initialize git if needed
-            if [ ! -d .git ]; then
-              git init
-              git remote add origin https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
-            else
-              git remote set-url origin https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
-            fi
+            # Force clean state
+            echo "Cleaning repository state..."
+            git fetch origin ${{ github.ref_name }}
+            git reset --hard origin/${{ github.ref_name }}
             
             # Setup Node environment
+            echo "Setting up Node environment..."
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             
-            # Install PM2 if needed
-            if ! command -v pm2 &> /dev/null; then
-              npm install -g pm2
-            fi
-            
-            # Fetch and checkout
-            git fetch origin ${{ github.ref_name }}
-            git checkout ${{ github.ref_name }}
-            git pull origin ${{ github.ref_name }}
-            
-            # Install and build
+            # Install dependencies and build
+            echo "Installing dependencies..."
             npm install
+            
+            echo "Building application..."
             npm run build
             
-            # Start/restart PM2
+            # Restart application
+            echo "Restarting application..."
             pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+            
+            echo "Deployment complete!"
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting for application to start..."
+          sleep 30
+          curl -f https://${{ steps.set-target.outputs.host }} || exit 1
