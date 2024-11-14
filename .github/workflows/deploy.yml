@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for proper deployment
+          fetch-depth: 0
 
       - name: Set deployment target
         id: set-target
@@ -25,6 +25,23 @@ jobs:
             echo "user=fileopia-curate-dev" >> $GITHUB_OUTPUT
           fi
 
+      - name: Notify deployment start
+        if: github.event_name == 'pull_request' || github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const target = '${{ github.ref }}' === 'refs/heads/main' ? 'production' : 'development';
+            const message = `🚀 Deployment started to ${target}`;
+            
+            if (context.payload.pull_request) {
+              await github.rest.issues.createComment({
+                issue_number: context.payload.pull_request.number,
+                owner: context.repo.owner,
+                repo: context.repo.name,
+                body: message
+              });
+            }
+
       - name: Deploy to server
         uses: appleboy/ssh-action@master
         with:
@@ -34,28 +51,23 @@ jobs:
           script: |
             echo "Starting deployment..."
             
-            # Ensure directory exists
             mkdir -p ~/htdocs/${{ steps.set-target.outputs.host }}
             cd ~/htdocs/${{ steps.set-target.outputs.host }}
             
-            # Force clean state
             echo "Cleaning repository state..."
             git fetch origin ${{ github.ref_name }}
             git reset --hard origin/${{ github.ref_name }}
             
-            # Setup Node environment
             echo "Setting up Node environment..."
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             
-            # Install dependencies and build
             echo "Installing dependencies..."
             npm install
             
             echo "Building application..."
             npm run build
             
-            # Restart application
             echo "Restarting application..."
             pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
             
@@ -66,3 +78,37 @@ jobs:
           echo "Waiting for application to start..."
           sleep 30
           curl -f https://${{ steps.set-target.outputs.host }} || exit 1
+
+      - name: Notify deployment complete
+        if: success() && (github.event_name == 'pull_request' || github.event_name == 'issues')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const target = '${{ github.ref }}' === 'refs/heads/main' ? 'production' : 'development';
+            const message = `✅ Deployment completed successfully to ${target}`;
+            
+            if (context.payload.pull_request) {
+              await github.rest.issues.createComment({
+                issue_number: context.payload.pull_request.number,
+                owner: context.repo.owner,
+                repo: context.repo.name,
+                body: message
+              });
+            }
+
+      - name: Notify deployment failure
+        if: failure() && (github.event_name == 'pull_request' || github.event_name == 'issues')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const target = '${{ github.ref }}' === 'refs/heads/main' ? 'production' : 'development';
+            const message = `❌ Deployment failed to ${target}`;
+            
+            if (context.payload.pull_request) {
+              await github.rest.issues.createComment({
+                issue_number: context.payload.pull_request.number,
+                owner: context.repo.owner,
+                repo: context.repo.name,
+                body: message
+              });
+            }
