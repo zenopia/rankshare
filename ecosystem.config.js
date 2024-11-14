@@ -1,13 +1,13 @@
 module.exports = {
   apps: [
     {
-      name: 'curate-dev.fileopia.com',
+      name: 'curate.fileopia.com',
       script: 'npm',
       args: 'start',
-      cwd: '/home/fileopia-curate-dev/htdocs/curate-dev.fileopia.com',
+      cwd: '/home/fileopia-curate/htdocs/curate.fileopia.com',
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3001
+        PORT: 3000
       },
       watch: false,
       instances: 1,

@@ -1,6 +1,6 @@
 import type { Types } from 'mongoose';
 
-export type ListCategory = 'movies' | 'books' | 'music' | 'games' | 'other' | 'tv-shows' | 'restaurants';
+export type ListCategory = 'movies' | 'books' | 'recipies' | 'things to do' | 'other' | 'tv-shows' | 'restaurants';
 export type ListPrivacy = 'public' | 'private';
 export type ListPrivacyFilter = ListPrivacy | 'all';
 export type ListSortOption = 'newest' | 'oldest' | 'most-viewed' | 'least-viewed';
@@ -42,16 +42,22 @@ export const LIST_CATEGORIES: { label: string; value: ListCategory }[] = [
   { label: "TV Shows", value: "tv-shows" },
   { label: "Books", value: "books" },
   { label: "Restaurants", value: "restaurants" },
-  { label: "Music", value: "music" },
-  { label: "Games", value: "games" },
+  { label: "Recipies", value: "recipies" },
+  { label: "Things to do", value: "things to do" },
   { label: "Other", value: "other" },
 ];
 
-// Helper constant for privacy options
+// Helper constant for privacy options (including 'all' for filtering)
 export const PRIVACY_OPTIONS: { label: string; value: ListPrivacy | 'all' }[] = [
   { label: "Public", value: "public" },
   { label: "Private", value: "private" },
   { label: "All", value: "all" },
+];
+
+// New constant for create/edit form privacy options
+export const LIST_PRIVACY_OPTIONS: { label: string; value: ListPrivacy }[] = [
+  { label: "Public", value: "public" },
+  { label: "Private", value: "private" },
 ];
 
 // Define the User type if it doesn't exist
