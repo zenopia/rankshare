@@ -1,19 +1,20 @@
 "use client";
 
-import { useState, KeyboardEvent, useEffect } from "react";
+import { useState } from "react";
 import { useDrag } from '@use-gesture/react';
 import { DraggableProvided } from "@hello-pangea/dnd";
-import { GripVertical, X } from "lucide-react";
+import { GripVertical, X, ArrowUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import React, { KeyboardEvent } from "react";
 
 interface DraggableListItemProps {
   item: { id: string; title: string; comment?: string };
   index: number;
   provided: DraggableProvided;
   removeItem: (id: string) => void;
-  handleKeyDown: (e: KeyboardEvent<HTMLInputElement>, index: number) => void;
+  handleKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, index: number) => void;
   updateItem: (index: number, field: 'title' | 'comment', value: string) => void;
 }
 
@@ -32,10 +33,6 @@ export function DraggableListItem({
 }: DraggableListItemProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [swipeAmount, setSwipeAmount] = useState(0);
-
-  useEffect(() => {
-    // setIsMounted(true); // Removed unused state
-  }, []);
 
   const triggerHapticFeedback = () => {
     if ("vibrate" in navigator) {
@@ -84,6 +81,15 @@ export function DraggableListItem({
       >
         <div
           {...provided.dragHandleProps}
+          className="flex sm:hidden items-center touch-none"
+          onTouchStart={() => setIsDragging(true)}
+          onTouchEnd={() => setIsDragging(false)}
+        >
+          <ArrowUpDown className="h-5 w-5 text-gray-400" />
+        </div>
+        
+        <div
+          {...provided.dragHandleProps}
           className="touch-none cursor-grab active:cursor-grabbing hidden sm:flex items-center"
           onMouseDown={() => setIsDragging(true)}
           onMouseUp={() => setIsDragging(false)}
@@ -91,7 +97,7 @@ export function DraggableListItem({
           <GripVertical className="h-6 w-6 text-gray-400" />
         </div>
         
-        <span className="text-sm text-gray-500 w-6 sm:hidden">{index + 1}</span>
+        <span className="text-sm text-gray-500 w-6">{index + 1}</span>
         
         <div className="grid sm:grid-cols-2 gap-4 flex-1">
           <Input
@@ -117,7 +123,7 @@ export function DraggableListItem({
           type="button"
           variant="ghost"
           size="icon"
-          className="hidden sm:flex hover:bg-red-100 hover:text-red-600 transition-colors"
+          className="flex hover:bg-red-100 hover:text-red-600 transition-colors"
           onClick={() => {
             triggerHapticFeedback();
             removeItem(item.id);
@@ -126,15 +132,6 @@ export function DraggableListItem({
         >
           <X className="h-5 w-5" />
         </Button>
-      </div>
-      
-      <div 
-        className={cn(
-          "absolute right-4 top-1/2 -translate-y-1/2 text-sm sm:hidden transition-colors",
-          swipeAmount < -50 ? "text-red-500" : "text-gray-400"
-        )}
-      >
-        Swipe left to delete
       </div>
     </div>
   );
