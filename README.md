@@ -16,3 +16,11 @@ A web application for creating and sharing ranked lists of recommendations.
 - MongoDB with Mongoose
 - Tailwind CSS + shadcn/ui
 - React Query
+- DND Kit
+- Zod
+- Resend
+- React Hook Form
+- React Hot Toast
+- React Icons
+- React Slick
+
