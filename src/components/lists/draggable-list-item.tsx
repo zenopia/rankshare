@@ -73,7 +73,7 @@ export function DraggableListItem({
     >
       <div
         className={cn(
-          "flex items-center gap-4 bg-white p-4 rounded-lg shadow-sm transition-colors",
+          "flex items-stretch gap-2 bg-white rounded-lg shadow-sm transition-colors",
           swipeAmount < -50 && "bg-red-50"
         )}
         style={getSwipeStyles(swipeAmount)}
@@ -81,25 +81,27 @@ export function DraggableListItem({
       >
         <div
           {...provided.dragHandleProps}
-          className="flex sm:hidden items-center touch-none"
+          className="flex flex-col items-center justify-center sm:hidden bg-gray-50 px-3 rounded-l-lg touch-none"
           onTouchStart={() => setIsDragging(true)}
           onTouchEnd={() => setIsDragging(false)}
         >
-          <ArrowUpDown className="h-5 w-5 text-gray-400" />
+          <span className="text-sm text-gray-500">{index + 1}</span>
+          <ArrowUpDown className="h-4 w-4 text-gray-400 mt-1" />
         </div>
         
-        <div
-          {...provided.dragHandleProps}
-          className="touch-none cursor-grab active:cursor-grabbing hidden sm:flex items-center"
-          onMouseDown={() => setIsDragging(true)}
-          onMouseUp={() => setIsDragging(false)}
-        >
-          <GripVertical className="h-6 w-6 text-gray-400" />
+        <div className="hidden sm:flex items-center gap-4 p-4">
+          <div
+            {...provided.dragHandleProps}
+            className="touch-none cursor-grab active:cursor-grabbing"
+            onMouseDown={() => setIsDragging(true)}
+            onMouseUp={() => setIsDragging(false)}
+          >
+            <GripVertical className="h-6 w-6 text-gray-400" />
+          </div>
+          <span className="text-sm text-gray-500 w-6">{index + 1}</span>
         </div>
         
-        <span className="text-sm text-gray-500 w-6">{index + 1}</span>
-        
-        <div className="grid sm:grid-cols-2 gap-4 flex-1">
+        <div className="flex-1 grid sm:grid-cols-2 gap-4 p-4">
           <Input
             className="h-12 sm:h-10 transition-colors focus:bg-blue-50"
             placeholder="Item title"
@@ -123,7 +125,7 @@ export function DraggableListItem({
           type="button"
           variant="ghost"
           size="icon"
-          className="flex hover:bg-red-100 hover:text-red-600 transition-colors"
+          className="hidden sm:flex m-4 hover:bg-red-100 hover:text-red-600 transition-colors"
           onClick={() => {
             triggerHapticFeedback();
             removeItem(item.id);
