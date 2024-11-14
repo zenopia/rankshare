@@ -45,7 +45,7 @@ export interface ListFormProps {
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  category: z.enum(["movies", "books", "recipies", "things to do", "other", "tv-shows", "restaurants"] as const),
+  category: z.enum(["movies", "books", "recipes", "things to do", "other", "tv-shows", "restaurants"] as const),
   description: z.string(),
   privacy: z.enum(["public", "private"] as const),
 });
