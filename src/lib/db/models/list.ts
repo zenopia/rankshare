@@ -1,36 +1,42 @@
-import mongoose, { Schema } from 'mongoose';
-import type { ListDocument } from '@/types/list';
+import mongoose from 'mongoose';
 
-const listSchema = new Schema<ListDocument>({
-  ownerId: { type: String, required: true },
-  ownerName: { type: String, required: true },
-  title: { type: String, required: true },
-  category: { 
-    type: String, 
-    required: true, 
+const listSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    maxLength: 100,
+  },
+  category: {
+    type: String,
+    required: true,
     enum: ['movies', 'tv-shows', 'books', 'restaurants', 'recipes', 'things-to-do', 'other'],
-    default: 'movies'
   },
-  description: { type: String, default: '' },
-  items: [{
-    title: String,
-    description: String,
-    url: String,
-    comment: String,
-    rank: Number,
-    createdAt: Date,
-    updatedAt: Date
-  }],
-  privacy: { 
-    type: String, 
-    required: true, 
+  description: {
+    type: String,
+    required: false,
+  },
+  privacy: {
+    type: String,
+    required: true,
     enum: ['public', 'private'],
-    default: 'public'
   },
-  viewCount: { type: Number, default: 0 },
-  lastEditedAt: { type: Date },
+  userId: {
+    type: String,
+    required: true,
+  },
+  items: [{
+    title: {
+      type: String,
+      required: true,
+    },
+    comment: {
+      type: String,
+      required: false,
+    }
+  }]
 }, {
-  timestamps: true
+  timestamps: true,
 });
 
-export const ListModel = mongoose.models.List || mongoose.model<ListDocument>('List', listSchema);
+// Prevent model recompilation error in development
+export const List = mongoose.models.List || mongoose.model('List', listSchema);
