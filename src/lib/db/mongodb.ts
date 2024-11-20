@@ -23,15 +23,15 @@ if (!cached) {
 // Optimize connection pool settings
 const MONGODB_OPTIONS: ConnectOptions = {
   bufferCommands: false,
-  maxPoolSize: 5, // Reduce from 10 to 5 for shared hosting
-  minPoolSize: 1, // Reduce from 5 to 1
-  socketTimeoutMS: 30000, // Reduce from 45000 to 30000
+  maxPoolSize: 5,
+  minPoolSize: 1,
+  socketTimeoutMS: 45000,
   family: 4,
-  serverSelectionTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 10000,
   heartbeatFrequencyMS: 10000,
-  maxIdleTimeMS: 10000, // Add idle connection timeout
-  connectTimeoutMS: 10000, // Add connection timeout
-  compressors: ['zlib'], // Enable compression
+  maxIdleTimeMS: 30000,
+  connectTimeoutMS: 30000,
+  compressors: ['zlib'],
 };
 
 async function dbConnect(): Promise<Connection> {
