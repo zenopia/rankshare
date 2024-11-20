@@ -54,7 +54,9 @@ jobs:
             mkdir -p ~/htdocs/${{ steps.set-target.outputs.host }}
             cd ~/htdocs/${{ steps.set-target.outputs.host }}
             
+            # Set up environment before git operations
             echo "Setting up environment variables..."
+            cp .env.production .env.local || true  # Keep existing env if present
             echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env.local
             echo "NODE_ENV=production" >> .env.local
             
@@ -67,20 +69,40 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             
             echo "Installing dependencies..."
-            npm install
+            npm ci  # Use clean install instead of npm install
             
             echo "Building application..."
             npm run build
             
-            echo "Restarting application..."
-            pm2 restart ${{ steps.set-target.outputs.host }} --update-env || {
+            echo "Starting/Restarting application..."
+            if pm2 list | grep -q "${{ steps.set-target.outputs.host }}"; then
+              echo "Restarting existing PM2 process..."
+              pm2 reload ${{ steps.set-target.outputs.host }} --update-env || {
+                echo "Reload failed, forcing restart..."
+                pm2 delete ${{ steps.set-target.outputs.host }}
+                pm2 start npm --name "${{ steps.set-target.outputs.host }}" \
+                  --env production \
+                  --time \
+                  --max-memory-restart 500M \
+                  -- start
+              }
+            else
               echo "Starting new PM2 process..."
               pm2 start npm --name "${{ steps.set-target.outputs.host }}" \
                 --env production \
                 --time \
                 --max-memory-restart 500M \
                 -- start
-            }
+            fi
+            
+            # Save PM2 process list
+            pm2 save
+            
+            # Show running processes
+            pm2 list
+            
+            # Show recent logs
+            pm2 logs ${{ steps.set-target.outputs.host }} --lines 50 --nostream
             
             echo "Deployment complete!"
 
@@ -88,10 +110,16 @@ jobs:
         run: |
           echo "Waiting for application to start..."
           sleep 60
+          
+          # Add host key scanning
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+          
+          # Try to access the site
           curl -v -f https://${{ steps.set-target.outputs.host }} || {
             echo "Deployment verification failed"
             echo "Checking PM2 logs..."
-            ssh ${{ steps.set-target.outputs.user }}@${{ secrets.SERVER_IP }} "pm2 logs ${{ steps.set-target.outputs.host }} --lines 100"
+            # Use the same SSH action as deployment for consistency
+            ssh -o StrictHostKeyChecking=accept-new ${{ steps.set-target.outputs.user }}@${{ secrets.SERVER_IP }} "pm2 logs ${{ steps.set-target.outputs.host }} --lines 100"
             exit 1
           }
 
