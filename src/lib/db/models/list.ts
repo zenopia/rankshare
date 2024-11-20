@@ -8,7 +8,7 @@ const listSchema = new Schema<ListDocument>({
   category: { 
     type: String, 
     required: true, 
-    enum: ['movies', 'books', 'music', 'games', 'other', 'tv-shows', 'restaurants'],
+    enum: ['movies', 'tv-shows', 'books', 'restaurants', 'recipes', 'things-to-do', 'other'],
     default: 'movies'
   },
   description: { type: String, default: '' },

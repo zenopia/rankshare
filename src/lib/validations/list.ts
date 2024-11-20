@@ -7,7 +7,7 @@ export const listItemSchema = z.object({
 
 export const createListSchema = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title is too long'),
-  category: z.enum(['movies', 'tv-shows', 'books', 'restaurants'] as const),
+  category: z.enum(['movies', 'tv-shows', 'books', 'restaurants', 'recipes', 'things-to-do', 'other'] as const),
   description: z.string().optional(),
   privacy: z.enum(['public', 'private'] as const),
 });
