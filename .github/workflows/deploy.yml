@@ -76,19 +76,17 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             
             echo "Installing dependencies..."
-            rm -rf node_modules .next
-            npm ci
+            rm -rf node_modules .next package-lock.json
+            npm install
             
             echo "Building application..."
-            NODE_ENV=production npm run build
+            npm run build
             
-            if [ ! -d ".next" ]; then
-              echo "Build failed - .next directory not found"
+            # Verify build directory exists and has content
+            if [ ! -d ".next" ] || [ -z "$(ls -A .next)" ]; then
+              echo "Build failed or .next directory is empty"
               exit 1
             fi
-            
-            echo "Installing PM2 globally if not present..."
-            npm list -g pm2 || npm install -g pm2
             
             echo "Starting/Restarting application..."
             if pm2 list | grep -q "${{ steps.set-target.outputs.host }}"; then
@@ -107,7 +105,10 @@ jobs:
             # Save PM2 process list
             pm2 save
             
-            # Show running processes and logs
+            # Show build and runtime info
+            echo "Next.js build info:"
+            ls -la .next/
+            
             echo "PM2 process list:"
             pm2 list
             
