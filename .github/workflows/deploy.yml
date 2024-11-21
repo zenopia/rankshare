@@ -63,7 +63,7 @@ jobs:
             
             # Set up environment before git operations
             echo "Setting up environment variables..."
-            cp .env.production .env.local || true  # Keep existing env if present
+            cp .env.production .env.local || true
             echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env.local
             echo "NODE_ENV=production" >> .env.local
             
@@ -76,34 +76,33 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             
             echo "Installing dependencies..."
-            npm ci  # Use clean install instead of npm install
+            rm -rf node_modules .next
+            npm ci
             
             echo "Building application..."
-            npm run build
+            NODE_ENV=production npm run build
+            
+            if [ ! -d ".next" ]; then
+              echo "Build failed - .next directory not found"
+              exit 1
+            fi
             
             echo "Installing PM2 globally if not present..."
             npm list -g pm2 || npm install -g pm2
             
             echo "Starting/Restarting application..."
             if pm2 list | grep -q "${{ steps.set-target.outputs.host }}"; then
-              echo "Restarting existing PM2 process..."
-              pm2 reload ${{ steps.set-target.outputs.host }} --update-env || {
-                echo "Reload failed, forcing restart..."
-                pm2 delete ${{ steps.set-target.outputs.host }}
-                pm2 start npm --name "${{ steps.set-target.outputs.host }}" \
-                  --env production \
-                  --time \
-                  --max-memory-restart 500M \
-                  -- start
-              }
-            else
-              echo "Starting new PM2 process..."
-              pm2 start npm --name "${{ steps.set-target.outputs.host }}" \
-                --env production \
-                --time \
-                --max-memory-restart 500M \
-                -- start
+              echo "Stopping existing PM2 process..."
+              pm2 stop ${{ steps.set-target.outputs.host }}
+              pm2 delete ${{ steps.set-target.outputs.host }}
             fi
+            
+            echo "Starting new PM2 process..."
+            PORT=3001 pm2 start npm --name "${{ steps.set-target.outputs.host }}" \
+              --env production \
+              --time \
+              --max-memory-restart 500M \
+              -- start
             
             # Save PM2 process list
             pm2 save
