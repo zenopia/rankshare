@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import * as z from "zod";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUser } from "@clerk/nextjs";
 
 import {
   Form,
@@ -62,6 +63,7 @@ type FormData = z.infer<typeof formSchema>;
 
 export function ListFormContent({ initialData, mode = 'create' }: ListFormProps) {
   const router = useRouter();
+  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [items, setItems] = useState<{ id: string; title: string; comment?: string }[]>(
     initialData?.items || []
@@ -86,6 +88,11 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
     try {
       setIsSubmitting(true);
       
+      if (!user) {
+        toast.error('You must be logged in to create a list');
+        return;
+      }
+
       if (items.length === 0) {
         toast.error('Add at least one item to your list');
         return;
@@ -103,12 +110,19 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
         rank: index + 1,
       }));
 
+      const ownerName = user.fullName || 
+                       `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+                       user.username || 
+                       'Anonymous';
+
       const listData = {
         title: data.title.trim(),
         category: data.category,
         description: data.description.trim(),
         privacy: data.privacy,
         items: formattedItems,
+        ownerId: user.id,
+        ownerName: ownerName
       };
 
       const toastId = toast.loading(
