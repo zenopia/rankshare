@@ -1,6 +1,13 @@
 import type { Types } from 'mongoose';
 
-export type ListCategory = 'movies' | 'books' | 'recipes' | 'things-to-do' | 'other' | 'tv-shows' | 'restaurants';
+export type ListCategory = 
+  | 'movies' 
+  | 'tv-shows' 
+  | 'books' 
+  | 'restaurants' 
+  | 'recipes' 
+  | 'things-to-do' 
+  | 'other';
 export type ListPrivacy = 'public' | 'private';
 export type ListPrivacyFilter = ListPrivacy | 'all';
 export type ListSortOption = 'newest' | 'oldest' | 'most-viewed' | 'least-viewed';

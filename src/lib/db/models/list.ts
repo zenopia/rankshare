@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { LIST_CATEGORIES } from '@/types/list';
 
 const listSchema = new mongoose.Schema({
   title: {
@@ -9,7 +10,7 @@ const listSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['movies', 'tv-shows', 'books', 'restaurants', 'recipes', 'things-to-do', 'other'],
+    enum: LIST_CATEGORIES.map(cat => cat.value),
   },
   description: {
     type: String,
@@ -24,6 +25,10 @@ const listSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  ownerName: {
+    type: String,
+    required: true,
+  },
   items: [{
     title: {
       type: String,
@@ -32,11 +37,19 @@ const listSchema = new mongoose.Schema({
     comment: {
       type: String,
       required: false,
+    },
+    rank: {
+      type: Number,
+      required: true,
     }
-  }]
+  }],
+  viewCount: {
+    type: Number,
+    default: 0,
+  }
 }, {
   timestamps: true,
 });
 
-// Prevent model recompilation error in development
-export const List = mongoose.models.List || mongoose.model('List', listSchema);
+// Export as ListModel to match imports across the application
+export const ListModel = mongoose.models.List || mongoose.model('List', listSchema);

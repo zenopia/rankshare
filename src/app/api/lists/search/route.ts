@@ -1,12 +1,9 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from "next/server";
 import { ListModel } from "@/lib/db/models/list";
-import { PinModel } from "@/lib/db/models/pin";
 import dbConnect from "@/lib/db/mongodb";
 import type { ListDocument, ListCategory } from "@/types/list";
-import type { PinDocument } from "@/types/pin";
 import type { MongoListFilter, MongoSortOptions } from "@/types/mongodb";
-import type { SortOrder } from 'mongoose';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,9 +18,16 @@ export async function GET(request: Request) {
     const filter: MongoListFilter = { privacy: "public" };
     
     if (searchParams.get("q")) {
+      const searchQuery = searchParams.get("q") || '';
+      
+      // Add text search at the top level of the query
+      filter.$text = { $search: searchQuery };
+      
+      // Add regex search for partial matches
       filter.$or = [
-        { title: { $regex: searchParams.get("q") || '', $options: "i" } },
-        { description: { $regex: searchParams.get("q") || '', $options: "i" } },
+        { title: { $regex: searchQuery, $options: "i" } },
+        { description: { $regex: searchQuery, $options: "i" } },
+        { ownerName: { $regex: searchQuery, $options: "i" } }
       ];
     }
 
@@ -33,15 +37,20 @@ export async function GET(request: Request) {
 
     // Build sort
     const sort: MongoSortOptions = {};
-    const sortOrder: SortOrder = -1;
     
+    if (searchParams.get("q")) {
+      // If there's a search query, sort by text score first
+      sort.score = { $meta: "textScore" };
+    }
+    
+    // Then apply other sort criteria
     switch (searchParams.get("sort")) {
       case "most-viewed":
-        sort.viewCount = sortOrder;
+        sort.viewCount = -1;
         break;
       case "newest":
       default:
-        sort.createdAt = sortOrder;
+        sort.createdAt = -1;
     }
 
     const lists = await ListModel
@@ -50,13 +59,7 @@ export async function GET(request: Request) {
       .limit(20)
       .lean() as ListDocument[];
 
-    // Get pins if user is logged in
-    let pins: PinDocument[] = [];
-    if (userId) {
-      pins = await PinModel.find({ userId }).lean() as PinDocument[];
-    }
-
-    // Transform documents
+    // Transform and return results
     const transformedLists = lists.map(list => ({
       id: list._id.toString(),
       ownerId: list.ownerId,
@@ -69,24 +72,14 @@ export async function GET(request: Request) {
       viewCount: list.viewCount,
       createdAt: list.createdAt,
       updatedAt: list.updatedAt,
-      hasUpdate: userId ? pins.some((pin) => 
-        pin.listId === list._id.toString() && 
-        new Date(list.updatedAt) > new Date(pin.lastViewedAt)
-      ) : false,
+      hasUpdate: userId ? false : undefined,
     }));
 
-    return NextResponse.json(
-      { lists: transformedLists },
-      {
-        headers: {
-          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=59',
-        },
-      }
-    );
+    return NextResponse.json({ lists: transformedLists });
   } catch (error) {
     console.error('Search error:', error);
     return NextResponse.json(
-      { error: 'Failed to search lists' }, 
+      { error: 'Failed to search lists' },
       { status: 500 }
     );
   }
