@@ -81,6 +81,9 @@ jobs:
             echo "Building application..."
             npm run build
             
+            echo "Installing PM2 globally if not present..."
+            npm list -g pm2 || npm install -g pm2
+            
             echo "Starting/Restarting application..."
             if pm2 list | grep -q "${{ steps.set-target.outputs.host }}"; then
               echo "Restarting existing PM2 process..."
@@ -105,10 +108,11 @@ jobs:
             # Save PM2 process list
             pm2 save
             
-            # Show running processes
+            # Show running processes and logs
+            echo "PM2 process list:"
             pm2 list
             
-            # Show recent logs
+            echo "Application logs:"
             pm2 logs ${{ steps.set-target.outputs.host }} --lines 50 --nostream
             
             echo "Deployment complete!"
@@ -126,7 +130,13 @@ jobs:
           curl -v -f https://${{ steps.set-target.outputs.host }} || {
             echo "Deployment verification failed"
             echo "Checking PM2 logs..."
-            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ steps.set-target.outputs.user }}@${{ secrets.SERVER_IP }} "pm2 logs ${{ steps.set-target.outputs.host }} --lines 100"
+            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ steps.set-target.outputs.user }}@${{ secrets.SERVER_IP }} "
+              export NVM_DIR=\"\$HOME/.nvm\"
+              [ -s \"\$NVM_DIR/nvm.sh\" ] && \. \"\$NVM_DIR/nvm.sh\"
+              cd ~/htdocs/${{ steps.set-target.outputs.host }}
+              npm list -g pm2 || npm install -g pm2
+              pm2 logs ${{ steps.set-target.outputs.host }} --lines 100
+            "
             exit 1
           }
 
