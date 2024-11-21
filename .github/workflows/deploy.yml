@@ -42,6 +42,13 @@ jobs:
               });
             }
 
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
       - name: Deploy to server
         uses: appleboy/ssh-action@master
         with:
@@ -111,20 +118,15 @@ jobs:
           echo "Waiting for application to start..."
           sleep 60
           
-          # Create .ssh directory and set permissions
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          
-          # Add host key scanning
-          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
+          # Debug SSH connection
+          echo "Testing SSH connection..."
+          ssh -v -o StrictHostKeyChecking=no ${{ steps.set-target.outputs.user }}@${{ secrets.SERVER_IP }} "echo 'SSH connection successful'"
           
           # Try to access the site
           curl -v -f https://${{ steps.set-target.outputs.host }} || {
             echo "Deployment verification failed"
             echo "Checking PM2 logs..."
-            # Use the same SSH action as deployment for consistency
-            ssh -o StrictHostKeyChecking=accept-new ${{ steps.set-target.outputs.user }}@${{ secrets.SERVER_IP }} "pm2 logs ${{ steps.set-target.outputs.host }} --lines 100"
+            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ steps.set-target.outputs.user }}@${{ secrets.SERVER_IP }} "pm2 logs ${{ steps.set-target.outputs.host }} --lines 100"
             exit 1
           }
 
