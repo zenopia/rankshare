@@ -1,36 +1,55 @@
-import mongoose, { Schema } from 'mongoose';
-import type { ListDocument } from '@/types/list';
+import mongoose from 'mongoose';
+import { LIST_CATEGORIES } from '@/types/list';
 
-const listSchema = new Schema<ListDocument>({
-  ownerId: { type: String, required: true },
-  ownerName: { type: String, required: true },
-  title: { type: String, required: true },
-  category: { 
-    type: String, 
-    required: true, 
-    enum: ['movies', 'books', 'music', 'games', 'other', 'tv-shows', 'restaurants'],
-    default: 'movies'
+const listSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    maxLength: 100,
   },
-  description: { type: String, default: '' },
-  items: [{
-    title: String,
-    description: String,
-    url: String,
-    comment: String,
-    rank: Number,
-    createdAt: Date,
-    updatedAt: Date
-  }],
-  privacy: { 
-    type: String, 
-    required: true, 
+  category: {
+    type: String,
+    required: true,
+    enum: LIST_CATEGORIES.map(cat => cat.value),
+  },
+  description: {
+    type: String,
+    required: false,
+  },
+  privacy: {
+    type: String,
+    required: true,
     enum: ['public', 'private'],
-    default: 'public'
   },
-  viewCount: { type: Number, default: 0 },
-  lastEditedAt: { type: Date },
+  userId: {
+    type: String,
+    required: true,
+  },
+  ownerName: {
+    type: String,
+    required: true,
+  },
+  items: [{
+    title: {
+      type: String,
+      required: true,
+    },
+    comment: {
+      type: String,
+      required: false,
+    },
+    rank: {
+      type: Number,
+      required: true,
+    }
+  }],
+  viewCount: {
+    type: Number,
+    default: 0,
+  }
 }, {
-  timestamps: true
+  timestamps: true,
 });
 
-export const ListModel = mongoose.models.List || mongoose.model<ListDocument>('List', listSchema);
+// Export as ListModel to match imports across the application
+export const ListModel = mongoose.models.List || mongoose.model('List', listSchema);

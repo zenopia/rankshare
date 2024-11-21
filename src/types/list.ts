@@ -1,6 +1,13 @@
 import type { Types } from 'mongoose';
 
-export type ListCategory = 'movies' | 'books' | 'recipes' | 'things to do' | 'other' | 'tv-shows' | 'restaurants';
+export type ListCategory = 
+  | 'movies' 
+  | 'tv-shows' 
+  | 'books' 
+  | 'restaurants' 
+  | 'recipes' 
+  | 'things-to-do' 
+  | 'other';
 export type ListPrivacy = 'public' | 'private';
 export type ListPrivacyFilter = ListPrivacy | 'all';
 export type ListSortOption = 'newest' | 'oldest' | 'most-viewed' | 'least-viewed';
@@ -43,7 +50,7 @@ export const LIST_CATEGORIES: { label: string; value: ListCategory }[] = [
   { label: "Books", value: "books" },
   { label: "Restaurants", value: "restaurants" },
   { label: "Recipes", value: "recipes" },
-  { label: "Things to do", value: "things to do" },
+  { label: "Things to do", value: "things-to-do" },
   { label: "Other", value: "other" },
 ];
 

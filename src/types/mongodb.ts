@@ -17,9 +17,11 @@ export interface MongoListFilter {
   ownerId?: string;
   privacy?: ListPrivacy;
   category?: ListCategory;
+  $text?: { $search: string };
   $or?: Array<{
     title?: { $regex: string; $options: string };
     description?: { $regex: string; $options: string };
+    ownerName?: { $regex: string; $options: string };
     'items.title'?: { $regex: string; $options: string };
     'items.comment'?: { $regex: string; $options: string };
   }>;
@@ -32,5 +34,5 @@ export interface MongoListDocument extends Omit<List, 'id'> {
 }
 
 export type MongoSortOptions = {
-  [key: string]: SortOrder | { $meta: string };
+  [key: string]: SortOrder | { $meta: "textScore" };
 };

@@ -3,8 +3,8 @@ name: Deploy Application
 on:
   push:
     branches:
-      - main      # deploys to production
-      - develop   # deploys to development
+      - main
+      - develop
 
 jobs:
   deploy:
@@ -25,23 +25,6 @@ jobs:
             echo "user=fileopia-curate-dev" >> $GITHUB_OUTPUT
           fi
 
-      - name: Notify deployment start
-        if: github.event_name == 'pull_request' || github.event_name == 'issues'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const target = '${{ github.ref }}' === 'refs/heads/main' ? 'production' : 'development';
-            const message = `🚀 Deployment started to ${target}`;
-            
-            if (context.payload.pull_request) {
-              await github.rest.issues.createComment({
-                issue_number: context.payload.pull_request.number,
-                owner: context.repo.owner,
-                repo: context.repo.name,
-                body: message
-              });
-            }
-
       - name: Deploy to server
         uses: appleboy/ssh-action@master
         with:
@@ -51,7 +34,6 @@ jobs:
           script: |
             echo "Starting deployment..."
             
-            mkdir -p ~/htdocs/${{ steps.set-target.outputs.host }}
             cd ~/htdocs/${{ steps.set-target.outputs.host }}
             
             echo "Cleaning repository state..."
@@ -78,37 +60,4 @@ jobs:
           echo "Waiting for application to start..."
           sleep 30
           curl -f https://${{ steps.set-target.outputs.host }} || exit 1
-
-      - name: Notify deployment complete
-        if: success() && (github.event_name == 'pull_request' || github.event_name == 'issues')
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const target = '${{ github.ref }}' === 'refs/heads/main' ? 'production' : 'development';
-            const message = `✅ Deployment completed successfully to ${target}`;
-            
-            if (context.payload.pull_request) {
-              await github.rest.issues.createComment({
-                issue_number: context.payload.pull_request.number,
-                owner: context.repo.owner,
-                repo: context.repo.name,
-                body: message
-              });
-            }
-
-      - name: Notify deployment failure
-        if: failure() && (github.event_name == 'pull_request' || github.event_name == 'issues')
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const target = '${{ github.ref }}' === 'refs/heads/main' ? 'production' : 'development';
-            const message = `❌ Deployment failed to ${target}`;
-            
-            if (context.payload.pull_request) {
-              await github.rest.issues.createComment({
-                issue_number: context.payload.pull_request.number,
-                owner: context.repo.owner,
-                repo: context.repo.name,
-                body: message
-              });
-            }
+              

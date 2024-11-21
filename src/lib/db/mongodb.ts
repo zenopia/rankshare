@@ -23,25 +23,26 @@ if (!cached) {
 // Optimize connection pool settings
 const MONGODB_OPTIONS: ConnectOptions = {
   bufferCommands: false,
-  maxPoolSize: 5, // Reduce from 10 to 5 for shared hosting
-  minPoolSize: 1, // Reduce from 5 to 1
-  socketTimeoutMS: 30000, // Reduce from 45000 to 30000
+  maxPoolSize: 5,
+  minPoolSize: 1,
+  socketTimeoutMS: 45000,
   family: 4,
-  serverSelectionTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 10000,
   heartbeatFrequencyMS: 10000,
-  maxIdleTimeMS: 10000, // Add idle connection timeout
-  connectTimeoutMS: 10000, // Add connection timeout
-  compressors: ['zlib'], // Enable compression
+  maxIdleTimeMS: 30000,
+  connectTimeoutMS: 30000,
+  compressors: ['zlib'],
 };
 
 async function dbConnect(): Promise<Connection> {
   if (cached?.conn) {
+    console.log('Using cached MongoDB connection');
     return cached.conn;
   }
 
   if (!cached?.promise) {
     try {
-      console.log('Connecting to MongoDB...');
+      console.log('Creating new MongoDB connection...');
       cached = global.mongoose = {
         conn: null,
         promise: mongoose
@@ -55,6 +56,8 @@ async function dbConnect(): Promise<Connection> {
       console.error('MongoDB connection error:', error);
       throw error;
     }
+  } else {
+    console.log('Using existing connection promise');
   }
 
   try {
@@ -71,27 +74,33 @@ async function dbConnect(): Promise<Connection> {
   }
 }
 
-// Add connection event listeners
-mongoose.connection.on('connected', () => {
-  console.log('MongoDB connected');
-});
+// Modify connection event listeners to avoid duplicate logging
+let listenersAttached = false;
 
-mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
-});
+if (!listenersAttached) {
+  mongoose.connection.on('connected', () => {
+    console.log('MongoDB connected');
+  });
 
-mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected');
-});
+  mongoose.connection.on('error', (err) => {
+    console.error('MongoDB connection error:', err);
+  });
+
+  mongoose.connection.on('disconnected', () => {
+    console.log('MongoDB disconnected');
+    cached = { conn: null, promise: null };
+  });
+
+  listenersAttached = true;
+}
 
 // Add index creation
 async function createIndexes() {
   try {
     const conn = await dbConnect();
     
-    // Create indexes with dropDups and background options
+    // Create regular indexes
     const indexPromises = [
-      // Regular indexes
       conn.collection('lists').createIndex({ ownerId: 1 }, { background: true }),
       conn.collection('lists').createIndex({ privacy: 1 }, { background: true }),
       conn.collection('lists').createIndex({ category: 1 }, { background: true }),
@@ -105,37 +114,42 @@ async function createIndexes() {
       conn.collection('follows').createIndex({ followingId: 1 }, { background: true }),
     ];
 
-    // Text index needs special handling
+    // Handle text index separately
     try {
-      // First try to drop existing text indexes
-      await conn.collection('lists').dropIndex('title_text');
-      await conn.collection('lists').dropIndex('title_text_description_text');
-    } catch (e) {
-      // Ignore errors if indexes don't exist
-    }
+      // Drop all existing text indexes first
+      const indexes = await conn.collection('lists').listIndexes().toArray();
+      for (const index of indexes) {
+        if (index.key._fts === 'text') {
+          await conn.collection('lists').dropIndex(index.name);
+        }
+      }
 
-    // Create new text index
-    indexPromises.push(
-      conn.collection('lists').createIndex(
+      // Create new text index
+      await conn.collection('lists').createIndex(
         { 
           title: 'text', 
-          description: 'text' 
+          description: 'text',
+          ownerName: 'text' 
         },
         { 
           background: true,
-          name: 'title_description_text_v2',
+          name: 'title_description_owner_text',
           weights: {
-            title: 2,
+            title: 3,
+            ownerName: 2,
             description: 1
           }
         }
-      )
-    );
+      );
+    } catch (e) {
+      console.error('Error handling text index:', e);
+    }
 
+    // Create other indexes
     await Promise.all(indexPromises);
     console.log('MongoDB indexes created successfully');
   } catch (error) {
-    // Log error but don't throw - indexes are optimization, not critical for function
+    // Log error but don't throw - indexes are optimization, not critical
     console.error('Warning: Error creating some indexes:', error);
   }
 }

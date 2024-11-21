@@ -10,14 +10,7 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   generateEtags: true,
-  onDemandEntries: {
-    maxInactiveAge: 60 * 60 * 1000,
-    pagesBufferLength: 2,
-  },
-  productionBrowserSourceMaps: false,
-  swcMinify: true,
   output: 'standalone',
-  optimizeFonts: true,
   images: {
     domains: ['rankshare.app'],
     deviceSizes: [640, 750, 828, 1080, 1200],
@@ -36,37 +29,6 @@ const nextConfig = {
   },
   experimental: {
     webpackBuildWorker: false,
-  },
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=3600, stale-while-revalidate=86400',
-          },
-        ],
-      },
-      {
-        source: '/api/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=60, stale-while-revalidate=300',
-          },
-        ],
-      },
-      {
-        source: '/images/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-    ];
   },
 }
 

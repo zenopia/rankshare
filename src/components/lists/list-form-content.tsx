@@ -45,7 +45,15 @@ export interface ListFormProps {
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  category: z.enum(["movies", "books", "recipes", "things to do", "other", "tv-shows", "restaurants"] as const),
+  category: z.enum([
+    "movies",
+    "tv-shows",
+    "books",
+    "restaurants",
+    "recipes",
+    "things-to-do",
+    "other"
+  ] as const),
   description: z.string(),
   privacy: z.enum(["public", "private"] as const),
 });
@@ -64,7 +72,7 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: initialData?.title || "",
-      category: initialData?.category || "movies",
+      category: (initialData?.category || "movies") as ListCategory,
       description: initialData?.description || "",
       privacy: initialData?.privacy || "public",
     },
