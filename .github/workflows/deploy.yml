@@ -9,6 +9,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      NODE_ENV: production
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,6 +34,11 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
+      - name: Create env file
+        run: |
+          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" > .env.local
+          echo "NODE_ENV=production" >> .env.local
+
       - name: Install dependencies
         run: |
           echo "Cleaning npm cache..."
@@ -44,9 +52,6 @@ jobs:
 
       - name: Build application
         run: npm run build
-        env:
-          NODE_ENV: production
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
 
       - name: Setup SSH
         run: |
@@ -89,8 +94,8 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             
             # Install dependencies and build
-            npm ci
-            npm run build
+            npm install
+            NODE_ENV=production MONGODB_URI=${{ secrets.MONGODB_URI }} npm run build
             
             # Verify build
             if [ ! -d ".next" ]; then
@@ -124,7 +129,7 @@ jobs:
       - name: Verify deployment
         run: |
           echo "Waiting for application to start..."
-          sleep 30
+          sleep 60
           curl -f https://${{ steps.set-target.outputs.host }} || {
             echo "Deployment verification failed"
             exit 1
