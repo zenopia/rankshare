@@ -40,29 +40,27 @@ export async function GET(
 }
 
 export async function PATCH(
-  req: Request,
+  request: Request,
   { params }: { params: { listId: string } }
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) {
-      return new NextResponse(
-        JSON.stringify({ error: "Unauthorized" }), 
-        { status: 401 }
-      );
-    }
-
-    const json = await req.json();
     
-    await dbConnect();
+    const list = await ListModel.findOne({ 
+      _id: params.listId,
+      ownerId: userId
+    });
 
-    const list = await ListModel.findById(params.listId);
     if (!list) {
-      return new NextResponse(
-        JSON.stringify({ error: "List not found" }), 
+      return NextResponse.json(
+        { error: 'List not found or unauthorized' },
         { status: 404 }
       );
     }
+
+    const json = await request.json();
+    
+    await dbConnect();
 
     if (list.ownerId !== userId) {
       return new NextResponse(
@@ -97,22 +95,17 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: Promise<{ listId: string }> | { listId: string } }
+  request: Request,
+  { params }: { params: { listId: string } }
 ) {
   try {
-    const resolvedParams = await params;
     const { userId } = await auth();
-    if (!userId) {
-      return new NextResponse(
-        JSON.stringify({ error: "Unauthorized" }), 
-        { status: 401 }
-      );
-    }
+    
+    const list = await ListModel.findOneAndDelete({ 
+      _id: params.listId,
+      ownerId: userId
+    });
 
-    await dbConnect();
-
-    const list = await ListModel.findById(resolvedParams.listId);
     if (!list) {
       return new NextResponse(
         JSON.stringify({ error: "List not found" }), 

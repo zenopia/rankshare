@@ -2,14 +2,11 @@ import { auth } from '@clerk/nextjs/server';
 import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
 import { ListCard } from "@/components/lists/list-card";
-import type { List } from "@/types/list";
+import { ListSearchControls } from "@/components/lists/list-search-controls";
 import { serializeLists } from '@/lib/utils';
 import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/types/mongodb";
 import { ensureUserExists } from "@/lib/actions/user";
 import type { ListCategory, ListPrivacy } from "@/types/list";
-import { SearchInput } from "@/components/search/search-input";
-import { FilterSheet } from "@/components/search/filter-sheet";
-import type { SortOrder } from 'mongoose';
 
 interface SearchParams {
   q?: string;
@@ -25,8 +22,7 @@ export default async function MyListsPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { userId } = await auth();
-  if (!userId) return null;
+  const { userId } = auth();
 
   await dbConnect();
   await ensureUserExists();
@@ -51,7 +47,7 @@ export default async function MyListsPage({
 
   // Build sort
   const sort: MongoSortOptions = {};
-  const sortOrder: SortOrder = -1;
+  const sortOrder = -1;
 
   switch (searchParams.sort) {
     case 'oldest':
@@ -81,26 +77,16 @@ export default async function MyListsPage({
         </p>
       </div>
 
-      {/* Search and Filter Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="flex-1">
-          <SearchInput 
-            placeholder="Search your lists..."
-            defaultValue={searchParams.q}
-          />
-        </div>
-        <FilterSheet 
-          defaultCategory={searchParams.category}
-          defaultSort={searchParams.sort}
-          defaultPrivacy={searchParams.privacy}
-          showPrivacyFilter={true}
-        />
-      </div>
+      <ListSearchControls 
+        defaultQuery={searchParams.q}
+        defaultCategory={searchParams.category}
+        defaultSort={searchParams.sort}
+        defaultPrivacy={searchParams.privacy}
+      />
 
-      {/* Results */}
       {serializedLists.length > 0 ? (
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {serializedLists.map((list: List) => (
+          {serializedLists.map((list) => (
             <ListCard 
               key={list.id} 
               list={list}

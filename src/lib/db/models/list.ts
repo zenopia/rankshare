@@ -21,9 +21,10 @@ const listSchema = new mongoose.Schema({
     required: true,
     enum: ['public', 'private'],
   },
-  userId: {
+  ownerId: {
     type: String,
     required: true,
+    index: true,
   },
   ownerName: {
     type: String,
