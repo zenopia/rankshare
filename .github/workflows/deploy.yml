@@ -58,13 +58,16 @@ jobs:
           script: |
             echo "Starting deployment..."
             
-            mkdir -p ~/htdocs/${{ steps.set-target.outputs.host }}
-            cd ~/htdocs/${{ steps.set-target.outputs.host }}
+            # Create and enter app directory
+            APP_DIR=~/htdocs/${{ steps.set-target.outputs.host }}
+            mkdir -p $APP_DIR
+            cd $APP_DIR
+            
+            echo "Current directory: $(pwd)"
             
             # Set up environment before git operations
             echo "Setting up environment variables..."
-            cp .env.production .env.local || true
-            echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env.local
+            echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" > .env.local
             echo "NODE_ENV=production" >> .env.local
             
             echo "Cleaning repository state..."
@@ -80,11 +83,21 @@ jobs:
             npm install
             
             echo "Building application..."
-            npm run build
+            echo "Node version: $(node -v)"
+            echo "NPM version: $(npm -v)"
+            
+            # Ensure we're in the correct directory
+            echo "Building in directory: $(pwd)"
+            ls -la
+            
+            # Build with verbose output
+            NODE_ENV=production npm run build
             
             # Verify build directory exists and has content
             if [ ! -d ".next" ] || [ -z "$(ls -A .next)" ]; then
-              echo "Build failed or .next directory is empty"
+              echo "Build failed - .next directory is missing or empty"
+              echo "Directory contents:"
+              ls -la
               exit 1
             fi
             
@@ -96,10 +109,10 @@ jobs:
             fi
             
             echo "Starting new PM2 process..."
+            cd $APP_DIR  # Ensure we're in the right directory
             PORT=3001 pm2 start npm --name "${{ steps.set-target.outputs.host }}" \
               --env production \
-              --time \
-              --max-memory-restart 500M \
+              --cwd $APP_DIR \
               -- start
             
             # Save PM2 process list
