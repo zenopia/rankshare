@@ -111,8 +111,13 @@ jobs:
           echo "Waiting for application to start..."
           sleep 60
           
+          # Create .ssh directory and set permissions
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
           # Add host key scanning
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
           
           # Try to access the site
           curl -v -f https://${{ steps.set-target.outputs.host }} || {
