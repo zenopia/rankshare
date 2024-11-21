@@ -9,9 +9,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      MONGODB_URI: ${{ secrets.MONGODB_URI }}
-      NODE_ENV: production
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,38 +25,6 @@ jobs:
             echo "user=fileopia-curate-dev" >> $GITHUB_OUTPUT
           fi
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Create env file
-        run: |
-          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" > .env.local
-          echo "NODE_ENV=production" >> .env.local
-
-      - name: Install dependencies
-        run: |
-          echo "Cleaning npm cache..."
-          npm cache clean --force
-          
-          echo "Removing existing lock file..."
-          rm -f package-lock.json
-          
-          echo "Installing dependencies..."
-          npm install
-
-      - name: Build application
-        run: npm run build
-
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-
       - name: Deploy to server
         uses: appleboy/ssh-action@master
         with:
@@ -69,69 +34,30 @@ jobs:
           script: |
             echo "Starting deployment..."
             
-            # Setup directories
-            APP_DIR=~/htdocs/${{ steps.set-target.outputs.host }}
-            BACKUP_DIR="${APP_DIR}_backup_$(date +%Y%m%d_%H%M%S)"
+            cd ~/htdocs/${{ steps.set-target.outputs.host }}
             
-            # Backup existing deployment if it exists
-            if [ -d "$APP_DIR" ]; then
-              mv "$APP_DIR" "$BACKUP_DIR"
-            fi
+            echo "Cleaning repository state..."
+            git fetch origin ${{ github.ref_name }}
+            git reset --hard origin/${{ github.ref_name }}
             
-            # Create fresh directory
-            mkdir -p "$APP_DIR"
-            cd "$APP_DIR"
-            
-            # Setup environment
-            echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" > .env.local
-            echo "NODE_ENV=production" >> .env.local
-            
-            # Clone repository
-            git clone -b ${{ github.ref_name }} https://github.com/${{ github.repository }} .
-            
-            # Setup Node
+            echo "Setting up Node environment..."
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             
-            # Install dependencies and build
+            echo "Installing dependencies..."
             npm install
-            NODE_ENV=production MONGODB_URI=${{ secrets.MONGODB_URI }} npm run build
             
-            # Verify build
-            if [ ! -d ".next" ]; then
-              echo "Build verification failed"
-              if [ -d "$BACKUP_DIR" ]; then
-                echo "Restoring from backup..."
-                rm -rf "$APP_DIR"
-                mv "$BACKUP_DIR" "$APP_DIR"
-              fi
-              exit 1
-            fi
+            echo "Building application..."
+            npm run build
             
-            # Start application
-            if pm2 list | grep -q "${{ steps.set-target.outputs.host }}"; then
-              pm2 delete "${{ steps.set-target.outputs.host }}"
-            fi
+            echo "Restarting application..."
+            pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
             
-            PORT=3001 pm2 start npm --name "${{ steps.set-target.outputs.host }}" \
-              --env production \
-              -- start
-            
-            pm2 save
-            
-            # Cleanup old backup
-            if [ -d "$BACKUP_DIR" ]; then
-              rm -rf "$BACKUP_DIR"
-            fi
-            
-            echo "Deployment complete"
+            echo "Deployment complete!"
 
       - name: Verify deployment
         run: |
           echo "Waiting for application to start..."
-          sleep 60
-          curl -f https://${{ steps.set-target.outputs.host }} || {
-            echo "Deployment verification failed"
-            exit 1
-          }
+          sleep 30
+          curl -f https://${{ steps.set-target.outputs.host }} || exit 1
               
