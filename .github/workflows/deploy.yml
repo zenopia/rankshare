@@ -55,7 +55,11 @@ jobs:
             npm run build
             
             echo "Starting application..."
-            PORT=3001 pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+            if [ ${{ github.ref }} = 'refs/heads/main' ]; then
+              PORT=3000 pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+            else
+              PORT=3001 pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+            fi
             
             echo "Checking deployment status..."
             sleep 5
