@@ -44,14 +44,18 @@ jobs:
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             
+            echo "Stopping existing process..."
+            pm2 stop ${{ steps.set-target.outputs.host }} || true
+            pm2 delete ${{ steps.set-target.outputs.host }} || true
+            
             echo "Installing dependencies..."
             npm install
             
             echo "Building application..."
             npm run build
             
-            echo "Restarting application..."
-            pm2 reload ${{ steps.set-target.outputs.host }} || pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+            echo "Starting application..."
+            PORT=3001 pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
             
             echo "Checking deployment status..."
             sleep 5
