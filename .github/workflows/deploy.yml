@@ -55,11 +55,17 @@ jobs:
             npm run build
             
             echo "Starting application..."
+            # Set port based on environment and CloudPanel configuration
             if [ ${{ github.ref }} = 'refs/heads/main' ]; then
-              PORT=3000 pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+              export PORT=3000
+              export NODE_ENV=production
             else
-              PORT=3001 pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+              export PORT=3001
+              export NODE_ENV=production
             fi
+            
+            # Start the application
+            pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
             
             echo "Checking deployment status..."
             sleep 5
