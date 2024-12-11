@@ -34,7 +34,8 @@ jobs:
           script: |
             echo "Starting deployment..."
             
-            cd ~/htdocs/${{ steps.set-target.outputs.host }}
+            # CloudPanel uses this path structure
+            cd /home/clp-${{ steps.set-target.outputs.user }}/htdocs/${{ steps.set-target.outputs.host }}
             
             echo "Cleaning repository state..."
             git fetch origin ${{ github.ref_name }}
@@ -58,13 +59,19 @@ jobs:
             npm run build
             
             echo "Restarting application..."
-            pm2 restart ecosystem.config.current.js || pm2 start ecosystem.config.current.js
+            pm2 delete ${{ steps.set-target.outputs.host }} || true
+            pm2 start ecosystem.config.current.js
+            
+            echo "Checking application status..."
+            sleep 10
+            pm2 list
+            pm2 logs --lines 50
             
             echo "Deployment complete!"
 
       - name: Verify deployment
         run: |
           echo "Waiting for application to start..."
-          sleep 30
-          curl -f https://${{ steps.set-target.outputs.host }} || exit 1
+          sleep 45
+          curl -v https://${{ steps.set-target.outputs.host }} || exit 1
               
