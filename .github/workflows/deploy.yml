@@ -44,14 +44,21 @@ jobs:
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             
+            echo "Setting up PM2 ecosystem config..."
+            if [ ${{ github.ref }} = 'refs/heads/main' ]; then
+              cp ecosystem.config.js ecosystem.config.current.js
+            else
+              cp ecosystem.config.dev.js ecosystem.config.current.js
+            fi
+            
             echo "Installing dependencies..."
-            npm install
+            npm ci
             
             echo "Building application..."
             npm run build
             
             echo "Restarting application..."
-            pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+            pm2 restart ecosystem.config.current.js || pm2 start ecosystem.config.current.js
             
             echo "Deployment complete!"
 
