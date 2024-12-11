@@ -10,7 +10,6 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   generateEtags: true,
-  output: 'standalone',
   images: {
     domains: ['rankshare.app'],
     deviceSizes: [640, 750, 828, 1080, 1200],
