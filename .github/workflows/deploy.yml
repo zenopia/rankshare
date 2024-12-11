@@ -47,6 +47,7 @@ jobs:
             echo "Stopping existing process..."
             pm2 stop ${{ steps.set-target.outputs.host }} || true
             pm2 delete ${{ steps.set-target.outputs.host }} || true
+            pm2 delete ecosystem.config.current || true
             
             echo "Installing dependencies..."
             npm install
@@ -55,17 +56,14 @@ jobs:
             npm run build
             
             echo "Starting application..."
-            # Set port based on environment and CloudPanel configuration
             if [ ${{ github.ref }} = 'refs/heads/main' ]; then
-              export PORT=3000
-              export NODE_ENV=production
+              pm2 start "npm start -- -p 3000" --name "${{ steps.set-target.outputs.host }}"
             else
-              export PORT=3001
-              export NODE_ENV=production
+              pm2 start "npm start -- -p 3001" --name "${{ steps.set-target.outputs.host }}"
             fi
             
-            # Start the application
-            pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+            # Save PM2 state to prevent warnings
+            pm2 save
             
             echo "Checking deployment status..."
             sleep 5
