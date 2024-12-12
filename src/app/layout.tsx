@@ -1,18 +1,13 @@
 import './globals.css'
 import { ClerkProvider } from '@clerk/nextjs'
-import { auth } from '@clerk/nextjs/server'
-import { Inter } from 'next/font/google'
+import { Toaster } from "sonner"
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Providers } from './providers'
 import { Navbar } from '@/components/layout/navbar'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Metadata, Viewport } from 'next';
+import { auth } from '@clerk/nextjs/server'
 
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  preload: true,
-})
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -71,12 +66,15 @@ export default async function RootLayout({
     throw new Error('Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY');
   }
 
+  // Check if we're on the dev site
+  const isDev = process.env.NEXT_PUBLIC_APP_URL?.includes('dev');
+
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`min-h-screen bg-background font-sans antialiased ${inter.className}`}>
-        <ClerkProvider
-          publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-        >
+    <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+    >
+      <html lang="en" suppressHydrationWarning>
+        <body className={`min-h-screen font-sans antialiased ${isDev ? 'bg-purple-50' : ''}`}>
           <Providers>
             <div className="relative flex min-h-screen flex-col">
               <Navbar />
@@ -88,8 +86,9 @@ export default async function RootLayout({
               </div>
             </div>
           </Providers>
-        </ClerkProvider>
-      </body>
-    </html>
+          <Toaster />
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }

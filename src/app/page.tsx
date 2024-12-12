@@ -6,6 +6,7 @@ import Link from "next/link";
 import { auth } from '@clerk/nextjs/server';
 import type { List, ListDocument } from '@/types/list';
 import type { PinDocument } from '@/types/pin';
+import { StickySearch } from "@/components/home/sticky-search";
 
 export default async function HomePage() {
   let recentLists: (List & { hasUpdate: boolean })[] = [];
@@ -51,33 +52,36 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="container py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">Recent Lists</h1>
-        <Link 
-          href="/lists/create"
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-md"
-        >
-          Create List
-        </Link>
-      </div>
-
-      {recentLists.length > 0 ? (
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {recentLists.map((list) => (
-            <ListCard 
-              key={list.id} 
-              list={list}
-              showUpdateBadge={list.hasUpdate}
-              showPrivacyBadge
-            />
-          ))}
+    <>
+      <div className="container py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold">Recent Lists</h1>
+          <Link 
+            href="/lists/create"
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-md"
+          >
+            Create List
+          </Link>
         </div>
-      ) : (
-        <p className="text-center text-muted-foreground">
-          No lists found. Be the first to create one!
-        </p>
-      )}
-    </div>
+
+        {recentLists.length > 0 ? (
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {recentLists.map((list) => (
+              <ListCard 
+                key={list.id} 
+                list={list}
+                showUpdateBadge={list.hasUpdate}
+                showPrivacyBadge
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-muted-foreground">
+            No lists found. Be the first to create one!
+          </p>
+        )}
+      </div>
+      <StickySearch />
+    </>
   );
 }
