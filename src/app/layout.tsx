@@ -66,8 +66,8 @@ export default async function RootLayout({
     throw new Error('Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY');
   }
 
-  // Check if we're on the dev site
-  const isDev = process.env.NEXT_PUBLIC_APP_URL?.includes('dev');
+  // Check if we're in dev environment
+  const isDev = process.env.NEXT_PUBLIC_IS_DEV === 'true';
 
   return (
     <ClerkProvider
