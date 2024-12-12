@@ -11,9 +11,6 @@ const nextConfig = {
   compress: true,
   generateEtags: true,
   distDir: '.next',
-  env: {
-    NODE_ENV: process.env.NODE_ENV,
-  },
   images: {
     domains: ['rankshare.app'],
     deviceSizes: [640, 750, 828, 1080, 1200],
