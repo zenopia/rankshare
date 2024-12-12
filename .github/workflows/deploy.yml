@@ -29,6 +29,18 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             echo "Starting deployment..."
+            
+            # Load NVM and Node
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+            
+            # Ensure we're using the right Node version
+            nvm use 18 || nvm install 18
+            
+            # Install PM2 globally if not present
+            which pm2 || npm install -g pm2
+            
             cd ~/htdocs/${{ steps.set-target.outputs.host }}
             
             # Pull latest changes
