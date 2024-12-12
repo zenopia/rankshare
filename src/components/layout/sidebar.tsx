@@ -13,6 +13,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SidebarProfile } from "@/components/layout/sidebar-profile";
 
 const menuItems = [
   {
@@ -85,6 +86,8 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
           </Button>
         </div>
       )}
+
+      <SidebarProfile collapsed={collapsed} />
 
       <nav className="flex-1 space-y-1 p-2" aria-label="Sidebar navigation">
         {menuItems.map((item) => {

@@ -4,6 +4,6 @@ export interface NavItem {
   title: string;
   href: string;
   public: boolean;
-  icon?: LucideIcon;
+  icon: LucideIcon;
   description?: string;
 } 
