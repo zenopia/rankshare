@@ -1,8 +1,8 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
+import Image from "next/image";
 
 interface SidebarProfileProps {
   collapsed: boolean;
@@ -20,7 +20,13 @@ export function SidebarProfile({ collapsed, onClick }: SidebarProfileProps) {
       className="flex items-center gap-3 p-4 border-b transition-colors hover:bg-accent"
       onClick={onClick}
     >
-      <UserButton afterSignOutUrl="/" />
+      <Image
+        src={user.imageUrl}
+        alt={user.username || "Profile"}
+        width={32}
+        height={32}
+        className="rounded-full"
+      />
       {!collapsed && (
         <div className="flex flex-col min-w-0">
           <span className="text-sm font-medium truncate">

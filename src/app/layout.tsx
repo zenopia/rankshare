@@ -6,8 +6,6 @@ import { Providers } from './providers'
 import { Navbar } from '@/components/layout/navbar'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Metadata, Viewport } from 'next';
-import { auth } from '@clerk/nextjs/server'
-
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -53,40 +51,33 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  let isAuthenticated = false;
-
-  try {
-    const { userId } = await auth();
-    isAuthenticated = !!userId;
-  } catch (error) {
-    console.error('Auth initialization error:', error);
-  }
-
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
     throw new Error('Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY');
   }
 
-  // Check if we're in dev environment
-  const isDev = process.env.NEXT_PUBLIC_IS_DEV === 'true';
-
   return (
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      appearance={{
+        elements: {
+          footer: "hidden",
+        }
+      }}
     >
       <html lang="en" suppressHydrationWarning>
-        <body className={`min-h-screen font-sans antialiased ${isDev ? 'bg-purple-50' : ''}`}>
+        <body className="min-h-screen font-sans antialiased">
           <Providers>
             <div className="relative flex min-h-screen flex-col">
               <Navbar />
               <div className="flex flex-1">
-                {isAuthenticated && <Sidebar className="hidden md:flex" />}
+                <Sidebar className="hidden md:flex" />
                 <ErrorBoundary>
                   <main className="flex-1">{children}</main>
                 </ErrorBoundary>
               </div>
             </div>
+            <Toaster />
           </Providers>
-          <Toaster />
         </body>
       </html>
     </ClerkProvider>

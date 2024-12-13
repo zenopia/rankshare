@@ -2,8 +2,8 @@
 
 import { useAuth, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { LogOut, Settings } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Settings, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { User } from "@/types/user";
@@ -20,6 +20,9 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
+import { z } from "zod";
+import { cn } from "@/lib/utils";
+import { useClerk } from "@clerk/nextjs";
 
 const CardDescription = ({ children }: { children: React.ReactNode }) => (
   <p className="text-sm text-muted-foreground">{children}</p>
@@ -28,11 +31,28 @@ const CardDescription = ({ children }: { children: React.ReactNode }) => (
 // First, let's create a type for the privacy settings keys
 type PrivacySettingKey = 'showBio' | 'showLocation' | 'showDateOfBirth' | 'showGender' | 'showLivingStatus';
 
+// Add validation schema
+const profileSchema = z.object({
+  location: z.string().min(1, "Location is required"),
+  dateOfBirth: z.date({
+    required_error: "Date of birth is required",
+  }),
+  gender: z.enum(['male', 'female', 'other', 'prefer-not-to-say'], {
+    required_error: "Gender is required",
+  }),
+  livingStatus: z.enum(['single', 'couple', 'family', 'shared', 'other'], {
+    required_error: "Living status is required",
+  }),
+});
+
 export default function ProfilePage() {
   const { signOut } = useAuth();
   const { user: clerkUser } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams?.get('return_to') ?? '/';
   const [isLoading, setIsLoading] = useState(false);
+  const [isProfileComplete, setIsProfileComplete] = useState(true);
   const [profileData, setProfileData] = useState<Partial<User>>({
     bio: "",
     location: "",
@@ -47,15 +67,25 @@ export default function ProfilePage() {
       showLivingStatus: true,
     } as Required<User['privacySettings']>,
   });
+  const { openUserProfile } = useClerk();
 
-  // Fetch profile data
+  // Check if profile is complete
   useEffect(() => {
-    async function fetchProfile() {
+    async function checkProfile() {
       try {
         const response = await fetch('/api/profile');
         if (!response.ok) throw new Error('Failed to fetch profile');
+        
         const data = await response.json();
-        setProfileData(data);
+        console.log('Profile data:', data);
+        
+        const formattedData = {
+          ...data,
+          dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
+        };
+        
+        setIsProfileComplete(data.isProfileComplete);
+        setProfileData(formattedData);
       } catch (error) {
         console.error('Error fetching profile:', error);
         toast.error('Failed to load profile data');
@@ -63,7 +93,7 @@ export default function ProfilePage() {
     }
 
     if (clerkUser) {
-      fetchProfile();
+      checkProfile();
     }
   }, [clerkUser]);
 
@@ -71,6 +101,13 @@ export default function ProfilePage() {
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
+      profileSchema.parse({
+        location: profileData.location,
+        dateOfBirth: profileData.dateOfBirth,
+        gender: profileData.gender,
+        livingStatus: profileData.livingStatus,
+      });
+
       const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -79,10 +116,23 @@ export default function ProfilePage() {
 
       if (!response.ok) throw new Error('Failed to update profile');
       
-      toast.success('Profile updated successfully');
+      const updatedProfile = await response.json();
+      
+      if (updatedProfile.isProfileComplete) {
+        toast.success('Profile updated successfully');
+        router.push(returnTo);
+      } else {
+        toast.error('Please fill in all required fields');
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      if (error instanceof z.ZodError) {
+        error.errors.forEach(err => {
+          toast.error(err.message);
+        });
+      } else {
+        toast.error('Failed to update profile');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -107,19 +157,28 @@ export default function ProfilePage() {
     }));
   };
 
-  if (!clerkUser) return null;
-
   const handleSignOut = async () => {
     await signOut();
     router.push("/");
   };
+
+  if (!clerkUser) return null;
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
       <div className="container py-8 pb-24">
         <div className="max-w-4xl mx-auto space-y-8">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">Profile</h1>
+            <div>
+              <h1 className="text-3xl font-bold">
+                {!isProfileComplete ? 'Complete Your Profile' : 'Profile'}
+              </h1>
+              {!isProfileComplete && (
+                <p className="text-muted-foreground mt-2">
+                  Please complete your profile to continue
+                </p>
+              )}
+            </div>
             <Button 
               variant="destructive" 
               onClick={handleSignOut}
@@ -151,12 +210,12 @@ export default function ProfilePage() {
                 </div>
               </div>
               <Button 
-                variant="outline" 
-                className="flex items-center gap-2 w-full sm:w-auto"
-                onClick={() => router.push("/user-profile")}
+                variant="outline"
+                onClick={() => openUserProfile()}
+                className="flex items-center gap-2"
               >
                 <Settings className="h-4 w-4" />
-                Manage Account
+                <span>Manage Account</span>
               </Button>
             </CardContent>
           </Card>
@@ -167,7 +226,12 @@ export default function ProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle>Bio</CardTitle>
-                <CardDescription>Tell others about yourself</CardDescription>
+                <CardDescription>
+                  {!isProfileComplete 
+                    ? "Optional - You can add this later" 
+                    : "Tell others about yourself"
+                  }
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Textarea
@@ -186,11 +250,18 @@ export default function ProfilePage() {
                 <CardDescription>Where are you based?</CardDescription>
               </CardHeader>
               <CardContent>
-                <Input
-                  value={profileData.location || ''}
-                  onChange={(e) => handleChange('location', e.target.value)}
-                  placeholder="Enter your location"
-                />
+                <div className="space-y-2">
+                  <Input
+                    value={profileData.location || ''}
+                    onChange={(e) => handleChange('location', e.target.value)}
+                    placeholder="Enter your location"
+                    required
+                    className={!profileData.location ? "border-destructive" : ""}
+                  />
+                  {!profileData.location && (
+                    <p className="text-sm text-destructive">Location is required</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -198,47 +269,70 @@ export default function ProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle>Personal Details</CardTitle>
-                <CardDescription>Provides better results for you and others</CardDescription>
+                <CardDescription>Required information for better results</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="dob">Date of Birth</Label>
+                  <Label htmlFor="dob">Date of Birth *</Label>
                   <Input
                     type="date"
                     id="dob"
-                    value={profileData.dateOfBirth?.toISOString().split('T')[0] || ''}
+                    value={profileData.dateOfBirth 
+                      ? new Date(profileData.dateOfBirth).toISOString().split('T')[0] 
+                      : ''
+                    }
                     onChange={(e) => handleChange('dateOfBirth', new Date(e.target.value))}
+                    required
+                    className={!profileData.dateOfBirth ? "border-destructive" : ""}
                   />
+                  {!profileData.dateOfBirth && (
+                    <p className="text-sm text-destructive">Date of birth is required</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="gender">Gender</Label>
+                  <Label htmlFor="gender">Gender *</Label>
                   <Select
                     value={profileData.gender || ''}
                     onValueChange={(value) => handleChange('gender', value)}
+                    required
                   >
-                    <SelectTrigger>
+                    <SelectTrigger 
+                      className={cn(
+                        "bg-background",
+                        !profileData.gender ? "border-destructive" : ""
+                      )}
+                    >
                       <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background">
                       <SelectItem value="male">Male</SelectItem>
                       <SelectItem value="female">Female</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                       <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
                     </SelectContent>
                   </Select>
+                  {!profileData.gender && (
+                    <p className="text-sm text-destructive">Gender is required</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="living-status">Living Status</Label>
+                  <Label htmlFor="living-status">Living Status *</Label>
                   <Select
                     value={profileData.livingStatus || ''}
                     onValueChange={(value) => handleChange('livingStatus', value)}
+                    required
                   >
-                    <SelectTrigger>
+                    <SelectTrigger 
+                      className={cn(
+                        "bg-background",
+                        !profileData.livingStatus ? "border-destructive" : ""
+                      )}
+                    >
                       <SelectValue placeholder="Select living status" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background">
                       <SelectItem value="single">Single</SelectItem>
                       <SelectItem value="couple">Couple</SelectItem>
                       <SelectItem value="family">Family</SelectItem>
@@ -246,55 +340,60 @@ export default function ProfilePage() {
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
+                  {!profileData.livingStatus && (
+                    <p className="text-sm text-destructive">Living status is required</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
             {/* Privacy Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Privacy Settings</CardTitle>
-                <CardDescription>Control what others can see</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Show Bio</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Make your bio visible to others
-                    </p>
+            {isProfileComplete && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Privacy Settings</CardTitle>
+                  <CardDescription>Control what others can see</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Show Bio</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Make your bio visible to others
+                      </p>
+                    </div>
+                    <Switch
+                      checked={profileData.privacySettings?.showBio ?? true}
+                      onCheckedChange={(value) => handlePrivacyChange('showBio', value)}
+                    />
                   </div>
-                  <Switch
-                    checked={profileData.privacySettings?.showBio ?? true}
-                    onCheckedChange={(value) => handlePrivacyChange('showBio', value)}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Show Location</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Display your location on your profile
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Show Location</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Display your location on your profile
+                      </p>
+                    </div>
+                    <Switch
+                      checked={profileData.privacySettings?.showLocation ?? true}
+                      onCheckedChange={(value) => handlePrivacyChange('showLocation', value)}
+                    />
                   </div>
-                  <Switch
-                    checked={profileData.privacySettings?.showLocation ?? true}
-                    onCheckedChange={(value) => handlePrivacyChange('showLocation', value)}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Show Personal Details</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Share your personal information
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Show Personal Details</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Share your personal information
+                      </p>
+                    </div>
+                    <Switch
+                      checked={profileData.privacySettings?.showDateOfBirth ?? false}
+                      onCheckedChange={(value) => handlePrivacyChange('showDateOfBirth', value)}
+                    />
                   </div>
-                  <Switch
-                    checked={profileData.privacySettings?.showDateOfBirth ?? false}
-                    onCheckedChange={(value) => handlePrivacyChange('showDateOfBirth', value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
@@ -311,10 +410,10 @@ export default function ProfilePage() {
             {isLoading ? (
               <>
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                Saving Changes...
+                {!isProfileComplete ? 'Creating Profile...' : 'Saving Changes...'}
               </>
             ) : (
-              'Save Changes'
+              !isProfileComplete ? 'Create Profile & Continue' : 'Save Changes'
             )}
           </Button>
         </div>

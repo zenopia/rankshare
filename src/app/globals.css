@@ -83,3 +83,9 @@
     color: hsl(var(--foreground));
   }
 }
+
+@layer components {
+  .select-content {
+    @apply bg-background border;
+  }
+}

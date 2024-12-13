@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { UserModel } from "@/lib/db/models/user";
 import dbConnect from "@/lib/db/mongodb";
+import type { User } from "@/types/user";
 
 export async function GET() {
   try {
@@ -31,14 +32,34 @@ export async function PUT(request: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const data = await request.json();
+    const data = await request.json() as Partial<User>;
     await dbConnect();
 
-    const user = await UserModel.findOneAndUpdate(
+    let user = await UserModel.findOne({ clerkId: userId });
+    if (!user) {
+      return new NextResponse("User not found", { status: 404 });
+    }
+
+    user = await UserModel.findOneAndUpdate(
       { clerkId: userId },
-      { $set: data },
-      { new: true }
+      { ...data },
+      { new: true, runValidators: true }
     );
+
+    const isComplete = Boolean(
+      user.location &&
+      user.dateOfBirth &&
+      user.gender &&
+      user.livingStatus
+    );
+
+    if (user.isProfileComplete !== isComplete) {
+      user = await UserModel.findOneAndUpdate(
+        { clerkId: userId },
+        { isProfileComplete: isComplete },
+        { new: true }
+      );
+    }
 
     return NextResponse.json(user);
   } catch (error) {
