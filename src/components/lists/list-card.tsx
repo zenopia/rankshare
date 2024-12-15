@@ -6,16 +6,13 @@ import type { List } from "@/types/list";
 import { CategoryBadge } from "@/components/lists/category-badge";
 
 interface ListCardProps {
-  list: List & { hasUpdate?: boolean };
+  list: List;
+  _isOwner?: boolean;
   showPrivacyBadge?: boolean;
   showUpdateBadge?: boolean;
 }
 
-export function ListCard({ 
-  list, 
-  showPrivacyBadge = false,
-  showUpdateBadge = false,
-}: ListCardProps) {
+export function ListCard({ list, _isOwner, showPrivacyBadge = false, showUpdateBadge = false }: ListCardProps) {
   return (
     <Link
       href={`/lists/${list.id}`}

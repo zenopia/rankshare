@@ -42,6 +42,7 @@ export interface List {
   originalListId?: string;
   totalPins?: number;
   totalCopies?: number;
+  hasUpdate?: boolean;
 }
 
 export interface ListDocument extends Omit<List, 'id'> {

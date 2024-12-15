@@ -3,10 +3,10 @@ import { FollowModel } from "@/lib/db/models/follow";
 import { UserModel } from "@/lib/db/models/user";
 import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
-import { UserCard } from "@/components/users/user-card";
 import { SearchInput } from "@/components/search/search-input";
 import type { User } from "@/types/user";
 import type { MongoListDocument } from "@/types/mongodb";
+import { AuthorCard } from "@/components/users/author-card";
 
 interface SearchParams {
   q?: string;
@@ -16,6 +16,8 @@ interface UserWithStats extends User {
   hasNewLists: boolean;
   lastListCreated?: Date;
   listCount: number;
+  firstName?: string;
+  imageUrl?: string;
 }
 
 export default async function FollowersPage({
@@ -87,9 +89,14 @@ export default async function FollowersPage({
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {filteredUsers.length > 0 ? (
           filteredUsers.map((user) => (
-            <UserCard 
+            <AuthorCard 
               key={user.clerkId} 
-              user={user}
+              authorId={user.clerkId}
+              name={user.firstName ?? user.username ?? ''}
+              username={user.username ?? ''}
+              imageUrl={user.imageUrl}
+              isFollowing={false}
+              hideFollow={false}
             />
           ))
         ) : (

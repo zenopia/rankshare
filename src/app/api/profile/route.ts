@@ -4,6 +4,8 @@ import { UserModel } from "@/lib/db/models/user";
 import dbConnect from "@/lib/db/mongodb";
 import type { User } from "@/types/user";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const { userId } = auth();

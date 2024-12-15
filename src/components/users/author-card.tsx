@@ -1,82 +1,51 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { FollowButton } from "@/components/users/follow-button";
 import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 interface AuthorCardProps {
   authorId: string;
   name: string;
   username: string;
+  imageUrl?: string;
   isFollowing: boolean;
   hideFollow?: boolean;
-  imageUrl?: string;
+  listCount?: number;
 }
 
 export function AuthorCard({ 
   authorId, 
   name, 
   username, 
-  isFollowing: initialIsFollowing, 
+  imageUrl, 
+  isFollowing, 
   hideFollow,
-  imageUrl 
+  listCount
 }: AuthorCardProps) {
-  const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-
-  const toggleFollow = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/users/${authorId}/follow`, {
-        method: isFollowing ? 'DELETE' : 'POST',
-      });
-
-      if (!response.ok) throw new Error();
-
-      setIsFollowing(!isFollowing);
-      toast.success(isFollowing ? 'Unfollowed user' : 'Following user');
-      router.refresh();
-    } catch (error) {
-      toast.error('Failed to update follow status');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className="flex items-center justify-between py-4">
-      <Link 
-        href={`/users/${authorId}/lists`}
-        className="flex items-center gap-3"
-      >
-        <Image 
-          src={imageUrl || "/images/default-avatar.png"}
-          alt={name}
-          width={48}
-          height={48}
-          className="rounded-full"
-          priority
-        />
-        <div>
-          <p className="font-semibold">{name}</p>
-          <p className="text-sm text-muted-foreground">{username}</p>
+    <div className="flex items-start justify-between gap-4 py-6">
+      <Link href={`/users/${authorId}/lists`} className="flex items-start gap-3">
+        <Avatar className="h-12 w-12">
+          <AvatarImage src={imageUrl} alt={name} />
+          <AvatarFallback>{name[0]}</AvatarFallback>
+        </Avatar>
+        <div className="space-y-1">
+          <p className="font-medium leading-none">{name}</p>
+          <p className="text-sm text-muted-foreground">@{username}</p>
+          {typeof listCount === 'number' && (
+            <p className="text-sm text-muted-foreground">
+              {listCount} public {listCount === 1 ? 'list' : 'lists'}
+            </p>
+          )}
         </div>
       </Link>
-      
       {!hideFollow && (
-        <Button
-          variant={isFollowing ? "secondary" : "default"}
-          onClick={toggleFollow}
-          disabled={isLoading}
-          className="w-28"
-        >
-          {isFollowing ? 'Following' : 'Follow'}
-        </Button>
+        <FollowButton
+          userId={authorId}
+          isFollowing={isFollowing}
+        />
       )}
     </div>
   );
-} 
+}

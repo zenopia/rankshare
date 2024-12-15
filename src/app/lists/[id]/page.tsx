@@ -10,7 +10,13 @@ import { serializeList } from "@/lib/utils";
 import { ensureUserExists } from "@/lib/actions/user";
 import { ListView } from "@/components/lists/list-view";
 
-export default async function ListPage({ params }: { params: { id: string } }) {
+interface ListPageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default async function ListPage({ params }: ListPageProps) {
   try {
     if (!params.id) {
       notFound();
@@ -74,6 +80,7 @@ export default async function ListPage({ params }: { params: { id: string } }) {
         isOwner={userId === serializedList.ownerId}
         isPinned={serializedList.isPinned}
         isFollowing={!!followStatus}
+        ownerUsername={owner?.username}
       />
     );
   } catch (error) {

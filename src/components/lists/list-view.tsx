@@ -8,22 +8,24 @@ import { Eye, Pin, Copy } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { EditListFAB } from "@/components/lists/edit-list-fab";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ItemCard } from "@/components/items/item-card";
 
 interface ListViewProps {
   list: List;
   isOwner?: boolean;
   isPinned?: boolean;
   isFollowing?: boolean;
+  ownerUsername?: string | null;
 }
 
-export function ListView({ list, isOwner, isPinned, isFollowing }: ListViewProps) {
+export function ListView({ list, isOwner, isPinned, isFollowing, ownerUsername }: ListViewProps) {
   return (
     <>
       <div className="max-w-3xl mx-auto px-4">
         <AuthorCard
           authorId={list.ownerId}
           name={list.ownerName}
-          username={list.ownerName}
+          username={ownerUsername ?? list.ownerName}
           isFollowing={isFollowing ?? false}
           hideFollow={isOwner}
           imageUrl={list.ownerImageUrl}
@@ -48,22 +50,11 @@ export function ListView({ list, isOwner, isPinned, isFollowing }: ListViewProps
 
           <div className="space-y-4">
             {list.items?.map((item) => (
-              <div 
+              <ItemCard 
                 key={`${item.rank}-${item.title}`}
-                className="p-4 bg-card rounded-lg border"
-              >
-                <div className="flex items-start gap-4">
-                  <span className="text-2xl font-bold text-muted-foreground">
-                    {item.rank}
-                  </span>
-                  <div>
-                    <h3 className="font-semibold">{item.title}</h3>
-                    {item.comment && (
-                      <p className="mt-1 text-sm text-muted-foreground">{item.comment}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
+                listId={list.id}
+                item={item}
+              />
             ))}
           </div>
 
@@ -112,7 +103,7 @@ export function ListView({ list, isOwner, isPinned, isFollowing }: ListViewProps
               <span>Created {formatDistanceToNow(list.createdAt, { addSuffix: true })}</span>
               {list.lastEditedAt && (
                 <>
-                  <span>•</span>
+                  <span>���</span>
                   <span>Edited {formatDistanceToNow(list.lastEditedAt, { addSuffix: true })}</span>
                 </>
               )}
