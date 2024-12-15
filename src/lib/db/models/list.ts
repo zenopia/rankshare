@@ -30,6 +30,9 @@ const listSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  ownerImageUrl: {
+    type: String,
+  },
   items: [{
     title: {
       type: String,
@@ -47,7 +50,15 @@ const listSchema = new mongoose.Schema({
   viewCount: {
     type: Number,
     default: 0,
-  }
+  },
+  totalPins: {
+    type: Number,
+    default: 0,
+  },
+  totalCopies: {
+    type: Number,
+    default: 0,
+  },
 }, {
   timestamps: true,
 });

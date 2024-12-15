@@ -6,6 +6,7 @@ import { ListCard } from "@/components/lists/list-card";
 import { SearchInput } from "@/components/search/search-input";
 import { FilterSheet } from "@/components/search/filter-sheet";
 import type { ListCategory } from "@/types/list";
+import { CreateListFAB } from "@/components/lists/create-list-fab";
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
@@ -57,6 +58,7 @@ export default function SearchPage() {
           ))}
         </div>
       )}
+      <CreateListFAB />
     </div>
   );
 } 

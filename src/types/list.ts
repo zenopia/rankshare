@@ -27,6 +27,7 @@ export interface List {
   id: string;
   ownerId: string;
   ownerName: string;
+  ownerImageUrl?: string;
   title: string;
   category: ListCategory;
   description?: string;
@@ -36,11 +37,17 @@ export interface List {
   createdAt: Date;
   updatedAt: Date;
   lastEditedAt?: Date;
+  pinCount?: number;
+  copyCount?: number;
+  originalListId?: string;
+  totalPins?: number;
+  totalCopies?: number;
 }
 
 export interface ListDocument extends Omit<List, 'id'> {
   _id: Types.ObjectId;
   __v?: number;
+  originalListId?: string;
 }
 
 // Helper constant for list categories

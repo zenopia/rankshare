@@ -1,10 +1,15 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { ListDocument, List, ListCategory, ListPrivacy } from "@/types/list";
+import type { ListDocument, List, ListCategory, ListPrivacy, ListItem } from "@/types/list";
 import type { MongoDocument } from "@/types/mongodb";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+// Add MongoListItem type to handle MongoDB document structure
+interface MongoListItem extends Omit<ListItem, 'id'> {
+  _id?: { toString(): string };
 }
 
 export function serializeList(doc: ListDocument | (MongoDocument & Partial<List>)): List {
@@ -12,10 +17,16 @@ export function serializeList(doc: ListDocument | (MongoDocument & Partial<List>
     id: doc._id.toString(),
     ownerId: doc.ownerId ?? '',
     ownerName: doc.ownerName ?? 'Anonymous',
+    ownerImageUrl: doc.ownerImageUrl,
     title: doc.title ?? 'Untitled List',
     category: (doc.category ?? 'other') as ListCategory,
     description: doc.description ?? '',
-    items: doc.items ?? [],
+    items: (doc.items as MongoListItem[] ?? []).map(item => ({
+      id: item._id?.toString() || crypto.randomUUID(),
+      title: item.title,
+      comment: item.comment,
+      rank: item.rank,
+    })),
     privacy: (doc.privacy ?? 'public') as ListPrivacy,
     viewCount: doc.viewCount ?? 0,
     createdAt: new Date(doc.createdAt ?? Date.now()),

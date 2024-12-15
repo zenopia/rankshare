@@ -3,6 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Eye, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { List } from "@/types/list";
+import { CategoryBadge } from "@/components/lists/category-badge";
 
 interface ListCardProps {
   list: List & { hasUpdate?: boolean };
@@ -21,23 +22,29 @@ export function ListCard({
       className="block overflow-hidden rounded-lg border bg-card hover:border-primary touch-manipulation"
     >
       <div className="p-4 sm:p-6 flex flex-col h-full">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1 min-w-0 flex-1">
-            <h3 className="font-semibold leading-none tracking-tight truncate">
-              {list.title}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              by {list.ownerName}
-            </p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <h3 className="font-semibold leading-none tracking-tight truncate">
+                {list.title}
+              </h3>
+              <CategoryBadge 
+                category={list.category}
+                className="flex-shrink-0"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                by {list.ownerName}
+              </p>
+              {showUpdateBadge && list.hasUpdate && (
+                <Badge variant="success" className="text-xs">Updated</Badge>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2 ml-2 flex-shrink-0">
-            {showUpdateBadge && list.hasUpdate && (
-              <Badge variant="success" className="hidden sm:flex">Updated</Badge>
-            )}
-            {showPrivacyBadge && list.privacy === 'private' && (
-              <Lock className="h-4 w-4 text-muted-foreground" />
-            )}
-          </div>
+          {showPrivacyBadge && list.privacy === 'private' && (
+            <Lock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          )}
         </div>
 
         {list.description && (

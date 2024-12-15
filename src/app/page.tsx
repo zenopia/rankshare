@@ -2,11 +2,11 @@ import { ListCard } from "@/components/lists/list-card";
 import { ListModel } from "@/lib/db/models/list";
 import { PinModel } from "@/lib/db/models/pin";
 import dbConnect from "@/lib/db/mongodb";
-import Link from "next/link";
 import { auth } from '@clerk/nextjs/server';
 import type { List, ListDocument } from '@/types/list';
 import type { PinDocument } from '@/types/pin';
 import { StickySearch } from "@/components/home/sticky-search";
+import { CreateListFAB } from "@/components/lists/create-list-fab";
 
 export default async function HomePage() {
   let recentLists: (List & { hasUpdate: boolean })[] = [];
@@ -56,12 +56,6 @@ export default async function HomePage() {
       <div className="container py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Recent Lists</h1>
-          <Link 
-            href="/lists/create"
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-md"
-          >
-            Create List
-          </Link>
         </div>
 
         {recentLists.length > 0 ? (
@@ -82,6 +76,7 @@ export default async function HomePage() {
         )}
       </div>
       <StickySearch />
+      <CreateListFAB />
     </>
   );
 }

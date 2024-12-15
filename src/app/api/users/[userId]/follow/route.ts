@@ -9,33 +9,34 @@ export async function POST(
 ) {
   try {
     const { userId: followerId } = await auth();
-    
     if (!followerId) {
-      return new NextResponse(
-        JSON.stringify({ error: "Unauthorized" }), 
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await dbConnect();
 
-    // Create follow relationship
+    // Check if already following
+    const existingFollow = await FollowModel.findOne({
+      followerId,
+      followingId: params.userId,
+    });
+
+    if (existingFollow) {
+      return NextResponse.json({ message: "Already following" }, { status: 200 });
+    }
+
+    // Create new follow
     await FollowModel.create({
       followerId,
       followingId: params.userId,
       createdAt: new Date(),
     });
 
-    return new NextResponse(
-      JSON.stringify({ message: "Successfully followed user" }), 
-      { status: 200 }
-    );
+    return NextResponse.json({ message: "Following user" }, { status: 201 });
   } catch (error) {
     console.error("[FOLLOW_POST]", error);
-    return new NextResponse(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Failed to follow user"
-      }), 
+    return NextResponse.json(
+      { error: "Failed to follow user" },
       { status: 500 }
     );
   }
@@ -47,32 +48,22 @@ export async function DELETE(
 ) {
   try {
     const { userId: followerId } = await auth();
-    
     if (!followerId) {
-      return new NextResponse(
-        JSON.stringify({ error: "Unauthorized" }), 
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await dbConnect();
 
-    // Delete follow relationship
-    await FollowModel.deleteOne({
+    await FollowModel.findOneAndDelete({
       followerId,
       followingId: params.userId,
     });
 
-    return new NextResponse(
-      JSON.stringify({ message: "Successfully unfollowed user" }), 
-      { status: 200 }
-    );
+    return NextResponse.json({ message: "Unfollowed user" }, { status: 200 });
   } catch (error) {
     console.error("[FOLLOW_DELETE]", error);
-    return new NextResponse(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Failed to unfollow user"
-      }), 
+    return NextResponse.json(
+      { error: "Failed to unfollow user" },
       { status: 500 }
     );
   }
