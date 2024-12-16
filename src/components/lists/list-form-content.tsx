@@ -122,7 +122,9 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
         privacy: data.privacy,
         items: formattedItems,
         ownerId: user.id,
-        ownerName: ownerName
+        ownerName: ownerName,
+        ownerImageUrl: user.imageUrl,
+        lastEditedAt: new Date(),
       };
 
       const toastId = toast.loading(
