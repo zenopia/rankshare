@@ -1,6 +1,7 @@
 'use client';
 
 import Link from "next/link";
+import type { ItemProperty } from "@/types/list";
 
 interface ItemCardProps {
   listId: string;
@@ -8,6 +9,7 @@ interface ItemCardProps {
     rank: number;
     title: string;
     comment?: string;
+    properties?: ItemProperty[];
   };
   clickable?: boolean;
 }

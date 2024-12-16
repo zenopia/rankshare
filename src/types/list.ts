@@ -13,11 +13,25 @@ export type ListPrivacy = "public" | "private";
 export type ListPrivacyFilter = ListPrivacy | "all";
 export type ListSortOption = "newest" | "oldest" | "most-viewed" | "least-viewed";
 
-export interface ListItem {
+export interface ItemProperty {
   id: string;
+  type: 'text' | 'link';
+  label: string;
+  value: string;
+}
+
+export interface ItemDetails {
   title: string;
   comment?: string;
-  link?: string;
+  properties?: ItemProperty[];
+}
+
+export interface ListItem {
+  _id?: string | Types.ObjectId;
+  id?: string;
+  title: string;
+  comment?: string;
+  properties?: ItemProperty[];
   rank: number;
 }
 
@@ -41,8 +55,12 @@ export interface List {
 }
 
 // Separate MongoDB item type to handle _id
-export interface MongoListItem extends Omit<ListItem, 'id'> {
-  _id?: Types.ObjectId;
+export interface MongoListItem extends Omit<ListItem, 'id' | 'items' | 'pinCount' | 'totalCopies' | 'hasUpdate'> {
+  _id: Types.ObjectId;
+  items?: MongoListItem[];
+  totalPins?: number;
+  totalCopies?: number;
+  __v?: number;
 }
 
 export interface ListDocument extends Omit<List, 'id' | 'items' | 'pinCount' | 'totalCopies' | 'hasUpdate'> {

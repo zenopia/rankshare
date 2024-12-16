@@ -5,20 +5,25 @@ import { DraggableProvided } from "@hello-pangea/dnd";
 import { GripVertical, ArrowUpDown, X, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ItemDetailsOverlay, ItemDetails } from "./item-details-overlay";
+import { ItemDetailsOverlay } from "./item-details-overlay";
+import type { ItemDetails, ItemProperty } from "@/types/list";
 
 interface DraggableListItemProps {
   item: {
     id: string;
     title: string;
     comment?: string;
-    link?: string;
+    properties?: ItemProperty[];
   };
   index: number;
   provided: DraggableProvided;
   removeItem: (id: string) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, index: number) => void;
-  updateItem: (index: number, field: keyof ItemDetails, value: string) => void;
+  updateItem: (
+    index: number, 
+    field: 'title' | 'comment' | 'properties', 
+    value: string | ItemProperty[] | undefined
+  ) => void;
 }
 
 export function DraggableListItem({
@@ -32,10 +37,13 @@ export function DraggableListItem({
   const [isDragging, setIsDragging] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
+  console.log('DraggableListItem received item:', item);
+  console.log('DraggableListItem properties:', item.properties);
+
   const handleDetailsUpdate = (details: ItemDetails) => {
-    Object.entries(details).forEach(([field, value]) => {
-      updateItem(index, field as keyof ItemDetails, value || "");
-    });
+    updateItem(index, 'title', details.title);
+    updateItem(index, 'comment', details.comment);
+    updateItem(index, 'properties', details.properties);
   };
 
   return (
@@ -116,7 +124,7 @@ export function DraggableListItem({
         initialDetails={{
           title: item.title,
           comment: item.comment,
-          link: item.link,
+          properties: item.properties
         }}
       />
     </>

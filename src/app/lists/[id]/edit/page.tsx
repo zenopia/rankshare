@@ -1,56 +1,68 @@
 import { notFound } from "next/navigation";
-import { ListForm } from "@/components/lists/list-form";
+import { ListFormContent } from "@/components/lists/list-form-content";
 import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
-import { auth } from "@clerk/nextjs/server";
-import type { List } from "@/types/list";
-import { ProtectedRoute } from "@/components/auth/protected-route";
-import { ListFormHeader } from "@/components/lists/list-form-header";
+import type { MongoListDocument } from "@/types/mongodb";
+import type { ItemProperty } from "@/types/list";
 import ErrorBoundary from "@/components/error-boundary";
+import { ObjectId } from "mongodb";
 
 interface EditListPageProps {
-  params: Promise<{ id: string }> | { id: string };
+  params: { id: string };
+}
+
+interface MongoItem {
+  _id?: string | ObjectId;
+  title: string;
+  comment?: string;
+  properties?: ItemProperty[];
 }
 
 export default async function EditListPage({ params }: EditListPageProps) {
   try {
-    const resolvedParams = await params;
     await dbConnect();
-    
-    const list = await ListModel.findById(resolvedParams.id).lean() as unknown as List & { _id: string };
+    const list = await ListModel.findById(params.id).lean() as MongoListDocument;
     
     if (!list) {
       notFound();
     }
 
-    // Check if the current user is the owner
-    const { userId } = await auth();
-    if (userId !== list.ownerId) {
-      notFound();
-    }
-
-    const initialData = {
+    const serializedList = {
       id: list._id.toString(),
       title: list.title,
       category: list.category,
       description: list.description,
       privacy: list.privacy,
-      items: list.items.map(item => ({
-        id: crypto.randomUUID(),
-        title: item.title,
-        comment: item.comment,
-      })),
+      items: list.items.map((item: MongoItem) => {
+        const itemId = item._id instanceof ObjectId 
+          ? item._id.toString()
+          : typeof item._id === 'string' 
+            ? item._id 
+            : crypto.randomUUID();
+
+        return {
+          id: itemId,
+          title: item.title,
+          comment: item.comment,
+          properties: item.properties?.map((prop: ItemProperty) => ({
+            id: prop.id,
+            type: prop.type,
+            label: prop.label,
+            value: prop.value
+          })) || []
+        };
+      })
     };
 
     return (
-      <ProtectedRoute>
-        <div className="container mx-auto py-8">
-          <ListFormHeader mode="edit" />
-          <ErrorBoundary>
-            <ListForm initialData={initialData} mode="edit" />
-          </ErrorBoundary>
-        </div>
-      </ProtectedRoute>
+      <div className="container max-w-3xl py-8">
+        <ErrorBoundary>
+          <ListFormContent 
+            initialData={serializedList} 
+            mode="edit" 
+          />
+        </ErrorBoundary>
+      </div>
     );
   } catch (error) {
     console.error('Error loading list:', error);

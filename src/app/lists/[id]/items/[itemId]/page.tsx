@@ -34,9 +34,9 @@ export default async function ItemPage({ params }: ItemPageProps) {
     const serializedItem = {
       title: item.title,
       comment: item.comment,
-      link: item.link,
+      properties: item.properties,
       rank: item.rank,
-      _id: item._id?.toString() || crypto.randomUUID() // Ensure _id is always a string
+      _id: item._id?.toString() || crypto.randomUUID()
     };
 
     // Get follow status
@@ -53,11 +53,8 @@ export default async function ItemPage({ params }: ItemPageProps) {
     const isOwner = userId === serializedList.ownerId;
 
     return <ItemView 
-      list={{
-        ...serializedList,
-        ownerImageUrl: owner?.imageUrl ?? undefined
-      }}
-      item={serializedItem} 
+      list={serializedList}
+      item={serializedItem}
       isOwner={isOwner}
       isFollowing={!!followStatus}
       ownerUsername={owner?.username ?? undefined}

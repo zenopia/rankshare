@@ -1,34 +1,35 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { ListDocument, List, ListCategory, MongoListItem } from "@/types/list";
-import type { MongoListDocument } from "@/types/mongodb";
+import type { ListDocument, List } from "@/types/list";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function serializeList(list: MongoListDocument | ListDocument): List {
+export function serializeList(list: ListDocument): List {
+  console.log('Raw list items:', list.items);
   const serialized = {
     id: list._id.toString(),
-    ownerId: list.ownerId,
-    ownerName: list.ownerName,
-    ownerImageUrl: list.ownerImageUrl,
-    title: list.title ?? 'Untitled List',
-    category: (list.category ?? 'other') as ListCategory,
-    description: list.description ?? '',
-    items: list.items.map((item: MongoListItem) => ({
-      id: item._id?.toString() || crypto.randomUUID(),
-      title: item.title,
-      comment: item.comment,
-      rank: item.rank,
-    })),
-    privacy: list.privacy,
-    viewCount: list.viewCount,
-    createdAt: new Date(list.createdAt),
-    updatedAt: new Date(list.updatedAt),
-    lastEditedAt: list.lastEditedAt ? new Date(list.lastEditedAt) : undefined,
+    ...list,
+    items: list.items.map(item => {
+      console.log('Item properties before serialization:', item.properties);
+      return {
+        ...item,
+        id: item._id?.toString(),
+        _id: item._id?.toString(),
+        properties: item.properties?.map(prop => {
+          console.log('Processing property:', prop);
+          return {
+            id: prop.id,
+            type: prop.type,
+            label: prop.label,
+            value: prop.value
+          };
+        }) || []
+      };
+    })
   };
-  
+  console.log('Serialized items:', serialized.items);
   return serialized;
 }
 

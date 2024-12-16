@@ -15,7 +15,12 @@ interface ListDoc extends Document {
   items: Array<{
     title: string;
     comment?: string;
-    link?: string;
+    properties: Array<{
+      id: string;
+      type: 'text' | 'link';
+      label: string;
+      value: string;
+    }>;
     rank: number;
   }>;
   viewCount: number;
@@ -44,6 +49,18 @@ const schemaOptions: SchemaOptions<ListDoc> = {
     }
   }
 };
+
+const itemSchema = new Schema({
+  title: { type: String, required: true },
+  comment: String,
+  properties: [{
+    id: String,
+    type: { type: String, enum: ['text', 'link'] },
+    label: String,
+    value: String
+  }],
+  rank: { type: Number, required: true }
+});
 
 const listSchema = new Schema({
   title: {
@@ -77,24 +94,7 @@ const listSchema = new Schema({
   ownerImageUrl: {
     type: String,
   },
-  items: [{
-    title: {
-      type: String,
-      required: true,
-    },
-    comment: {
-      type: String,
-      required: false,
-    },
-    link: {
-      type: String,
-      required: false,
-    },
-    rank: {
-      type: Number,
-      required: true,
-    }
-  }],
+  items: [itemSchema],
   viewCount: {
     type: Number,
     default: 0,

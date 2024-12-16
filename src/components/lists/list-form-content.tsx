@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { ListCategory, ListPrivacy, LIST_CATEGORIES } from "@/types/list";
+import { ListCategory, ListPrivacy, LIST_CATEGORIES, ItemProperty } from "@/types/list";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -43,7 +43,7 @@ export interface ListFormProps {
     category: ListCategory;
     description?: string;
     privacy: ListPrivacy;
-    items: { id: string; title: string; comment?: string; link?: string }[];
+    items: { id: string; title: string; comment?: string; properties?: ItemProperty[] }[];
   };
   mode?: 'create' | 'edit';
 }
@@ -73,8 +73,21 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
     id: string; 
     title: string; 
     comment?: string;
-    link?: string;
-  }[]>(initialData?.items || []);
+    properties?: ItemProperty[];
+  }[]>(() => {
+    console.log('Initializing items with:', initialData?.items);
+    return initialData?.items?.map(item => ({
+      id: item.id || crypto.randomUUID(),
+      title: item.title,
+      comment: item.comment,
+      properties: item.properties?.map(prop => ({
+        id: prop.id,
+        type: prop.type,
+        label: prop.label,
+        value: prop.value
+      })) || []
+    })) || [];
+  });
   const [isMounted, setIsMounted] = useState(false);
 
   const form = useForm<FormData>({
@@ -90,6 +103,10 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    console.log('Items in form:', items);
+  }, [items]);
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -114,7 +131,7 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
       const formattedItems = items.map((item, index) => ({
         title: item.title.trim(),
         comment: item.comment?.trim() || undefined,
-        link: item.link?.trim() || undefined,
+        properties: item.properties?.length ? item.properties : undefined,
         rank: index + 1,
       }));
 
@@ -192,7 +209,7 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
       id: crypto.randomUUID(), 
       title: "", 
       comment: "", 
-      link: "" 
+      properties: [] 
     }]);
   };
 
@@ -214,9 +231,13 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
     }
   };
 
-  const updateItem = (index: number, field: 'title' | 'comment' | 'link', value: string) => {
+  const updateItem = (
+    index: number, 
+    field: 'title' | 'comment' | 'properties', 
+    value: string | ItemProperty[] | undefined
+  ) => {
     const newItems = [...items];
-    newItems[index][field] = value;
+    newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
   };
 

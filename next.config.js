@@ -6,6 +6,13 @@ const nextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: false,
+    dirs: [
+      'src/app',
+      'src/components',
+      'src/lib',
+      'src/types',
+      'public'
+    ],
   },
   poweredByHeader: false,
   compress: true,
