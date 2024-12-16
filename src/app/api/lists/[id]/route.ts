@@ -2,11 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
-
-interface ApiError {
-  message: string;
-  status: number;
-}
+import { ApiError } from "@/lib/errors";
 
 export async function DELETE(
   request: Request,
@@ -47,44 +43,40 @@ export async function PATCH(
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      throw new ApiError("Unauthorized", 401);
     }
 
     await dbConnect();
     const data = await request.json();
     
-    const now = new Date();
+    const list = await ListModel.findById(params.id);
+    if (!list) {
+      throw new ApiError("List not found", 404);
+    }
+
+    if (list.ownerId !== userId) {
+      throw new ApiError("Unauthorized", 401);
+    }
 
     const updatedList = await ListModel.findByIdAndUpdate(
       params.id,
-      { 
-        $set: {
-          ...data,
-          lastEditedAt: now
-        }
-      },
-      { 
-        new: true,
-        runValidators: true 
-      }
+      { $set: { ...data, lastEditedAt: new Date() } },
+      { new: true, runValidators: true }
     );
 
-    if (!updatedList) {
+    return NextResponse.json(updatedList);
+  } catch (err: unknown) {
+    if (err instanceof ApiError) {
+      const apiError = err as ApiError;
       return NextResponse.json(
-        { error: 'List not found' },
-        { status: 404 }
+        { error: apiError.message },
+        { status: apiError.status }
       );
     }
-
-    return NextResponse.json(updatedList);
-  } catch (error) {
-    const apiError: ApiError = {
-      message: error instanceof Error ? error.message : 'Failed to update list',
-      status: 500
-    };
-    return NextResponse.json(apiError, { status: apiError.status });
+    const message = err instanceof Error ? err.message : "Internal server error";
+    return NextResponse.json(
+      { error: message },
+      { status: 500 }
+    );
   }
 } 

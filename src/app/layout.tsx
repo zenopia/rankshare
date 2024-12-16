@@ -1,7 +1,7 @@
 import './globals.css'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Toaster } from "sonner"
-import { ErrorBoundary } from '@/components/error-boundary'
+import ErrorBoundary from '@/components/error-boundary'
 import { Providers } from './providers'
 import { Navbar } from '@/components/layout/navbar'
 import { Sidebar } from '@/components/layout/sidebar'

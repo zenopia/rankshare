@@ -1,26 +1,24 @@
 import type { Types } from 'mongoose';
 
 export type ListCategory = 
-  | 'movies' 
-  | 'tv-shows' 
-  | 'books' 
-  | 'restaurants' 
-  | 'recipes' 
-  | 'things-to-do' 
-  | 'other';
-export type ListPrivacy = 'public' | 'private';
-export type ListPrivacyFilter = ListPrivacy | 'all';
-export type ListSortOption = 'newest' | 'oldest' | 'most-viewed' | 'least-viewed';
+  | "movies"
+  | "tv-shows"
+  | "books"
+  | "restaurants"
+  | "recipes"
+  | "things-to-do"
+  | "other";
+
+export type ListPrivacy = "public" | "private";
+export type ListPrivacyFilter = ListPrivacy | "all";
+export type ListSortOption = "newest" | "oldest" | "most-viewed" | "least-viewed";
 
 export interface ListItem {
-  id?: string;
+  id: string;
   title: string;
-  description?: string;
-  url?: string;
   comment?: string;
+  link?: string;
   rank: number;
-  createdAt?: Date;
-  updatedAt?: Date;
 }
 
 export interface List {
@@ -30,25 +28,29 @@ export interface List {
   ownerImageUrl?: string;
   title: string;
   category: ListCategory;
-  description: string;
+  description?: string;
   items: ListItem[];
   privacy: ListPrivacy;
   viewCount: number;
+  pinCount?: number;
+  totalCopies?: number;
+  hasUpdate?: boolean;
   createdAt: Date;
   updatedAt: Date;
   lastEditedAt?: Date;
-  pinCount?: number;
-  copyCount?: number;
-  originalListId?: string;
-  totalPins?: number;
-  totalCopies?: number;
-  hasUpdate?: boolean;
 }
 
-export interface ListDocument extends Omit<List, 'id'> {
+// Separate MongoDB item type to handle _id
+export interface MongoListItem extends Omit<ListItem, 'id'> {
+  _id?: Types.ObjectId;
+}
+
+export interface ListDocument extends Omit<List, 'id' | 'items' | 'pinCount' | 'totalCopies' | 'hasUpdate'> {
   _id: Types.ObjectId;
+  items: MongoListItem[];
+  totalPins: number;
+  totalCopies: number;
   __v?: number;
-  originalListId?: string;
 }
 
 // Helper constant for list categories

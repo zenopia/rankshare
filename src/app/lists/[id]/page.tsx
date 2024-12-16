@@ -4,11 +4,11 @@ import { ListModel } from "@/lib/db/models/list";
 import { PinModel } from "@/lib/db/models/pin";
 import { FollowModel } from "@/lib/db/models/follow";
 import dbConnect from "@/lib/db/mongodb";
-import type { ListDocument } from "@/types/list";
 import type { Pin } from "@/types/pin";
 import { serializeList } from "@/lib/utils";
 import { ensureUserExists } from "@/lib/actions/user";
 import { ListView } from "@/components/lists/list-view";
+import { MongoListDocument } from "@/types/mongodb";
 
 interface ListPageProps {
   params: {
@@ -25,7 +25,9 @@ export default async function ListPage({ params }: ListPageProps) {
     await dbConnect();
     const { userId } = await auth();
 
-    const list = await ListModel.findById(params.id).lean() as ListDocument;
+    const list = await ListModel.findById(params.id)
+      .lean()
+      .exec() as unknown as MongoListDocument;
     
     if (!list) {
       notFound();
@@ -64,8 +66,8 @@ export default async function ListPage({ params }: ListPageProps) {
       isOwner: userId === list.ownerId,
       isPinned: !!pin,
       ownerImageUrl: owner?.imageUrl,
-      pinCount: list.totalPins || 0,
-      totalCopies: list.totalCopies || 0,
+      pinCount: list.totalPins,
+      totalCopies: list.totalCopies,
       hasUpdate,
     };
 

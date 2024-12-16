@@ -1,22 +1,13 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { ListDocument, List, ListCategory, ListPrivacy } from "@/types/list";
-import type { Types } from "mongoose";
+import type { ListDocument, List, ListCategory, MongoListItem } from "@/types/list";
+import type { MongoListDocument } from "@/types/mongodb";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Define MongoDB specific item type
-interface MongoListItem {
-  _id?: Types.ObjectId;
-  title: string;
-  comment?: string;
-  rank: number;
-  link?: string;
-}
-
-export function serializeList(list: ListDocument): List {
+export function serializeList(list: MongoListDocument | ListDocument): List {
   const serialized = {
     id: list._id.toString(),
     ownerId: list.ownerId,
@@ -25,16 +16,16 @@ export function serializeList(list: ListDocument): List {
     title: list.title ?? 'Untitled List',
     category: (list.category ?? 'other') as ListCategory,
     description: list.description ?? '',
-    items: ((list.items || []) as MongoListItem[]).map(item => ({
+    items: list.items.map((item: MongoListItem) => ({
       id: item._id?.toString() || crypto.randomUUID(),
       title: item.title,
       comment: item.comment,
       rank: item.rank,
     })),
-    privacy: (list.privacy ?? 'public') as ListPrivacy,
-    viewCount: list.viewCount ?? 0,
-    createdAt: new Date(list.createdAt ?? Date.now()),
-    updatedAt: new Date(list.updatedAt ?? Date.now()),
+    privacy: list.privacy,
+    viewCount: list.viewCount,
+    createdAt: new Date(list.createdAt),
+    updatedAt: new Date(list.updatedAt),
     lastEditedAt: list.lastEditedAt ? new Date(list.lastEditedAt) : undefined,
   };
   

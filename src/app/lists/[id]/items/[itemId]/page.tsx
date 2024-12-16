@@ -1,21 +1,21 @@
 import { notFound } from "next/navigation";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { ListModel } from "@/lib/db/models/list";
 import { FollowModel } from "@/lib/db/models/follow";
 import dbConnect from "@/lib/db/mongodb";
-import { auth, clerkClient } from "@clerk/nextjs/server";
 import { serializeList } from "@/lib/utils";
+import { ItemView } from "@/components/items/item-view";
 import type { ListDocument } from "@/types/list";
 import type { MongoListDocument } from "@/types/mongodb";
-import { ItemView } from "@/components/items/item-view";
 
-interface ListItemPageProps {
+interface ItemPageProps {
   params: {
     id: string;
     itemId: string;
   };
 }
 
-export default async function ListItemPage({ params }: ListItemPageProps) {
+export default async function ItemPage({ params }: ItemPageProps) {
   try {
     await dbConnect();
     const { userId } = await auth();
@@ -25,13 +25,19 @@ export default async function ListItemPage({ params }: ListItemPageProps) {
       notFound();
     }
 
-    const itemRank = parseInt(params.itemId);
-    const item = list.items?.find((item: { rank: number; title: string; comment?: string }) => 
-      item.rank === itemRank
-    );
+    const item = list.items.find(item => item.rank === parseInt(params.itemId));
     if (!item) {
       notFound();
     }
+
+    // Serialize the item to remove MongoDB specific fields
+    const serializedItem = {
+      title: item.title,
+      comment: item.comment,
+      link: item.link,
+      rank: item.rank,
+      _id: item._id?.toString() || crypto.randomUUID() // Ensure _id is always a string
+    };
 
     // Get follow status
     const followStatus = userId ? await FollowModel.findOne({ 
@@ -51,7 +57,7 @@ export default async function ListItemPage({ params }: ListItemPageProps) {
         ...serializedList,
         ownerImageUrl: owner?.imageUrl ?? undefined
       }}
-      item={item} 
+      item={serializedItem} 
       isOwner={isOwner}
       isFollowing={!!followStatus}
       ownerUsername={owner?.username ?? undefined}

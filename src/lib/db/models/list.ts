@@ -15,6 +15,7 @@ interface ListDoc extends Document {
   items: Array<{
     title: string;
     comment?: string;
+    link?: string;
     rank: number;
   }>;
   viewCount: number;
@@ -82,6 +83,10 @@ const listSchema = new Schema({
       required: true,
     },
     comment: {
+      type: String,
+      required: false,
+    },
+    link: {
       type: String,
       required: false,
     },

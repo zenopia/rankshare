@@ -6,7 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 import type { List } from "@/types/list";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { ListFormHeader } from "@/components/lists/list-form-header";
-import { ErrorBoundary } from "@/components/error-boundary";
+import ErrorBoundary from "@/components/error-boundary";
 
 interface EditListPageProps {
   params: Promise<{ id: string }> | { id: string };

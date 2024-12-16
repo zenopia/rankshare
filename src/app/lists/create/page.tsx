@@ -1,7 +1,7 @@
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { ListForm } from "@/components/lists/list-form";
 import { ListFormHeader } from "@/components/lists/list-form-header";
-import { ErrorBoundary } from "@/components/error-boundary";
+import ErrorBoundary from "@/components/error-boundary";
 
 export default function CreateListPage() {
   return (

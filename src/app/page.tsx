@@ -13,7 +13,8 @@ export default async function HomePage() {
   })
     .sort({ createdAt: -1 })
     .limit(10)
-    .lean() as ListDocument[];
+    .lean()
+    .exec() as unknown as ListDocument[];
 
   // Use the same serialization function we use elsewhere
   const serializedLists = serializeLists(recentLists);

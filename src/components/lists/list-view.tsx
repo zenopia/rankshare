@@ -48,14 +48,22 @@ export function ListView({ list, isOwner, isPinned, isFollowing, ownerUsername }
             )}
           </div>
 
-          <div className="space-y-4">
-            {list.items?.map((item) => (
-              <ItemCard 
-                key={`${item.rank}-${item.title}`}
-                listId={list.id}
-                item={item}
-              />
-            ))}
+          {/* Items section */}
+          <div className="mt-8 space-y-6">
+            <h2 className="text-2xl font-semibold">Items</h2>
+            <div className="space-y-4">
+              {list.items.map((item) => (
+                <ItemCard 
+                  key={item.id}
+                  listId={list.id}
+                  item={{
+                    rank: item.rank,
+                    title: item.title,
+                    comment: item.comment
+                  }}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Stats Bar */}
