@@ -8,18 +8,13 @@ import { useRouter } from "next/navigation";
 
 interface ListActionBarProps {
   listId: string;
-  isPinned?: boolean;
+  isPinned: boolean;
+  showPinButton?: boolean;
 }
 
-export function ListActionBar({ listId, isPinned = false }: ListActionBarProps) {
+function PinListButton({ listId, isPinned }: { listId: string; isPinned: boolean }) {
   const [isPinning, setIsPinning] = useState(false);
-  const [isCopying, setIsCopying] = useState(false);
   const router = useRouter();
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast.success('Link copied to clipboard!');
-  };
 
   const togglePin = async () => {
     try {
@@ -38,6 +33,27 @@ export function ListActionBar({ listId, isPinned = false }: ListActionBarProps) 
       setIsPinning(false);
     }
   };
+
+  return (
+    <Button variant="outline" onClick={togglePin} disabled={isPinning} className="flex-1">
+      {isPinned ? (
+        <>
+          <PinOff className="h-4 w-4 mr-2" />
+          Unpin
+        </>
+      ) : (
+        <>
+          <Pin className="h-4 w-4 mr-2" />
+          Pin
+        </>
+      )}
+    </Button>
+  );
+}
+
+function CopyListButton({ listId }: { listId: string }) {
+  const [isCopying, setIsCopying] = useState(false);
+  const router = useRouter();
 
   const copyList = async () => {
     try {
@@ -60,42 +76,37 @@ export function ListActionBar({ listId, isPinned = false }: ListActionBarProps) 
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 border-t bg-background p-4 flex justify-around items-center">
-      <Button 
-        variant="outline" 
-        className="flex-1 mx-2"
-        onClick={copyList}
-        disabled={isCopying}
-      >
-        <Copy className="h-4 w-4 mr-2" />
-        Copy list
-      </Button>
-      <Button 
-        variant="outline" 
-        className="flex-1 mx-2"
-        onClick={togglePin}
-        disabled={isPinning}
-      >
-        {isPinned ? (
-          <>
-            <PinOff className="h-4 w-4 mr-2" />
-            Unpin
-          </>
-        ) : (
-          <>
-            <Pin className="h-4 w-4 mr-2" />
-            Pin
-          </>
+    <Button variant="outline" onClick={copyList} disabled={isCopying} className="flex-1">
+      <Copy className="h-4 w-4 mr-2" />
+      Copy list
+    </Button>
+  );
+}
+
+function ShareListButton({ listId }: { listId: string }) {
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success('Link copied to clipboard!');
+  };
+
+  return (
+    <Button variant="outline" onClick={copyLink} className="flex-1">
+      <Share2 className="h-4 w-4 mr-2" />
+      Share
+    </Button>
+  );
+}
+
+export function ListActionBar({ listId, isPinned, showPinButton = true }: ListActionBarProps) {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
+      <div className="container max-w-3xl flex gap-2">
+        {showPinButton && (
+          <PinListButton listId={listId} isPinned={isPinned} />
         )}
-      </Button>
-      <Button 
-        variant="outline" 
-        className="flex-1 mx-2"
-        onClick={copyLink}
-      >
-        <Share2 className="h-4 w-4 mr-2" />
-        Share
-      </Button>
+        <CopyListButton listId={listId} />
+        <ShareListButton listId={listId} />
+      </div>
     </div>
   );
 } 

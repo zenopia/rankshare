@@ -115,11 +115,19 @@ export function ListView({ list, isOwner, isPinned, isFollowing, ownerUsername }
       </div>
 
       {isOwner ? (
-        <EditListFAB listId={list.id} />
+        <>
+          <EditListFAB listId={list.id} />
+          <ListActionBar
+            listId={list.id}
+            isPinned={false}
+            showPinButton={false}
+          />
+        </>
       ) : (
         <ListActionBar
           listId={list.id}
           isPinned={isPinned ?? false}
+          showPinButton={true}
         />
       )}
     </>
