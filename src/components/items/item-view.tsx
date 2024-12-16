@@ -1,11 +1,14 @@
 'use client';
 
-import type { List, ItemProperty } from "@/types/list";
+import type { List, ItemProperty, ItemDetails } from "@/types/list";
 import { ItemCard } from "@/components/items/item-card";
 import { Link2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "@/components/lists/category-badge";
+import { toast } from "sonner";
+import { ItemDetailsOverlay } from "@/components/lists/item-details-overlay";
+import { useState } from "react";
 
 interface ItemViewProps {
   list: List;
@@ -25,8 +28,32 @@ interface ItemViewProps {
 
 export function ItemView({ 
   list,
-  item
+  item,
+  isOwner
 }: ItemViewProps) {
+  const [showDetails, setShowDetails] = useState(false);
+
+  const handleDetailsUpdate = async (details: ItemDetails) => {
+    try {
+      const response = await fetch(`/api/lists/${list.id}/items/${item.rank}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(details),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update item');
+      }
+
+      toast.success('Item updated successfully');
+      window.location.reload();
+    } catch (error) {
+      toast.error('Failed to update item');
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto px-4">
       <Link href={`/lists/${list.id}`}>
@@ -93,6 +120,29 @@ export function ItemView({
           )}
         </div>
       </div>
+
+      {isOwner && (
+        <>
+          <Button
+            variant="outline"
+            onClick={() => setShowDetails(true)}
+            className="mt-4"
+          >
+            Edit Details
+          </Button>
+
+          <ItemDetailsOverlay
+            isOpen={showDetails}
+            onClose={() => setShowDetails(false)}
+            onSave={handleDetailsUpdate}
+            initialDetails={{
+              title: item.title,
+              comment: item.comment,
+              properties: item.properties || []
+            }}
+          />
+        </>
+      )}
     </div>
   );
 } 

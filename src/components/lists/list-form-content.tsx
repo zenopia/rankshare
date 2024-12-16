@@ -231,9 +231,19 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
     field: 'title' | 'comment' | 'properties', 
     value: string | ItemProperty[] | undefined
   ) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setItems(newItems);
+    setItems(prevItems => {
+      const newItems = [...prevItems];
+      const currentItem = { ...newItems[index] };
+
+      if (field === 'properties') {
+        currentItem.properties = Array.isArray(value) ? value : [];
+      } else {
+        currentItem[field] = value as string;
+      }
+
+      newItems[index] = currentItem;
+      return newItems;
+    });
   };
 
   const handleDelete = async () => {

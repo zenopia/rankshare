@@ -37,13 +37,19 @@ export function DraggableListItem({
   const [isDragging, setIsDragging] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
-  console.log('DraggableListItem received item:', item);
-  console.log('DraggableListItem properties:', item.properties);
-
   const handleDetailsUpdate = (details: ItemDetails) => {
-    updateItem(index, 'title', details.title);
-    updateItem(index, 'comment', details.comment);
-    updateItem(index, 'properties', details.properties);
+    const updatedItem = {
+      ...item,
+      title: details.title,
+      comment: details.comment,
+      properties: details.properties || []
+    };
+    
+    updateItem(index, 'title', updatedItem.title);
+    updateItem(index, 'comment', updatedItem.comment);
+    updateItem(index, 'properties', updatedItem.properties);
+    
+    setShowDetails(false);
   };
 
   return (
@@ -124,7 +130,7 @@ export function DraggableListItem({
         initialDetails={{
           title: item.title,
           comment: item.comment,
-          properties: item.properties
+          properties: item.properties || []
         }}
       />
     </>
