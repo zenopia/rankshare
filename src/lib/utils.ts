@@ -1,18 +1,23 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { ListDocument, List, ListCategory, ListPrivacy, ListItem } from "@/types/list";
+import type { ListDocument, List, ListCategory, ListPrivacy } from "@/types/list";
+import type { Types } from "mongoose";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Add MongoListItem type to handle MongoDB document structure
-interface MongoListItem extends Omit<ListItem, 'id'> {
-  _id?: { toString(): string };
+// Define MongoDB specific item type
+interface MongoListItem {
+  _id?: Types.ObjectId;
+  title: string;
+  comment?: string;
+  rank: number;
+  link?: string;
 }
 
 export function serializeList(list: ListDocument): List {
-  return {
+  const serialized = {
     id: list._id.toString(),
     ownerId: list.ownerId,
     ownerName: list.ownerName,
@@ -20,7 +25,7 @@ export function serializeList(list: ListDocument): List {
     title: list.title ?? 'Untitled List',
     category: (list.category ?? 'other') as ListCategory,
     description: list.description ?? '',
-    items: (list.items as MongoListItem[] ?? []).map(item => ({
+    items: ((list.items || []) as MongoListItem[]).map(item => ({
       id: item._id?.toString() || crypto.randomUUID(),
       title: item.title,
       comment: item.comment,
@@ -32,6 +37,8 @@ export function serializeList(list: ListDocument): List {
     updatedAt: new Date(list.updatedAt ?? Date.now()),
     lastEditedAt: list.lastEditedAt ? new Date(list.lastEditedAt) : undefined,
   };
+  
+  return serialized;
 }
 
 export function formatDate(date: Date) {

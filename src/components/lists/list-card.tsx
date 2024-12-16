@@ -7,18 +7,22 @@ import { CategoryBadge } from "@/components/lists/category-badge";
 
 interface ListCardProps {
   list: List;
-  _isOwner?: boolean;
   showPrivacyBadge?: boolean;
   showUpdateBadge?: boolean;
 }
 
-export function ListCard({ list, _isOwner, showPrivacyBadge = false, showUpdateBadge = false }: ListCardProps) {
+export function ListCard({ list, showPrivacyBadge = false, showUpdateBadge = false }: ListCardProps) {
+  const dateString = list.lastEditedAt && 
+    new Date(list.lastEditedAt).getTime() !== new Date(list.createdAt).getTime()
+    ? `Edited: ${formatDistanceToNow(new Date(list.lastEditedAt), { addSuffix: true })}`
+    : `Created: ${formatDistanceToNow(new Date(list.createdAt), { addSuffix: true })}`;
+
   return (
     <Link
       href={`/lists/${list.id}`}
-      className="block overflow-hidden rounded-lg border bg-card hover:border-primary touch-manipulation"
+      className="block h-full overflow-hidden rounded-lg border bg-card hover:border-primary transition-colors"
     >
-      <div className="p-4 sm:p-6 flex flex-col h-full">
+      <div className="p-6 flex flex-col h-full">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2 mb-1">
@@ -62,7 +66,7 @@ export function ListCard({ list, _isOwner, showPrivacyBadge = false, showUpdateB
             <span className="tabular-nums">{list.viewCount}</span>
           </div>
           <span className="truncate ml-2">
-            Edited {formatDistanceToNow(new Date(list.lastEditedAt || list.createdAt), { addSuffix: true })}
+            {dateString}
           </span>
         </div>
       </div>

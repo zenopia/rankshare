@@ -30,7 +30,7 @@ export interface List {
   ownerImageUrl?: string;
   title: string;
   category: ListCategory;
-  description?: string;
+  description: string;
   items: ListItem[];
   privacy: ListPrivacy;
   viewCount: number;

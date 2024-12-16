@@ -84,7 +84,6 @@ export default async function ListPage({ params }: ListPageProps) {
       />
     );
   } catch (error) {
-    console.error('Error fetching list:', error);
     notFound();
   }
 } 

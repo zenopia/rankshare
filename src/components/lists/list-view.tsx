@@ -5,7 +5,7 @@ import { CategoryBadge } from "@/components/lists/category-badge";
 import { AuthorCard } from "@/components/users/author-card";
 import { ListActionBar } from "@/components/lists/list-action-bar";
 import { Eye, Pin, Copy } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { EditListFAB } from "@/components/lists/edit-list-fab";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ItemCard } from "@/components/items/item-card";
@@ -59,54 +59,48 @@ export function ListView({ list, isOwner, isPinned, isFollowing, ownerUsername }
           </div>
 
           {/* Stats Bar */}
-          <div className="flex items-center justify-between text-sm text-muted-foreground pt-4 border-t">
-            <div className="flex items-center gap-6">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-2">
+          <div className="mt-8 border-t pt-4">
+            <div className="flex items-start justify-between text-sm text-muted-foreground">
+              {/* Stats Row */}
+              <div className="flex items-center gap-4">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger className="flex items-center gap-2">
                       <Eye className="h-4 w-4" />
-                      <span>{list.viewCount}</span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Number of views</p>
-                  </TooltipContent>
-                </Tooltip>
+                      <span className="tabular-nums">{list.viewCount}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>Views</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger className="flex items-center gap-2">
                       <Pin className="h-4 w-4" />
-                      <span>{list.pinCount}</span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Number of times pinned</p>
-                  </TooltipContent>
-                </Tooltip>
+                      <span className="tabular-nums">{list.pinCount}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>Pins</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger className="flex items-center gap-2">
                       <Copy className="h-4 w-4" />
-                      <span>{list.totalCopies || 0}</span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Number of times copied</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <div className="flex items-center gap-4">
-              <span>Created {formatDistanceToNow(list.createdAt, { addSuffix: true })}</span>
-              {list.lastEditedAt && (
-                <>
-                  <span>���</span>
-                  <span>Edited {formatDistanceToNow(list.lastEditedAt, { addSuffix: true })}</span>
-                </>
-              )}
+                      <span className="tabular-nums">{list.totalCopies}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>Copies</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+
+              {/* Dates - Now aligned right */}
+              <div className="flex flex-col items-end gap-1">
+                <span>Created: {format(new Date(list.createdAt), 'PPP')}</span>
+                {list.lastEditedAt && new Date(list.lastEditedAt).getTime() !== new Date(list.createdAt).getTime() && (
+                  <span>Edited: {format(new Date(list.lastEditedAt), 'PPP')}</span>
+                )}
+              </div>
             </div>
           </div>
         </div>

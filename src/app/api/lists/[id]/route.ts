@@ -2,7 +2,11 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
-import { canEditList } from "@/lib/auth/list-auth";
+
+interface ApiError {
+  message: string;
+  status: number;
+}
 
 export async function DELETE(
   request: Request,
@@ -50,26 +54,22 @@ export async function PATCH(
     }
 
     await dbConnect();
-
-    // Check if user can edit this list
-    const canEdit = await canEditList(params.id, userId);
-    if (!canEdit) {
-      return NextResponse.json(
-        { error: 'Not authorized to edit this list' },
-        { status: 403 }
-      );
-    }
-
     const data = await request.json();
     
-    // Update the list
+    const now = new Date();
+
     const updatedList = await ListModel.findByIdAndUpdate(
       params.id,
-      {
-        ...data,
-        lastEditedAt: new Date(),
+      { 
+        $set: {
+          ...data,
+          lastEditedAt: now
+        }
       },
-      { new: true }
+      { 
+        new: true,
+        runValidators: true 
+      }
     );
 
     if (!updatedList) {
@@ -81,10 +81,10 @@ export async function PATCH(
 
     return NextResponse.json(updatedList);
   } catch (error) {
-    console.error('Error updating list:', error);
-    return NextResponse.json(
-      { error: 'Failed to update list' },
-      { status: 500 }
-    );
+    const apiError: ApiError = {
+      message: error instanceof Error ? error.message : 'Failed to update list',
+      status: 500
+    };
+    return NextResponse.json(apiError, { status: apiError.status });
   }
 } 
