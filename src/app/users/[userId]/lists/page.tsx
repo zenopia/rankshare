@@ -50,7 +50,7 @@ export default async function UserListsPage({ params }: UserListsPageProps) {
     const serializedLists = lists.map(list => serializeList(list as ListDocument));
 
     return (
-      <div className="container max-w-3xl mx-auto px-4 py-8">
+      <div className="container max-w-3xl mx-auto px-4">
         <AuthorCard
           authorId={params.userId}
           name={fullName || owner.username || ''}

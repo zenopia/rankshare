@@ -29,9 +29,6 @@ export function ItemDetailsOverlay({
   onSave,
   initialDetails,
 }: ItemDetailsOverlayProps) {
-  console.log('ItemDetailsOverlay initialDetails:', initialDetails);
-  console.log('ItemDetailsOverlay properties:', initialDetails?.properties);
-
   const [title, setTitle] = useState(initialDetails?.title || "");
   const [comment, setComment] = useState(initialDetails?.comment || "");
   const [properties, setProperties] = useState<ItemProperty[]>(
@@ -40,7 +37,6 @@ export function ItemDetailsOverlay({
 
   useEffect(() => {
     if (isOpen) {
-      console.log('Setting properties in useEffect:', initialDetails?.properties);
       setTitle(initialDetails?.title || "");
       setComment(initialDetails?.comment || "");
       setProperties(initialDetails?.properties || []);

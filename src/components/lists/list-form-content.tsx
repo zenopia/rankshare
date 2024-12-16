@@ -75,7 +75,6 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
     comment?: string;
     properties?: ItemProperty[];
   }[]>(() => {
-    console.log('Initializing items with:', initialData?.items);
     return initialData?.items?.map(item => ({
       id: item.id || crypto.randomUUID(),
       title: item.title,
@@ -103,10 +102,6 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  useEffect(() => {
-    console.log('Items in form:', items);
-  }, [items]);
 
   const onSubmit = async (data: FormData) => {
     try {
