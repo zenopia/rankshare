@@ -1,9 +1,18 @@
+"use client";
+
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { Eye, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { List } from "@/types/list";
 import { CategoryBadge } from "@/components/lists/category-badge";
+import useSWR from "swr";
+
+interface UserProfile {
+  firstName: string | null;
+  lastName: string | null;
+  username: string;
+}
 
 interface ListCardProps {
   list: List;
@@ -12,6 +21,12 @@ interface ListCardProps {
 }
 
 export function ListCard({ list, showPrivacyBadge = false, showUpdateBadge = false }: ListCardProps) {
+  const { data: user } = useSWR<UserProfile>(list.ownerId ? `/api/users/${list.ownerId}` : null);
+  
+  const authorName = user ? [user.firstName, user.lastName]
+    .filter(Boolean)
+    .join(' ') || user.username : '';
+
   const dateString = list.lastEditedAt && 
     new Date(list.lastEditedAt).getTime() !== new Date(list.createdAt).getTime()
     ? `Edited: ${formatDistanceToNow(new Date(list.lastEditedAt), { addSuffix: true })}`
@@ -26,18 +41,22 @@ export function ListCard({ list, showPrivacyBadge = false, showUpdateBadge = fal
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2 mb-1">
-              <h3 className="font-semibold leading-none tracking-tight truncate">
-                {list.title}
-              </h3>
+              <div>
+                <h3 className="font-semibold leading-none tracking-tight truncate">
+                  {list.title}
+                </h3>
+                {authorName && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    by {authorName}
+                  </p>
+                )}
+              </div>
               <CategoryBadge 
                 category={list.category}
                 className="flex-shrink-0"
               />
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-sm text-muted-foreground">
-                by {list.ownerName}
-              </p>
               {showUpdateBadge && list.hasUpdate && (
                 <Badge variant="success" className="text-xs">Updated</Badge>
               )}

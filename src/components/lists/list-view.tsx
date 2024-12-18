@@ -2,33 +2,31 @@
 
 import { List } from "@/types/list";
 import { CategoryBadge } from "@/components/lists/category-badge";
-import { AuthorCard } from "@/components/users/author-card";
 import { ListActionBar } from "@/components/lists/list-action-bar";
 import { Eye, Pin, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { EditListFAB } from "@/components/lists/edit-list-fab";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ItemCard } from "@/components/items/item-card";
+import { UserCard } from "@/components/users/user-card";
 
 interface ListViewProps {
   list: List;
-  isOwner?: boolean;
-  isPinned?: boolean;
-  isFollowing?: boolean;
-  ownerUsername?: string | null;
+  isOwner: boolean;
+  isPinned: boolean;
+  isFollowing: boolean;
+  children?: React.ReactNode;
 }
 
-export function ListView({ list, isOwner, isPinned, isFollowing, ownerUsername }: ListViewProps) {
+export function ListView({ list, isOwner, isPinned, isFollowing, children }: ListViewProps) {
   return (
-    <>
+    <div className="container py-8">
+      {children}
       <div className="max-w-3xl mx-auto px-4">
-        <AuthorCard
-          authorId={list.ownerId}
-          name={list.ownerName}
-          username={ownerUsername ?? list.ownerName}
-          isFollowing={isFollowing ?? false}
+        <UserCard 
+          userId={list.ownerId}
+          isFollowing={isFollowing}
           hideFollow={isOwner}
-          imageUrl={list.ownerImageUrl}
         />
 
         <div className="space-y-6">
@@ -130,6 +128,6 @@ export function ListView({ list, isOwner, isPinned, isFollowing, ownerUsername }
           showPinButton={true}
         />
       )}
-    </>
+    </div>
   );
 } 

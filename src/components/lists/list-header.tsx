@@ -4,23 +4,19 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "@/components/lists/category-badge";
-import { AuthorCard } from "@/components/users/author-card";
+import { UserProfileCard } from "@/components/users/user-profile-card";
 import type { List } from "@/types/list";
 
 interface ListHeaderProps {
   list: List;
   isOwner: boolean;
   isFollowing: boolean;
-  ownerUsername?: string;
-  ownerName: string;
 }
 
 export function ListHeader({ 
   list,
   isOwner,
   isFollowing,
-  ownerUsername,
-  ownerName
 }: ListHeaderProps) {
   return (
     <>
@@ -31,13 +27,11 @@ export function ListHeader({
         </Button>
       </Link>
 
-      <AuthorCard
-        authorId={list.ownerId}
-        name={ownerName}
-        username={ownerUsername ?? list.ownerName}
+      <UserProfileCard
+        userId={list.ownerId}
         isFollowing={isFollowing}
         hideFollow={isOwner}
-        imageUrl={list.ownerImageUrl}
+        listCount={0}
       />
 
       <div className="mt-6 space-y-6">

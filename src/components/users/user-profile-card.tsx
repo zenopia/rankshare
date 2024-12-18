@@ -3,13 +3,15 @@
 import * as React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FollowButton } from "@/components/users/follow-button";
+import { ListChecks } from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
 
-interface UserCardProps {
+interface UserProfileCardProps {
   userId: string;
   isFollowing: boolean;
   hideFollow?: boolean;
+  listCount?: number;
 }
 
 interface UserProfile {
@@ -20,11 +22,12 @@ interface UserProfile {
   imageUrl: string;
 }
 
-export function UserCard({ 
+export function UserProfileCard({ 
   userId, 
   isFollowing, 
   hideFollow,
-}: UserCardProps) {
+  listCount = 0
+}: UserProfileCardProps) {
   const { data: user, error } = useSWR<UserProfile>(`/api/users/${userId}`);
 
   if (error || !user) return null;
@@ -48,6 +51,12 @@ export function UserCard({
               <h3 className="font-semibold truncate">{displayName}</h3>
               <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
             </Link>
+            {typeof listCount === 'number' && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                <ListChecks className="h-4 w-4" />
+                <span>{listCount}</span>
+              </div>
+            )}
           </div>
           {!hideFollow && (
             <FollowButton

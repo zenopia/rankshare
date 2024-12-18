@@ -1,0 +1,33 @@
+"use client";
+
+import { UserProfileCard } from "@/components/users/user-profile-card";
+import useSWR from "swr";
+import type { User } from "@/types/list";
+
+export function PeopleResults() {
+  const { data: users, isLoading, error } = useSWR<User[]>('/api/users/search');
+
+  if (isLoading || error || !users) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">
+          {error ? "Error loading users" : isLoading ? "Loading..." : "No users found"}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      {users.map((user) => (
+        <UserProfileCard 
+          key={user.clerkId}
+          userId={user.clerkId}
+          isFollowing={false}
+          hideFollow={false}
+          listCount={user.listCount}
+        />
+      ))}
+    </div>
+  );
+} 

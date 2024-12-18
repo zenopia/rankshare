@@ -1,11 +1,11 @@
 import './globals.css'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Toaster } from "sonner"
-import ErrorBoundary from '@/components/error-boundary'
 import { Providers } from './providers'
 import { Navbar } from '@/components/layout/navbar'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Metadata, Viewport } from 'next';
+import { BottomNav } from '@/components/layout/bottom-nav'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
@@ -67,19 +67,20 @@ export default async function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <body className="min-h-screen font-sans antialiased">
           <Providers>
-            <div className="relative flex min-h-screen flex-col">
+            <div className="relative min-h-screen">
               <Navbar />
-              <div className="flex flex-1">
+              <div className="flex">
                 <Sidebar className="hidden md:flex" />
-                <ErrorBoundary>
-                  <main className="flex-1">{children}</main>
-                </ErrorBoundary>
+                <main className="flex-1 pb-[4.5rem] sm:pb-0">
+                  {children}
+                </main>
               </div>
+              <BottomNav />
             </div>
-            <Toaster />
           </Providers>
+          <Toaster />
         </body>
       </html>
     </ClerkProvider>
-  )
+  );
 }

@@ -99,8 +99,11 @@ export const LIST_PRIVACY_OPTIONS: { label: string; value: ListPrivacy }[] = [
 export interface User {
   clerkId: string;
   username: string;
-  email: string;
-  createdAt?: Date;
+  firstName?: string;
+  imageUrl?: string;
+  hasNewLists?: boolean;
+  lastListCreated?: Date;
+  listCount: number;
 }
 
 export interface ListFilters {

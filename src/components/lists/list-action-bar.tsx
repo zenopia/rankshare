@@ -83,7 +83,7 @@ function CopyListButton({ listId }: { listId: string }) {
   );
 }
 
-function ShareListButton({ listId }: { listId: string }) {
+function ShareListButton({ listId: _ }: { listId: string }) {
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     toast.success('Link copied to clipboard!');

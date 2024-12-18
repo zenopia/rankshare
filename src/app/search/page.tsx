@@ -1,63 +1,60 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useLists } from "@/hooks/use-lists";
-import { ListCard } from "@/components/lists/list-card";
 import { SearchInput } from "@/components/search/search-input";
 import { FilterSheet } from "@/components/search/filter-sheet";
-import type { ListCategory } from "@/types/list";
+import { SearchResults } from "@/components/search/search-results";
+import { PeopleResults } from "@/components/search/people-results";
+import { SearchTabs } from "@/components/search/search-tabs";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
+import { useSearchParams } from "next/navigation";
+import type { ListCategory } from "@/types/list";
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
-  const { data: lists, isLoading, error } = useLists(searchParams ?? new URLSearchParams());
+  const currentTab = searchParams?.get("tab") || "lists";
+  const searchQuery = searchParams?.get("q") || "";
+
+  // Convert searchParams to a regular object for SearchResults
+  const searchParamsObject = {
+    q: searchParams?.get("q") || undefined,
+    category: (searchParams?.get("category") as ListCategory) || undefined,
+    sort: (searchParams?.get("sort") as "newest" | "most-viewed") || undefined
+  };
 
   return (
-    <div className="container py-8">
+    <div className="container py-8 has-fab">
       <div className="space-y-2 mb-6">
-        <h1 className="text-3xl font-bold">Search Lists</h1>
+        <h1 className="text-3xl font-bold">Search</h1>
         <p className="text-muted-foreground">
-          Find lists created by the community
+          Find {currentTab === "lists" ? "lists created by the community" : "people to follow"}
         </p>
       </div>
 
+      <SearchTabs />
+
       {/* Search and Filter Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row gap-4 my-6">
         <div className="flex-1">
           <SearchInput 
-            placeholder="Search lists..."
-            defaultValue={searchParams ? searchParams.get('q') ?? '' : ''}
+            placeholder={`Search ${currentTab}...`}
+            defaultValue={searchQuery}
           />
         </div>
-        <FilterSheet 
-          defaultCategory={searchParams?.get('category') as ListCategory}
-          defaultSort={searchParams?.get('sort') ?? 'newest'}
-        />
+        {currentTab === "lists" && (
+          <FilterSheet 
+            defaultCategory={(searchParams?.get("category") as ListCategory) || undefined}
+            defaultSort={(searchParams?.get("sort") as "newest" | "most-viewed") || undefined}
+          />
+        )}
       </div>
 
       {/* Results */}
-      {isLoading ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      ) : error ? (
-        <div className="text-center py-12">
-          <p className="text-destructive">Error loading lists</p>
-        </div>
-      ) : !lists || lists.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No lists found</p>
-        </div>
+      {currentTab === "lists" ? (
+        <SearchResults searchParams={searchParamsObject} />
       ) : (
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {lists.map((list) => (
-            <ListCard 
-              key={list.id} 
-              list={list}
-            />
-          ))}
-        </div>
+        <PeopleResults />
       )}
+
       <CreateListFAB />
     </div>
   );

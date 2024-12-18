@@ -35,3 +35,10 @@ export interface MongoListDocument extends Omit<ListDocument, '_id'> {
 export type MongoSortOptions = {
   [key: string]: SortOrder | { $meta: "textScore" };
 };
+
+export interface FollowDocument {
+  _id: unknown;
+  followerId: string;
+  followingId: string;
+  __v: number;
+}

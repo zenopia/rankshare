@@ -6,7 +6,7 @@ import dbConnect from "@/lib/db/mongodb";
 import { SearchInput } from "@/components/search/search-input";
 import type { User } from "@/types/list";
 import type { MongoListDocument } from "@/types/mongodb";
-import { AuthorCard } from "@/components/users/author-card";
+import { UserProfileCard } from "@/components/users/user-profile-card";
 
 interface SearchParams {
   q?: string;
@@ -96,12 +96,9 @@ export default async function FollowingPage({
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {filteredUsers.length > 0 ? (
           filteredUsers.map((user) => (
-            <AuthorCard
+            <UserProfileCard 
               key={user.clerkId}
-              authorId={user.clerkId}
-              name={user.fullName || user.username || ''}
-              username={user.username ?? ''}
-              imageUrl={user.imageUrl}
+              userId={user.clerkId}
               isFollowing={true}
               hideFollow={false}
               listCount={user.listCount}

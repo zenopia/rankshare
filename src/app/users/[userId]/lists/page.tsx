@@ -1,87 +1,78 @@
-import { notFound } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 import { ListModel } from "@/lib/db/models/list";
 import { FollowModel } from "@/lib/db/models/follow";
 import dbConnect from "@/lib/db/mongodb";
-import { auth, clerkClient } from "@clerk/nextjs/server";
-import { AuthorCard } from "@/components/users/author-card";
+import { SearchInput } from "@/components/search/search-input";
 import { ListCard } from "@/components/lists/list-card";
-import { serializeList } from "@/lib/utils";
-import type { MongoListDocument } from "@/types/mongodb";
+import { serializeLists } from "@/lib/utils";
+import { UserProfileCard } from "@/components/users/user-profile-card";
 import type { ListDocument } from "@/types/list";
 
-interface UserListsPageProps {
-  params: {
-    userId: string;
-  };
+interface SearchParams {
+  q?: string;
 }
 
-export default async function UserListsPage({ params }: UserListsPageProps) {
-  try {
-    await dbConnect();
-    const { userId: currentUserId } = await auth();
+export default async function UserListsPage({
+  params,
+  searchParams,
+}: {
+  params: { userId: string };
+  searchParams: SearchParams;
+}) {
+  const { userId: currentUserId } = await auth();
 
-    // Get user data from Clerk
-    const owner = await clerkClient.users.getUser(params.userId);
-    if (!owner) {
-      notFound();
-    }
+  await dbConnect();
 
-    const fullName = `${owner.firstName ?? ''} ${owner.lastName ?? ''}`.trim();
-
-    // Get follow status and counts
-    const [followStatus, followerCount, publicListCount] = await Promise.all([
-      currentUserId ? FollowModel.findOne({
-        followerId: currentUserId,
-        followingId: params.userId
-      }) : null,
-      FollowModel.countDocuments({ followingId: params.userId }),
-      ListModel.countDocuments({ 
-        ownerId: params.userId,
-        privacy: 'public'
-      })
-    ]);
-
-    // Get user's public lists
-    const lists = await ListModel.find({ 
+  // Get user's public lists
+  const [lists, followStatus] = await Promise.all([
+    ListModel.find({ 
       ownerId: params.userId,
-      privacy: 'public'
-    }).sort({ createdAt: -1 }).lean() as MongoListDocument[];
+      privacy: 'public',
+    })
+      .sort({ createdAt: -1 })
+      .lean() as unknown as ListDocument[],
+    currentUserId ? FollowModel.findOne({ 
+      followerId: currentUserId,
+      followingId: params.userId 
+    }) : null
+  ]);
 
-    const serializedLists = lists.map(list => serializeList(list as ListDocument));
+  const serializedLists = serializeLists(lists);
 
-    return (
-      <div className="container max-w-3xl mx-auto px-4">
-        <AuthorCard
-          authorId={params.userId}
-          name={fullName || owner.username || ''}
-          username={owner.username ?? ''}
-          imageUrl={owner.imageUrl}
+  return (
+    <div className="container py-8">
+      <div className="mb-8">
+        <UserProfileCard 
+          userId={params.userId}
           isFollowing={!!followStatus}
           hideFollow={currentUserId === params.userId}
+          listCount={lists.length}
         />
+      </div>
 
-        {/* Stats display */}
-        <div className="flex gap-4 mt-2 text-sm text-muted-foreground border-t pt-4">
-          <div>
-            <span className="font-medium text-foreground">{publicListCount}</span> Public Lists
-          </div>
-          <div>
-            <span className="font-medium text-foreground">{followerCount}</span> Followers
-          </div>
+      <div className="mb-8">
+        <div className="max-w-md">
+          <SearchInput 
+            placeholder="Search lists..." 
+            defaultValue={searchParams.q}
+          />
         </div>
+      </div>
 
-        <div className="mt-8 space-y-4">
-          {serializedLists.map(list => (
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {serializedLists
+          .filter(list => 
+            !searchParams.q || 
+            list.title.toLowerCase().includes(searchParams.q.toLowerCase())
+          )
+          .map((list) => (
             <ListCard 
               key={list.id} 
               list={list}
+              showPrivacyBadge
             />
           ))}
-        </div>
       </div>
-    );
-  } catch (error) {
-    console.error('Error fetching user lists:', error);
-    notFound();
-  }
+    </div>
+  );
 } 

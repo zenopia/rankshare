@@ -13,7 +13,7 @@ export function CreateListFAB() {
   return (
     <Link 
       href="/lists/create"
-      className="fixed bottom-20 right-4 z-[60] sm:bottom-8 sm:right-8"
+      className="fixed bottom-20 right-4 z-[60] pointer-events-auto sm:bottom-8 sm:right-8"
     >
       <Button 
         size="lg"

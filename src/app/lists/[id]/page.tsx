@@ -82,8 +82,9 @@ export default async function ListPage({ params }: ListPageProps) {
         isOwner={userId === serializedList.ownerId}
         isPinned={serializedList.isPinned}
         isFollowing={!!followStatus}
-        ownerUsername={owner?.username}
-      />
+      >
+        {/* Remove this section since UserProfileCard is already in ListView */}
+      </ListView>
     );
   } catch (error) {
     notFound();

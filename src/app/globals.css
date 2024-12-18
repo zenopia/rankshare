@@ -91,7 +91,7 @@
   /* Ensure FAB doesn't overlap with mobile search button */
   @media (max-width: 640px) {
     .has-fab {
-      padding-bottom: 7rem;
+      padding-bottom: 8rem;
     }
   }
 }
