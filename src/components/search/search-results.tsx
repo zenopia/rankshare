@@ -1,18 +1,28 @@
 "use client";
 
 import { ListCard } from "@/components/lists/list-card";
+import { PeopleResults } from "@/components/search/people-results";
 import type { List } from "@/types/list";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
-interface SearchResultsProps {
-  searchParams: {
-    q?: string;
-    category?: string;
-    sort?: "newest" | "most-viewed";
-  };
+export function SearchResults() {
+  const searchParams = useSearchParams();
+  const currentTab = searchParams?.get("tab") || "lists";
+
+  return (
+    <div className="space-y-6">
+      {currentTab === "lists" ? (
+        <ListResults />
+      ) : (
+        <PeopleResults />
+      )}
+    </div>
+  );
 }
 
-export function SearchResults({ searchParams }: SearchResultsProps) {
+function ListResults() {
+  const searchParams = useSearchParams();
   const [lists, setLists] = useState<(List & { hasUpdate: boolean })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -20,11 +30,14 @@ export function SearchResults({ searchParams }: SearchResultsProps) {
     async function fetchResults() {
       setIsLoading(true);
       try {
-        // Convert searchParams to URLSearchParams
         const params = new URLSearchParams();
-        if (searchParams.q) params.set("q", searchParams.q);
-        if (searchParams.category) params.set("category", searchParams.category);
-        if (searchParams.sort) params.set("sort", searchParams.sort);
+        const q = searchParams.get("q");
+        const category = searchParams.get("category");
+        const sort = searchParams.get("sort");
+
+        if (q) params.set("q", q);
+        if (category) params.set("category", category);
+        if (sort) params.set("sort", sort);
 
         const response = await fetch(`/api/lists/search?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch results');

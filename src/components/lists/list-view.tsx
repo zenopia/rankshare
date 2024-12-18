@@ -20,18 +20,20 @@ interface ListViewProps {
 
 export function ListView({ list, isOwner, isPinned, isFollowing, children }: ListViewProps) {
   return (
-    <div className="container py-8">
+    <div className="container max-w-7xl mx-auto px-4 py-8">
       {children}
-      <div className="max-w-3xl mx-auto px-4">
-        <UserCard 
-          userId={list.ownerId}
-          isFollowing={isFollowing}
-          hideFollow={isOwner}
-        />
+      <div className="max-w-3xl mx-auto">
+        <div className="mb-8">
+          <UserCard 
+            userId={list.ownerId}
+            isFollowing={isFollowing}
+            hideFollow={isOwner}
+          />
+        </div>
 
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="space-y-4">
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-4">
               <h1 className="text-2xl font-bold sm:text-3xl truncate">
                 {list.title}
               </h1>
@@ -47,7 +49,7 @@ export function ListView({ list, isOwner, isPinned, isFollowing, children }: Lis
           </div>
 
           {/* Items section */}
-          <div className="mt-8 space-y-6">
+          <div className="space-y-6">
             <h2 className="text-2xl font-semibold">Items</h2>
             <div className="space-y-4">
               {list.items.map((item) => (
@@ -65,7 +67,7 @@ export function ListView({ list, isOwner, isPinned, isFollowing, children }: Lis
           </div>
 
           {/* Stats Bar */}
-          <div className="mt-8 border-t pt-4">
+          <div className="border-t pt-4">
             <div className="flex items-start justify-between text-sm text-muted-foreground">
               {/* Stats Row */}
               <div className="flex items-center gap-4">
@@ -112,6 +114,7 @@ export function ListView({ list, isOwner, isPinned, isFollowing, children }: Lis
         </div>
       </div>
 
+      {/* Action buttons */}
       {isOwner ? (
         <>
           <EditListFAB listId={list.id} />
@@ -124,7 +127,7 @@ export function ListView({ list, isOwner, isPinned, isFollowing, children }: Lis
       ) : (
         <ListActionBar
           listId={list.id}
-          isPinned={isPinned ?? false}
+          isPinned={isPinned}
           showPinButton={true}
         />
       )}

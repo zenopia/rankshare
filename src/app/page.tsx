@@ -21,16 +21,19 @@ export default async function HomePage() {
   const serializedLists = serializeLists(recentLists);
 
   return (
-    <div className="container py-8 has-fab">
-      <h1 className="text-3xl font-bold mb-8">Recent Lists</h1>
-      
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {serializedLists.map((list) => (
-          <ListCard 
-            key={list.id} 
-            list={list}
-          />
-        ))}
+    <div className="container max-w-7xl mx-auto px-4 py-8">
+      <div className="space-y-8">
+        <h1 className="text-3xl font-bold">Recent Lists</h1>
+        
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {serializedLists.map((list) => (
+            <ListCard 
+              key={list.id} 
+              list={list}
+              showPrivacyBadge
+            />
+          ))}
+        </div>
       </div>
 
       <CreateListFAB />
