@@ -1,18 +1,11 @@
 import './globals.css'
 import { ClerkProvider } from '@clerk/nextjs'
-import { auth } from '@clerk/nextjs/server'
-import { Inter } from 'next/font/google'
-import { ErrorBoundary } from '@/components/error-boundary'
+import { Toaster } from "sonner"
 import { Providers } from './providers'
 import { Navbar } from '@/components/layout/navbar'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Metadata, Viewport } from 'next';
-
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  preload: true,
-})
+import { BottomNav } from '@/components/layout/bottom-nav'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -56,43 +49,41 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  let isAuthenticated = false;
-
-  try {
-    const { userId } = await auth();
-    isAuthenticated = !!userId;
-  } catch (error) {
-    console.error('Auth initialization error:', error);
-  }
-
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
     throw new Error('Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY');
   }
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`min-h-screen bg-background font-sans antialiased ${inter.className}`}>
-        <ClerkProvider
-          publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-        >
+    <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      appearance={{
+        elements: {
+          footer: "hidden",
+        }
+      }}
+    >
+      <html lang="en" suppressHydrationWarning>
+        <body className="min-h-screen font-sans antialiased">
           <Providers>
-            <div className="relative flex min-h-screen flex-col">
+            <div className="relative min-h-screen">
               <Navbar />
-              <div className="flex flex-1">
-                {isAuthenticated && <Sidebar className="hidden md:flex" />}
-                <ErrorBoundary>
-                  <main className="flex-1">{children}</main>
-                </ErrorBoundary>
+              <div className="flex">
+                <Sidebar className="hidden md:flex" />
+                <main className="flex-1 pb-[4.5rem] sm:pb-0">
+                  {children}
+                </main>
               </div>
+              <BottomNav />
             </div>
           </Providers>
-        </ClerkProvider>
-      </body>
-    </html>
-  )
+          <Toaster />
+        </body>
+      </html>
+    </ClerkProvider>
+  );
 }

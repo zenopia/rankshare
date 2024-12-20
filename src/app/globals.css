@@ -82,4 +82,22 @@
   .text-foreground {
     color: hsl(var(--foreground));
   }
+
+  /* Add padding to bottom of pages with FAB */
+  .has-fab {
+    padding-bottom: 5rem;
+  }
+
+  /* Ensure FAB doesn't overlap with mobile search button */
+  @media (max-width: 640px) {
+    .has-fab {
+      padding-bottom: 8rem;
+    }
+  }
+}
+
+@layer components {
+  .select-content {
+    @apply bg-background border shadow-md !important;
+  }
 }

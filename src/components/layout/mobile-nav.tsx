@@ -23,6 +23,7 @@ import {
 import { useAuth } from "@clerk/nextjs";
 import type { NavItem } from "@/types/nav";
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { SidebarProfile } from "./sidebar-profile";
 
 // Additional nav items only for mobile
 const mobileOnlyNavItems: NavItem[] = [
@@ -43,13 +44,13 @@ const mobileOnlyNavItems: NavItem[] = [
 ];
 
 const navItems: NavItem[] = [
-    {
-        title: "Dashboard",
-        href: "/dashboard",
-        public: false,
-        icon: LayoutDashboard,
-        description: "View your dashboard"
-    },
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    public: false,
+    icon: LayoutDashboard,
+    description: "View your dashboard"
+  },
   {
     title: "My Lists",
     href: "/my-lists",
@@ -91,8 +92,23 @@ export function MobileNav() {
   const [open, setOpen] = useState(false);
   const { isSignedIn } = useAuth();
 
-  // Combine regular nav items with mobile-only items
-  const allNavItems = [...mobileOnlyNavItems, ...navItems];
+  const handleClose = () => setOpen(false);
+
+  const renderNavLink = (item: NavItem) => {
+    const Icon = item.icon;
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={() => setOpen(false)}
+        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+        aria-label={item.description}
+      >
+        <Icon className="h-4 w-4" aria-hidden="true" />
+        <span>{item.title}</span>
+      </Link>
+    );
+  };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -113,25 +129,35 @@ export function MobileNav() {
         <VisuallyHidden asChild>
           <SheetTitle>Navigation Menu</SheetTitle>
         </VisuallyHidden>
+
+        {isSignedIn && <SidebarProfile collapsed={false} onClick={handleClose} />}
+
         <nav 
-          className="flex flex-col space-y-4"
+          className="flex flex-col space-y-4 mt-4"
           aria-label="Mobile navigation"
         >
-          {allNavItems.map((item) =>
-            (item.public || isSignedIn) && (
+          {mobileOnlyNavItems.map((item) =>
+            (item.public || isSignedIn) && renderNavLink(item)
+          )}
+          {isSignedIn && navItems.map(renderNavLink)}
+          
+          {!isSignedIn && (
+            <>
               <Link
-                key={item.href}
-                href={item.href}
+                href="/sign-in"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
-                aria-label={item.description}
               >
-                {item.icon && (
-                  <item.icon className="h-4 w-4" aria-hidden="true" />
-                )}
-                <span>{item.title}</span>
+                <span>Sign In</span>
               </Link>
-            )
+              <Link
+                href="/sign-up"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+              >
+                <span>Sign Up</span>
+              </Link>
+            </>
           )}
         </nav>
       </SheetContent>

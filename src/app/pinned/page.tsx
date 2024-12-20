@@ -79,18 +79,20 @@ export default async function PinnedListsPage({
     id: list._id.toString(),
     ownerId: list.ownerId || '',
     ownerName: list.ownerName || 'Anonymous',
-    title: list.title || '',
-    category: list.category || 'movies',
+    title: list.title,
+    category: list.category,
     description: list.description || '',
-    items: list.items || [],
-    privacy: list.privacy || 'public',
-    viewCount: list.viewCount || 0,
-    createdAt: new Date(list.createdAt),
-    updatedAt: new Date(list.updatedAt),
-    hasUpdate: pins.some(pin => 
-      pin.listId === list._id.toString() && 
-      new Date(list.updatedAt) > new Date(pin.lastViewedAt)
-    ),
+    items: list.items.map(item => ({
+      id: item._id?.toString() || crypto.randomUUID(),
+      title: item.title,
+      comment: item.comment,
+      rank: item.rank
+    })),
+    privacy: list.privacy,
+    viewCount: list.viewCount,
+    createdAt: list.createdAt,
+    updatedAt: list.updatedAt,
+    hasUpdate: false
   }));
 
   return (

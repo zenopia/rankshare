@@ -1,71 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { UserButton } from "@clerk/nextjs";
-import { useAuth } from "@clerk/nextjs";
 import { MobileNav } from "./mobile-nav";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import type { NavItem } from "@/types/nav";
+import { Search } from "lucide-react";
 
-const navItems: NavItem[] = [
-  {
-    title: "Search",
-    href: "/search",
-    public: true,
-  },
-  {
-    title: "Create List",
-    href: "/lists/create",
-    public: false,
-  },
-];
+interface NavbarProps {
+  className?: string;
+}
 
-export function Navbar({ className }: { className?: string }) {
+export function Navbar({ className }: NavbarProps) {
   const { isSignedIn } = useAuth();
 
   return (
     <header className={cn("sticky top-0 z-50 w-full border-b bg-background", className)}>
-      <nav className="container flex h-14 items-center">
-        <div className="flex flex-1 items-center justify-between">
-          <Link href="/" className="font-bold text-xl text-primary">
-            Curate
-          </Link>
-
-          <div className="flex items-center gap-4">
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex md:items-center md:gap-6">
-              {navItems.map((item) => 
-                (item.public || isSignedIn) && (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="text-sm font-medium transition-colors hover:text-foreground/80"
-                  >
-                    {item.title}
-                  </Link>
-                )
-              )}
+      <div className="container flex h-14 items-center justify-between">
+        <Link href="/" className="font-bold">
+          Curate
+        </Link>
+        <div className="flex items-center gap-4">
+          {!isSignedIn && (
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" asChild>
+                <Link href="/sign-in">Sign In</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/sign-up">Sign Up</Link>
+              </Button>
             </div>
-
-            {/* Auth Button */}
-            <div className="flex items-center">
-              {isSignedIn ? (
-                <UserButton afterSignOutUrl="/" />
-              ) : (
-                <Button asChild variant="default">
-                  <Link href="/sign-in">
-                    Sign In
-                  </Link>
-                </Button>
-              )}
-            </div>
-
-            {/* Mobile Navigation */}
-            <MobileNav />
+          )}
+          <div className="hidden sm:block">
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/search" aria-label="Search">
+                <Search className="h-5 w-5" />
+              </Link>
+            </Button>
           </div>
+          <MobileNav />
         </div>
-      </nav>
+      </div>
     </header>
   );
 } 

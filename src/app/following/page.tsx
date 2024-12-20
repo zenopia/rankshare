@@ -1,12 +1,12 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { ListModel } from "@/lib/db/models/list";
 import { FollowModel } from "@/lib/db/models/follow";
 import { UserModel } from "@/lib/db/models/user";
 import dbConnect from "@/lib/db/mongodb";
-import { UserCard } from "@/components/users/user-card";
 import { SearchInput } from "@/components/search/search-input";
 import type { User } from "@/types/list";
 import type { MongoListDocument } from "@/types/mongodb";
+import { UserProfileCard } from "@/components/users/user-profile-card";
 
 interface SearchParams {
   q?: string;
@@ -16,6 +16,9 @@ interface UserWithStats extends User {
   hasNewLists: boolean;
   lastListCreated?: Date;
   listCount: number;
+  firstName?: string;
+  imageUrl?: string;
+  fullName?: string;
 }
 
 export default async function FollowingPage({
@@ -35,8 +38,10 @@ export default async function FollowingPage({
   // Get following users and their stats
   const following = await Promise.all(
     followingIds.map(async (followingId) => {
+      // Get Clerk user data
+      const clerkUser = await clerkClient.users.getUser(followingId);
       const user = await UserModel.findOne({ clerkId: followingId }).lean() as User | null;
-      if (!user) return null;
+      if (!user || !clerkUser) return null;
 
       // Get user's latest public list and count
       const [latestList, listCount] = await Promise.all([
@@ -55,6 +60,10 @@ export default async function FollowingPage({
 
       const followingUser: UserWithStats = {
         ...user,
+        firstName: clerkUser.firstName,
+        imageUrl: clerkUser.imageUrl,
+        username: clerkUser.username,
+        fullName: `${clerkUser.firstName ?? ''} ${clerkUser.lastName ?? ''}`.trim(),
         hasNewLists: false,
         lastListCreated: latestList?.createdAt,
         listCount,
@@ -84,24 +93,27 @@ export default async function FollowingPage({
         </div>
       </div>
 
-      {filteredUsers.length > 0 ? (
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {filteredUsers.map((user) => (
-            <UserCard 
-              key={user.clerkId} 
-              user={user}
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {filteredUsers.length > 0 ? (
+          filteredUsers.map((user) => (
+            <UserProfileCard 
+              key={user.clerkId}
+              userId={user.clerkId}
+              isFollowing={true}
+              hideFollow={false}
+              listCount={user.listCount}
             />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center">
-          <p className="text-muted-foreground">
-            {searchParams.q 
-              ? "No users found matching your search."
-              : "You're not following anyone yet. Find users to follow!"}
-          </p>
-        </div>
-      )}
+          ))
+        ) : (
+          <div className="col-span-full text-center">
+            <p className="text-muted-foreground">
+              {searchParams.q 
+                ? "No users found matching your search."
+                : "You're not following anyone yet. Find users to follow!"}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 } 

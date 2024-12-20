@@ -1,7 +1,68 @@
-import mongoose from 'mongoose';
+import type { Document, UpdateQuery, SchemaOptions } from 'mongoose';
+import { Schema, model, models } from 'mongoose';
+import type { ToObjectOptions } from 'mongoose';
 import { LIST_CATEGORIES } from '@/types/list';
 
-const listSchema = new mongoose.Schema({
+// Define the document interface
+interface ListDoc extends Document {
+  title: string;
+  category: string;
+  description?: string;
+  privacy: 'public' | 'private';
+  ownerId: string;
+  ownerName: string;
+  ownerImageUrl?: string;
+  items: Array<{
+    title: string;
+    comment?: string;
+    properties: Array<{
+      id: string;
+      type: 'text' | 'link';
+      label: string;
+      value: string;
+    }>;
+    rank: number;
+  }>;
+  viewCount: number;
+  totalPins: number;
+  totalCopies: number;
+  lastEditedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const schemaOptions: SchemaOptions<ListDoc> = {
+  timestamps: true,
+  toJSON: { 
+    getters: true,
+    virtuals: true,
+    transform: function(
+      doc: Document<unknown, object, ListDoc> & ListDoc & Required<{ _id: unknown }> & { __v: number },
+      ret: Record<string, unknown>,
+      _options: ToObjectOptions<typeof doc>
+    ) {
+      ret.createdAt = doc.createdAt;
+      if (doc.lastEditedAt) {
+        ret.lastEditedAt = doc.lastEditedAt;
+      }
+      return ret;
+    }
+  }
+};
+
+const itemSchema = new Schema({
+  title: { type: String, required: true },
+  comment: String,
+  properties: [{
+    id: String,
+    type: { type: String, enum: ['text', 'link'] },
+    label: String,
+    value: String
+  }],
+  rank: { type: Number, required: true }
+});
+
+const listSchema = new Schema({
   title: {
     type: String,
     required: true,
@@ -30,27 +91,42 @@ const listSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  items: [{
-    title: {
-      type: String,
-      required: true,
-    },
-    comment: {
-      type: String,
-      required: false,
-    },
-    rank: {
-      type: Number,
-      required: true,
-    }
-  }],
+  ownerImageUrl: {
+    type: String,
+  },
+  items: [itemSchema],
   viewCount: {
     type: Number,
     default: 0,
+  },
+  totalPins: {
+    type: Number,
+    default: 0,
+  },
+  totalCopies: {
+    type: Number,
+    default: 0,
+  },
+  lastEditedAt: {
+    type: Date,
+    required: false,
+    default: undefined
+  },
+}, schemaOptions);
+
+// Update middleware to ensure lastEditedAt is set on every update
+listSchema.pre(['findOneAndUpdate'], function(next) {
+  const update = this.getUpdate() as UpdateQuery<unknown>;
+  const now = new Date();
+  
+  if (!update.$set) {
+    update.$set = {};
   }
-}, {
-  timestamps: true,
+  
+  update.$set.lastEditedAt = now;
+  
+  next();
 });
 
 // Export as ListModel to match imports across the application
-export const ListModel = mongoose.models.List || mongoose.model('List', listSchema);
+export const ListModel = models.List || model('List', listSchema);

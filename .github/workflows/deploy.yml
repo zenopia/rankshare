@@ -10,10 +10,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Set deployment target
         id: set-target
         run: |
@@ -34,30 +30,37 @@ jobs:
           script: |
             echo "Starting deployment..."
             
+            # Load NVM and Node
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+            
+            # Ensure we're using the right Node version
+            nvm use 18 || nvm install 18
+            
+            # Install PM2 globally if not present
+            which pm2 || npm install -g pm2
+            
             cd ~/htdocs/${{ steps.set-target.outputs.host }}
             
-            echo "Cleaning repository state..."
+            # Pull latest changes
             git fetch origin ${{ github.ref_name }}
             git reset --hard origin/${{ github.ref_name }}
             
-            echo "Setting up Node environment..."
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            
-            echo "Installing dependencies..."
+            # Install and build
             npm install
-            
-            echo "Building application..."
             npm run build
             
-            echo "Restarting application..."
-            pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+            # Restart the application using the appropriate config
+            if [ ${{ github.ref }} = 'refs/heads/main' ]; then
+              pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start ecosystem.config.js
+            else
+              pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start ecosystem.config.dev.js
+            fi
+            
+            # Show application status
+            sleep 5
+            pm2 list
             
             echo "Deployment complete!"
-
-      - name: Verify deployment
-        run: |
-          echo "Waiting for application to start..."
-          sleep 30
-          curl -f https://${{ steps.set-target.outputs.host }} || exit 1
               

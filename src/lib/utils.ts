@@ -1,26 +1,42 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { ListDocument, List, ListCategory, ListPrivacy } from "@/types/list";
-import type { MongoDocument } from "@/types/mongodb";
+import type { ListDocument, List, ItemProperty } from "@/types/list";
+import type { MongoListDocument } from "@/types/mongodb";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function serializeList(doc: ListDocument | (MongoDocument & Partial<List>)): List {
+export function serializeList(list: ListDocument): List {
+  const plainList = JSON.parse(JSON.stringify(list));
+
   return {
-    id: doc._id.toString(),
-    ownerId: doc.ownerId ?? '',
-    ownerName: doc.ownerName ?? 'Anonymous',
-    title: doc.title ?? 'Untitled List',
-    category: (doc.category ?? 'other') as ListCategory,
-    description: doc.description ?? '',
-    items: doc.items ?? [],
-    privacy: (doc.privacy ?? 'public') as ListPrivacy,
-    viewCount: doc.viewCount ?? 0,
-    createdAt: new Date(doc.createdAt ?? Date.now()),
-    updatedAt: new Date(doc.updatedAt ?? Date.now()),
-    lastEditedAt: doc.lastEditedAt ? new Date(doc.lastEditedAt) : undefined,
+    id: plainList._id.toString(),
+    ownerId: plainList.ownerId,
+    ownerName: plainList.ownerName,
+    ownerImageUrl: plainList.ownerImageUrl,
+    title: plainList.title,
+    category: plainList.category,
+    description: plainList.description,
+    privacy: plainList.privacy,
+    viewCount: plainList.viewCount,
+    pinCount: plainList.totalPins,
+    totalCopies: plainList.totalCopies,
+    createdAt: new Date(plainList.createdAt),
+    updatedAt: new Date(plainList.updatedAt),
+    lastEditedAt: plainList.lastEditedAt ? new Date(plainList.lastEditedAt) : undefined,
+    items: plainList.items.map((item: MongoListDocument['items'][0]) => ({
+      id: item._id?.toString() || crypto.randomUUID(),
+      title: item.title,
+      comment: item.comment,
+      properties: item.properties?.map((prop: ItemProperty) => ({
+        id: prop.id,
+        type: prop.type,
+        label: prop.label,
+        value: prop.value
+      })) || [],
+      rank: item.rank
+    }))
   };
 }
 
@@ -32,6 +48,6 @@ export function formatDate(date: Date) {
   }).format(date);
 }
 
-export function serializeLists(docs: (ListDocument | (MongoDocument & Partial<List>))[]): List[] {
-  return docs.map(serializeList);
+export function serializeLists(docs: ListDocument[]): List[] {
+  return docs.map(doc => serializeList(doc));
 } 

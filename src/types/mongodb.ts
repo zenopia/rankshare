@@ -1,10 +1,10 @@
 import { Document, Types, SortOrder } from 'mongoose';
-import type { List, ListPrivacy, ListCategory } from './list';
+import type { ListPrivacy, ListCategory, ListDocument } from '@/types/list';
 
-export interface MongoDoc extends Document {
-  _id: string;
-  [key: string]: unknown;
-}
+export type MongoDoc<T> = T & Document & {
+  _id: unknown;
+  __v: number;
+};
 
 export interface MongoDocument extends Document {
   _id: Types.ObjectId;
@@ -28,11 +28,17 @@ export interface MongoListFilter {
   _id?: { $in: string[] };
 }
 
-export interface MongoListDocument extends Omit<List, 'id'> {
+export interface MongoListDocument extends Omit<ListDocument, '_id'> {
   _id: Types.ObjectId;
-  __v?: number;
 }
 
 export type MongoSortOptions = {
   [key: string]: SortOrder | { $meta: "textScore" };
 };
+
+export interface FollowDocument {
+  _id: unknown;
+  followerId: string;
+  followingId: string;
+  __v: number;
+}
