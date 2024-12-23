@@ -114,9 +114,20 @@ const listSchema = new Schema({
   },
 }, schemaOptions);
 
-// Update middleware to ensure lastEditedAt is set on every update
+// Update middleware to ensure lastEditedAt is set only on content updates
 listSchema.pre(['findOneAndUpdate'], function(next) {
   const update = this.getUpdate() as UpdateQuery<unknown>;
+  
+  // Skip lastEditedAt update if this is just a stat update ($inc operation)
+  if (update.$inc) {
+    return next();
+  }
+
+  // Skip lastEditedAt update if timestamps are explicitly disabled
+  if (this.getOptions().timestamps === false) {
+    return next();
+  }
+
   const now = new Date();
   
   if (!update.$set) {

@@ -17,12 +17,13 @@ import { Button } from "@/components/ui/button";
 import { 
   Sheet, 
   SheetContent, 
-  SheetTrigger,
+  SheetDescription,
+  SheetHeader,
   SheetTitle,
+  SheetTrigger,
 } from "@/components/ui/sheet";
 import { useAuth } from "@clerk/nextjs";
 import type { NavItem } from "@/types/nav";
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { SidebarProfile } from "./sidebar-profile";
 
 // Additional nav items only for mobile
@@ -126,9 +127,12 @@ export function MobileNav() {
         side="right" 
         className="w-80 pt-10"
       >
-        <VisuallyHidden asChild>
+        <SheetHeader className="sr-only">
           <SheetTitle>Navigation Menu</SheetTitle>
-        </VisuallyHidden>
+          <SheetDescription>
+            Site navigation
+          </SheetDescription>
+        </SheetHeader>
 
         {isSignedIn && <SidebarProfile collapsed={false} onClick={handleClose} />}
 

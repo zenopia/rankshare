@@ -38,9 +38,11 @@ export async function POST(
     });
 
     // Increment copy count on original list
-    await ListModel.findByIdAndUpdate(params.id, {
-      $inc: { totalCopies: 1 }
-    });
+    await ListModel.findByIdAndUpdate(
+      params.id,
+      { $inc: { totalCopies: 1 } },
+      { timestamps: false }
+    );
 
     return NextResponse.json(newList);
   } catch (error) {
