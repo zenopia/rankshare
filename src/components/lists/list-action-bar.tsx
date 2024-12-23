@@ -9,10 +9,11 @@ import { useRouter } from "next/navigation";
 interface ListActionBarProps {
   listId: string;
   isPinned: boolean;
-  showPinButton?: boolean;
+  showPinButton: boolean;
+  isAuthenticated: boolean;
 }
 
-function PinListButton({ listId, isPinned }: { listId: string; isPinned: boolean }) {
+function PinListButton({ listId, isPinned, isAuthenticated }: { listId: string; isPinned: boolean; isAuthenticated: boolean }) {
   const [isPinning, setIsPinning] = useState(false);
   const router = useRouter();
 
@@ -35,7 +36,7 @@ function PinListButton({ listId, isPinned }: { listId: string; isPinned: boolean
   };
 
   return (
-    <Button variant="outline" onClick={togglePin} disabled={isPinning} className="flex-1">
+    <Button variant="outline" onClick={togglePin} disabled={!isAuthenticated || isPinning} className="flex-1">
       {isPinned ? (
         <>
           <PinOff className="h-4 w-4 mr-2" />
@@ -51,7 +52,7 @@ function PinListButton({ listId, isPinned }: { listId: string; isPinned: boolean
   );
 }
 
-function CopyListButton({ listId }: { listId: string }) {
+function CopyListButton({ listId, isAuthenticated }: { listId: string; isAuthenticated: boolean }) {
   const [isCopying, setIsCopying] = useState(false);
   const router = useRouter();
 
@@ -76,7 +77,7 @@ function CopyListButton({ listId }: { listId: string }) {
   };
 
   return (
-    <Button variant="outline" onClick={copyList} disabled={isCopying} className="flex-1">
+    <Button variant="outline" onClick={copyList} disabled={!isAuthenticated || isCopying} className="flex-1">
       <Copy className="h-4 w-4 mr-2" />
       Copy list
     </Button>
@@ -97,14 +98,21 @@ function ShareListButton({ listId: _ }: { listId: string }) {
   );
 }
 
-export function ListActionBar({ listId, isPinned, showPinButton = true }: ListActionBarProps) {
+export function ListActionBar({ listId, isPinned, showPinButton, isAuthenticated }: ListActionBarProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
       <div className="container max-w-3xl flex gap-2">
         {showPinButton && (
-          <PinListButton listId={listId} isPinned={isPinned} />
+          <PinListButton 
+            listId={listId} 
+            isPinned={isPinned}
+            isAuthenticated={isAuthenticated}
+          />
         )}
-        <CopyListButton listId={listId} />
+        <CopyListButton 
+          listId={listId}
+          isAuthenticated={isAuthenticated}
+        />
         <ShareListButton listId={listId} />
       </div>
     </div>

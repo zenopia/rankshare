@@ -21,11 +21,11 @@ interface ListCardProps {
 }
 
 export function ListCard({ list, showPrivacyBadge = false, showUpdateBadge = false }: ListCardProps) {
-  const { data: user } = useSWR<UserProfile>(list.ownerId ? `/api/users/${list.ownerId}` : null);
+  const { data: user } = useSWR<UserProfile>(`/api/users/${list.ownerId}`);
   
-  const authorName = user ? [user.firstName, user.lastName]
-    .filter(Boolean)
-    .join(' ') || user.username : '';
+  const displayName = user 
+    ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username
+    : list.ownerName;
 
   const dateString = list.lastEditedAt && 
     new Date(list.lastEditedAt).getTime() !== new Date(list.createdAt).getTime()
@@ -45,9 +45,9 @@ export function ListCard({ list, showPrivacyBadge = false, showUpdateBadge = fal
                 <h3 className="font-semibold leading-none tracking-tight truncate">
                   {list.title}
                 </h3>
-                {authorName && (
+                {displayName && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    by {authorName}
+                    {displayName}
                   </p>
                 )}
               </div>
