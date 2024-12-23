@@ -36,9 +36,11 @@ export async function POST(
     });
 
     // Increment pin count on list
-    await ListModel.findByIdAndUpdate(params.id, {
-      $inc: { totalPins: 1 }
-    });
+    await ListModel.findByIdAndUpdate(
+      params.id,
+      { $inc: { totalPins: 1 } },
+      { timestamps: false }
+    );
 
     return NextResponse.json(pin);
   } catch (error) {
@@ -70,9 +72,11 @@ export async function DELETE(
     }
 
     // Decrement pin count on list
-    await ListModel.findByIdAndUpdate(params.id, {
-      $inc: { totalPins: -1 }
-    });
+    await ListModel.findByIdAndUpdate(
+      params.id,
+      { $inc: { totalPins: -1 } },
+      { timestamps: false }
+    );
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {

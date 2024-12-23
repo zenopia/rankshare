@@ -5,7 +5,7 @@ import { Providers } from './providers'
 import { Navbar } from '@/components/layout/navbar'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Metadata, Viewport } from 'next';
-import { BottomNav } from '@/components/layout/bottom-nav'
+import { ConditionalBottomNav } from '@/components/layout/conditional-bottom-nav'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -78,7 +78,7 @@ export default function RootLayout({
                   {children}
                 </main>
               </div>
-              <BottomNav />
+              <ConditionalBottomNav />
             </div>
           </Providers>
           <Toaster />

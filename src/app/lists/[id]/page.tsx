@@ -34,7 +34,11 @@ export default async function ListPage({ params }: ListPageProps) {
     }
 
     // Update view count
-    await ListModel.findByIdAndUpdate(params.id, { $inc: { viewCount: 1 } });
+    await ListModel.findByIdAndUpdate(
+      params.id, 
+      { $inc: { viewCount: 1 } },
+      { timestamps: false }
+    );
 
     // Get pin if user is logged in
     let pin = null;
@@ -82,6 +86,7 @@ export default async function ListPage({ params }: ListPageProps) {
         isOwner={userId === serializedList.ownerId}
         isPinned={serializedList.isPinned}
         isFollowing={!!followStatus}
+        isAuthenticated={!!userId}
       >
         {/* Remove this section since UserProfileCard is already in ListView */}
       </ListView>

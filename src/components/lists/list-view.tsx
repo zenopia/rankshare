@@ -15,10 +15,11 @@ interface ListViewProps {
   isOwner: boolean;
   isPinned: boolean;
   isFollowing: boolean;
+  isAuthenticated: boolean;
   children?: React.ReactNode;
 }
 
-export function ListView({ list, isOwner, isPinned, isFollowing, children }: ListViewProps) {
+export function ListView({ list, isOwner, isPinned, isFollowing, isAuthenticated, children }: ListViewProps) {
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8">
       {children}
@@ -122,6 +123,7 @@ export function ListView({ list, isOwner, isPinned, isFollowing, children }: Lis
             listId={list.id}
             isPinned={false}
             showPinButton={false}
+            isAuthenticated={isAuthenticated}
           />
         </>
       ) : (
@@ -129,6 +131,7 @@ export function ListView({ list, isOwner, isPinned, isFollowing, children }: Lis
           listId={list.id}
           isPinned={isPinned}
           showPinButton={true}
+          isAuthenticated={isAuthenticated}
         />
       )}
     </div>
