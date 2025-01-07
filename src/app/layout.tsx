@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/images/favicon.ico' },
+      { url: '/favicon.ico' },
       { url: '/images/icon-192.png', type: 'image/png', sizes: '192x192' },
       { url: '/images/icon-512.png', type: 'image/png', sizes: '512x512' },
     ],
@@ -55,6 +55,11 @@ export default function RootLayout({
     throw new Error('Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY');
   }
 
+  // Check if we're in a development environment
+  const isDev = process.env.NODE_ENV === 'development' || 
+                window.location.hostname.includes('dev') || 
+                window.location.hostname.includes('localhost');
+
   return (
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
@@ -64,7 +69,7 @@ export default function RootLayout({
         }
       }}
     >
-      <html lang="en" suppressHydrationWarning>
+      <html lang="en" data-env={isDev ? 'development' : 'production'} suppressHydrationWarning>
         <body className="min-h-screen font-sans antialiased">
           <Providers>
             <div className="relative min-h-screen">

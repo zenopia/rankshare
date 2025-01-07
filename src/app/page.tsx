@@ -21,7 +21,7 @@ export default async function HomePage() {
   const serializedLists = serializeLists(recentLists);
 
   return (
-    <div className="container max-w-7xl mx-auto px-4 py-8">
+    <div className="px-4 md:px-6 lg:px-8 py-8 pb-20 sm:pb-8">
       <div className="space-y-8">
         <h1 className="text-3xl font-bold">Recent Lists</h1>
         

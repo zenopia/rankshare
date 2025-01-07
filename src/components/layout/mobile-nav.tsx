@@ -125,7 +125,7 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent 
         side="right" 
-        className="w-80 pt-10"
+        className="w-80 pt-10 pb-20"
       >
         <SheetHeader className="sr-only">
           <SheetTitle>Navigation Menu</SheetTitle>

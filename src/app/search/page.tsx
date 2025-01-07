@@ -1,17 +1,21 @@
-"use client";
-
 import { SearchInput } from "@/components/search/search-input";
 import { SearchResults } from "@/components/search/search-results";
 import { SearchTabs } from "@/components/search/search-tabs";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
-import { useSearchParams } from "next/navigation";
 
-export default function SearchPage() {
-  const searchParams = useSearchParams();
-  const searchQuery = searchParams?.get("q") || "";
+interface SearchParams {
+  q?: string;
+}
+
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const searchQuery = searchParams.q || "";
 
   return (
-    <div className="container max-w-7xl mx-auto px-4 py-8">
+    <div className="px-4 md:px-6 lg:px-8 py-8 pb-20 sm:pb-8">
       <div className="space-y-8">
         <div className="max-w-md">
           <SearchInput 
