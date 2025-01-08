@@ -100,7 +100,7 @@ function ShareListButton({ listId: _ }: { listId: string }) {
 
 export function ListActionBar({ listId, isPinned, showPinButton, isAuthenticated }: ListActionBarProps) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
       <div className="container max-w-3xl flex gap-2">
         {showPinButton && (
           <PinListButton 

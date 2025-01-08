@@ -76,12 +76,14 @@ export function ListView({ list, isOwner, isPinned, isFollowing, isAuthenticated
           <div className="border-t pt-4">
             <div className="flex items-start justify-between text-sm text-muted-foreground">
               {/* Stats Row */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 text-muted-foreground">
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger className="flex items-center gap-2">
-                      <Eye className="h-4 w-4" />
-                      <span className="tabular-nums">{list.viewCount}</span>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1 cursor-default">
+                        <Eye className="h-4 w-4" />
+                        <span>{list.viewCount}</span>
+                      </div>
                     </TooltipTrigger>
                     <TooltipContent>Views</TooltipContent>
                   </Tooltip>
@@ -89,21 +91,25 @@ export function ListView({ list, isOwner, isPinned, isFollowing, isAuthenticated
 
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger className="flex items-center gap-2">
-                      <Pin className="h-4 w-4" />
-                      <span className="tabular-nums">{list.pinCount}</span>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1 cursor-default">
+                        <Copy className="h-4 w-4" />
+                        <span>{list.totalCopies}</span>
+                      </div>
                     </TooltipTrigger>
-                    <TooltipContent>Pins</TooltipContent>
+                    <TooltipContent>Copies</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
 
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger className="flex items-center gap-2">
-                      <Copy className="h-4 w-4" />
-                      <span className="tabular-nums">{list.totalCopies}</span>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1 cursor-default">
+                        <Pin className="h-4 w-4" />
+                        <span>{list.pinCount}</span>
+                      </div>
                     </TooltipTrigger>
-                    <TooltipContent>Copies</TooltipContent>
+                    <TooltipContent>Pins</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
