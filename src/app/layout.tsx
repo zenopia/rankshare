@@ -55,10 +55,8 @@ export default function RootLayout({
     throw new Error('Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY');
   }
 
-  // Check if we're in a development environment
-  const isDev = process.env.NODE_ENV === 'development' || 
-                window.location.hostname.includes('dev') || 
-                window.location.hostname.includes('localhost');
+  // Instead, use this simpler check that works on both client and server
+  const isDev = process.env.NODE_ENV === 'development';
 
   return (
     <ClerkProvider

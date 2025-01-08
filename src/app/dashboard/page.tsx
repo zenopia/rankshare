@@ -45,34 +45,25 @@ export default async function DashboardPage() {
     const [totalLists, totalViews, followerCount, pinnedCount] = stats;
     const totalViewCount = totalViews[0]?.total || 0;
 
+    // Return a simpler version first to test
     return (
       <div className="px-4 md:px-6 lg:px-8 space-y-8 py-8 pb-20 sm:pb-8">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Total Lists"
-            value={totalLists}
-            icon={ListChecks}
-          />
-          <StatCard
-            title="Total Views"
-            value={totalViewCount}
-            icon={Eye}
-          />
-          <StatCard
-            title="Followers"
-            value={followerCount}
-            icon={Users}
-          />
-          <StatCard
-            title="Pinned Lists"
-            value={pinnedCount}
-            icon={Bookmark}
-          />
-        </div>
+        <div>Dashboard is loading...</div>
+        <pre>{JSON.stringify({ totalLists, totalViewCount, followerCount, pinnedCount }, null, 2)}</pre>
       </div>
     );
   } catch (error) {
     console.error('Dashboard error:', error);
-    throw new Error(`Dashboard failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    // Return a fallback UI instead of throwing
+    return (
+      <div className="px-4 md:px-6 lg:px-8 py-8">
+        <div className="text-red-500">
+          Something went wrong loading the dashboard.
+          {process.env.NODE_ENV === 'development' && (
+            <pre>{error instanceof Error ? error.message : 'Unknown error'}</pre>
+          )}
+        </div>
+      </div>
+    );
   }
 } 
