@@ -1,18 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Filter } from "lucide-react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { LIST_CATEGORIES, LIST_PRIVACY_OPTIONS } from "@/types/list";
 import type { ListPrivacy } from "@/types/list";
 
@@ -31,6 +25,7 @@ export function FilterSheet({
 }: FilterSheetProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleCategoryChange = (value: string) => {
@@ -40,7 +35,7 @@ export function FilterSheet({
     } else {
       params.set("category", value);
     }
-    router.push(`/search?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
     setIsOpen(false);
   };
 
@@ -51,7 +46,7 @@ export function FilterSheet({
     } else {
       params.set("sort", value);
     }
-    router.push(`/search?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
     setIsOpen(false);
   };
 
@@ -62,87 +57,129 @@ export function FilterSheet({
     } else {
       params.set("privacy", value);
     }
-    router.push(`/search?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
     setIsOpen(false);
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full sm:w-[120px]">
-          <Filter className="mr-2 h-4 w-4" />
-          Filter
-        </Button>
-      </SheetTrigger>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>Filter Lists</SheetTitle>
-          <p className="text-sm text-muted-foreground">
-            Filter and sort lists to find exactly what you&apos;re looking for.
-          </p>
-        </SheetHeader>
-        <div className="mt-4 space-y-8">
-          <div>
-            <h4 className="mb-4 text-sm font-medium">Category</h4>
-            <RadioGroup
-              defaultValue={defaultCategory || "all"}
-              onValueChange={handleCategoryChange}
-              className="space-y-3"
+    <>
+      {/* Backdrop */}
+      <div 
+        className={cn(
+          "fixed inset-0 bg-background/80 backdrop-blur-sm z-50 transition-opacity duration-300",
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+        onClick={() => setIsOpen(false)}
+      />
+
+      {/* Filter Button */}
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="w-full sm:w-[120px]"
+        onClick={() => setIsOpen(true)}
+      >
+        <Filter className="mr-2 h-4 w-4" />
+        Filter
+      </Button>
+
+      {/* Filter Sheet */}
+      <div 
+        className={cn(
+          "fixed right-0 top-0 z-50 h-full w-[300px] bg-background p-6 shadow-lg transition-transform duration-300 ease-in-out",
+          "border-l",
+          isOpen ? "translate-x-0" : "translate-x-full"
+        )}
+      >
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-semibold">Filter Lists</h2>
+              <p className="text-sm text-muted-foreground">
+                Filter and sort lists to find exactly what you&apos;re looking for.
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOpen(false)}
             >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="all" id="all" />
-                <Label htmlFor="all" className="text-sm">All Categories</Label>
-              </div>
-              {LIST_CATEGORIES.map((category) => (
-                <div key={category.value} className="flex items-center space-x-2">
-                  <RadioGroupItem value={category.value} id={category.value} />
-                  <Label htmlFor={category.value} className="text-sm">{category.label}</Label>
-                </div>
-              ))}
-            </RadioGroup>
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </Button>
           </div>
 
-          {showPrivacyFilter && (
+          <div className="space-y-8">
             <div>
-              <h4 className="mb-4 text-sm font-medium">Privacy</h4>
+              <h4 className="mb-4 text-sm font-medium">Category</h4>
               <RadioGroup
-                defaultValue={defaultPrivacy || "all"}
-                onValueChange={handlePrivacyChange}
+                defaultValue={defaultCategory || "all"}
+                onValueChange={handleCategoryChange}
                 className="space-y-3"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="all" id="privacy-all" />
-                  <Label htmlFor="privacy-all" className="text-sm">All</Label>
+                  <RadioGroupItem value="all" id="all" />
+                  <Label htmlFor="all" className="text-sm">All Categories</Label>
                 </div>
-                {LIST_PRIVACY_OPTIONS.map((option) => (
-                  <div key={option.value} className="flex items-center space-x-2">
-                    <RadioGroupItem value={option.value} id={`privacy-${option.value}`} />
-                    <Label htmlFor={`privacy-${option.value}`} className="text-sm">{option.label}</Label>
+                {LIST_CATEGORIES.map((category) => (
+                  <div key={category.value} className="flex items-center space-x-2">
+                    <RadioGroupItem value={category.value} id={category.value} />
+                    <Label htmlFor={category.value} className="text-sm">{category.label}</Label>
                   </div>
                 ))}
               </RadioGroup>
             </div>
-          )}
 
-          <div>
-            <h4 className="mb-4 text-sm font-medium">Sort By</h4>
-            <RadioGroup
-              defaultValue={defaultSort || "newest"}
-              onValueChange={handleSortChange}
-              className="space-y-3"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="newest" id="newest" />
-                <Label htmlFor="newest" className="text-sm">Newest</Label>
+            {showPrivacyFilter && (
+              <div>
+                <h4 className="mb-4 text-sm font-medium">Privacy</h4>
+                <RadioGroup
+                  defaultValue={defaultPrivacy || "all"}
+                  onValueChange={handlePrivacyChange}
+                  className="space-y-3"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="all" id="privacy-all" />
+                    <Label htmlFor="privacy-all" className="text-sm">All</Label>
+                  </div>
+                  {LIST_PRIVACY_OPTIONS.map((option) => (
+                    <div key={option.value} className="flex items-center space-x-2">
+                      <RadioGroupItem value={option.value} id={`privacy-${option.value}`} />
+                      <Label htmlFor={`privacy-${option.value}`} className="text-sm">{option.label}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="most-viewed" id="most-viewed" />
-                <Label htmlFor="most-viewed" className="text-sm">Most Viewed</Label>
-              </div>
-            </RadioGroup>
+            )}
+
+            <div>
+              <h4 className="mb-4 text-sm font-medium">Sort By</h4>
+              <RadioGroup
+                defaultValue={defaultSort || "newest"}
+                onValueChange={handleSortChange}
+                className="space-y-3"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="newest" id="newest" />
+                  <Label htmlFor="newest" className="text-sm">Newest First</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="oldest" id="oldest" />
+                  <Label htmlFor="oldest" className="text-sm">Oldest First</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="most-viewed" id="most-viewed" />
+                  <Label htmlFor="most-viewed" className="text-sm">Most Viewed</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="least-viewed" id="least-viewed" />
+                  <Label htmlFor="least-viewed" className="text-sm">Least Viewed</Label>
+                </div>
+              </RadioGroup>
+            </div>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </>
   );
 }
