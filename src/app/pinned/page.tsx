@@ -8,6 +8,7 @@ import type { List } from "@/types/list";
 import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/types/mongodb";
 import type { SortOrder } from 'mongoose';
 import type { ListCategory } from "@/types/list";
+import { HomeTabs } from "@/components/home/home-tabs";
 
 interface SearchParams {
   q?: string;
@@ -96,36 +97,23 @@ export default async function PinnedListsPage({
   }));
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-8 pb-20 sm:pb-8">
-      <div className="mb-8 space-y-4">
-        <h1 className="text-3xl font-bold">Pinned Lists</h1>
-        <DashboardSearchForm 
-          defaultValues={{
-            q: searchParams.q,
-            category: searchParams.category,
-            sort: searchParams.sort,
-          }}
-        />
+    <div>
+      <HomeTabs />
+      
+      <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
+        <div className="space-y-8">
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {pinnedLists.map((list) => (
+              <ListCard 
+                key={list.id}
+                list={list}
+                showUpdateBadge={list.hasUpdate}
+                showPrivacyBadge
+              />
+            ))}
+          </div>
+        </div>
       </div>
-
-      {pinnedLists.length > 0 ? (
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {pinnedLists.map((list) => (
-            <ListCard 
-              key={list.id} 
-              list={list}
-              showUpdateBadge={list.hasUpdate}
-              showPrivacyBadge
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center">
-          <p className="text-muted-foreground">
-            No pinned lists yet. Browse lists and pin them to save them here!
-          </p>
-        </div>
-      )}
     </div>
   );
 } 

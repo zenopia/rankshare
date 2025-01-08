@@ -51,20 +51,22 @@ export function ListCard({ list, showPrivacyBadge = false, showUpdateBadge = fal
                   </p>
                 )}
               </div>
-              <CategoryBadge 
-                category={list.category}
-                className="flex-shrink-0"
-              />
+              <div className="flex items-center gap-2">
+                <CategoryBadge 
+                  category={list.category}
+                  className="pointer-events-none"
+                />
+                {list.privacy === 'private' && (
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {showUpdateBadge && list.hasUpdate && (
-                <Badge variant="success" className="text-xs">Updated</Badge>
+                <Badge variant="success" className="text-xs pointer-events-none">Updated</Badge>
               )}
             </div>
           </div>
-          {showPrivacyBadge && list.privacy === 'private' && (
-            <Lock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          )}
         </div>
 
         {list.description && (

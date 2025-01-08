@@ -15,21 +15,23 @@ export default async function SearchPage({
   const searchQuery = searchParams.q || "";
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-8 pb-20 sm:pb-8">
-      <div className="space-y-8">
-        <div className="max-w-md">
-          <SearchInput 
-            placeholder="Search lists and people..." 
-            defaultValue={searchQuery}
-          />
+    <div>
+      <SearchTabs />
+      
+      <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
+        <div className="space-y-8">
+          <div className="max-w-md">
+            <SearchInput 
+              placeholder="Search lists and people..." 
+              defaultValue={searchQuery}
+            />
+          </div>
+
+          <SearchResults />
         </div>
 
-        <SearchTabs />
-        
-        <SearchResults />
+        <CreateListFAB />
       </div>
-
-      <CreateListFAB />
     </div>
   );
 } 

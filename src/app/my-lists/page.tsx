@@ -70,12 +70,6 @@ export default async function MyListsPage({
 
   return (
     <div className="px-4 md:px-6 lg:px-8 py-8 pb-20 sm:pb-8">
-      <div className="space-y-2 mb-6">
-        <h1 className="text-3xl font-bold">My Lists</h1>
-        <p className="text-muted-foreground">
-          Manage and organize your created lists
-        </p>
-      </div>
 
       <ListSearchControls 
         defaultQuery={searchParams.q}
@@ -88,7 +82,7 @@ export default async function MyListsPage({
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {serializedLists.map((list) => (
             <ListCard 
-              key={list.id} 
+              key={list.id}
               list={list}
               showPrivacyBadge
             />

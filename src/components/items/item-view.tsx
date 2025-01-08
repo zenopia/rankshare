@@ -2,7 +2,7 @@
 
 import type { List, ItemProperty, ItemDetails } from "@/types/list";
 import { ItemCard } from "@/components/items/item-card";
-import { Link2, ArrowLeft } from "lucide-react";
+import { Link2, ArrowLeft, Lock } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "@/components/lists/category-badge";
@@ -68,14 +68,19 @@ export function ItemView({
 
       <div className="space-y-6">
         <div className="space-y-4">
-          <div className="flex items-start justify-between gap-2">
-            <h1 className="text-2xl font-bold sm:text-3xl truncate">
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-2xl font-bold sm:text-3xl">
               {list.title}
             </h1>
-            <CategoryBadge 
-              category={list.category}
-              className="flex-shrink-0"
-            />
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <CategoryBadge 
+                category={list.category}
+                className="pointer-events-none"
+              />
+              {list.privacy === 'private' && (
+                <Lock className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
           </div>
 
           {list.description && (

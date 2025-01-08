@@ -3,7 +3,7 @@
 import { List } from "@/types/list";
 import { CategoryBadge } from "@/components/lists/category-badge";
 import { ListActionBar } from "@/components/lists/list-action-bar";
-import { Eye, Pin, Copy } from "lucide-react";
+import { Eye, Pin, Copy, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { EditListFAB } from "@/components/lists/edit-list-fab";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -38,10 +38,15 @@ export function ListView({ list, isOwner, isPinned, isFollowing, isAuthenticated
               <h1 className="text-2xl font-bold sm:text-3xl truncate">
                 {list.title}
               </h1>
-              <CategoryBadge 
-                category={list.category}
-                className="flex-shrink-0"
-              />
+              <div className="flex items-center gap-2 mb-4">
+                <CategoryBadge 
+                  category={list.category}
+                  className="pointer-events-none"
+                />
+                {list.privacy === 'private' && (
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                )}
+              </div>
             </div>
 
             {list.description && (
