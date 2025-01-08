@@ -1,44 +1,101 @@
 "use client";
 
 import Link from "next/link";
-import { MobileNav } from "./mobile-nav";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@clerk/nextjs";
+import { MobileNav } from "@/components/layout/mobile-nav";
+import { UserNav } from "@/components/layout/user-nav";
+import { usePathname } from "next/navigation";
+import { Home, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-interface NavbarProps {
-  className?: string;
-}
-
-export function Navbar({ className }: NavbarProps) {
+export function Navbar() {
   const { isSignedIn } = useAuth();
+  const pathname = usePathname();
+  
+  // Get page title based on current path
+  const getPageTitle = () => {
+    switch (pathname) {
+      case '/search':
+        return 'Search';
+      case '/dashboard':
+        return 'Dashboard';
+      case '/my-lists':
+        return 'My Lists';
+      case '/pinned':
+        return 'Pinned Lists';
+      case '/following':
+        return 'Following';
+      case '/followers':
+        return 'Followers';
+      default:
+        return 'Curate';
+    }
+  };
 
   return (
-    <header className={cn("sticky top-0 z-50 w-full border-b bg-background", className)}>
-      <div className="container flex h-14 items-center justify-between">
-        <Link href="/" className="font-bold">
-          Curate
-        </Link>
-        <div className="flex items-center gap-4">
-          {!isSignedIn && (
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" asChild>
-                <Link href="/sign-in">Sign In</Link>
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex h-14 items-center px-4">
+        <div className="flex items-center justify-between w-full">
+          {/* Left: Mobile Menu + Desktop Nav */}
+          <div className="flex items-center gap-2">
+            <div className="md:hidden">
+              <MobileNav />
+            </div>
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "gap-2",
+                  pathname === "/" && "bg-accent"
+                )}
+                asChild
+              >
+                <Link href="/">
+                  <Home className="h-4 w-4" />
+                  Home
+                </Link>
               </Button>
-              <Button asChild>
-                <Link href="/sign-up">Sign Up</Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "gap-2",
+                  pathname === "/search" && "bg-accent"
+                )}
+                asChild
+              >
+                <Link href="/search">
+                  <Search className="h-4 w-4" />
+                  Search
+                </Link>
               </Button>
             </div>
-          )}
-          <div className="hidden sm:block">
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/search" aria-label="Search">
-                <Search className="h-5 w-5" />
-              </Link>
-            </Button>
           </div>
-          <MobileNav />
+
+          {/* Center: Page Title */}
+          <div className="flex-1 flex justify-center">
+            <h1 className="text-xl font-semibold">
+              {getPageTitle()}
+            </h1>
+          </div>
+
+          {/* Right: User Nav or Sign In */}
+          <div className="flex items-center">
+            {isSignedIn ? (
+              <UserNav />
+            ) : (
+              <Link
+                href="/sign-in"
+                className="text-sm font-medium hover:text-primary"
+              >
+                Sign In
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </header>

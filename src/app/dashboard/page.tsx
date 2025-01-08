@@ -5,85 +5,81 @@ import { PinModel } from "@/lib/db/models/pin";
 import dbConnect from "@/lib/db/mongodb";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { ListChecks, Eye, Users, Bookmark } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { MongoListDocument } from '@/types/mongodb';
-import { ListCard } from "@/components/lists/list-card";
-import { serializeLists } from "@/lib/utils";
 
 export default async function DashboardPage() {
-  const { userId } = await auth();
-  if (!userId) return null;
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      console.log('No userId found');
+      return null;
+    }
 
-  await dbConnect();
+    await dbConnect();
+    console.log('DB connected, userId:', userId);
 
-  // Fetch stats
-  const [
-    totalLists,
-    totalViews,
-    followerCount,
-    pinnedCount,
-    recentActivity
-  ] = await Promise.all([
-    ListModel.countDocuments({ ownerId: userId }),
-    ListModel.aggregate([
-      { $match: { ownerId: userId } },
-      { $group: { _id: null, total: { $sum: "$viewCount" } } }
-    ]),
-    FollowModel.countDocuments({ followingId: userId }),
-    PinModel.countDocuments({ userId }),
-    ListModel.find({ ownerId: userId })
-      .sort({ updatedAt: -1 })
-      .limit(5)
-      .lean()
-      .exec() as unknown as MongoListDocument[]
-  ]);
+    // Fetch stats with error handling
+    const stats = await Promise.all([
+      ListModel.countDocuments({ ownerId: userId }).catch(e => {
+        console.error('Error counting lists:', e);
+        return 0;
+      }),
+      ListModel.aggregate([
+        { $match: { ownerId: userId } },
+        { $group: { _id: null, total: { $sum: "$viewCount" } } }
+      ]).catch(e => {
+        console.error('Error aggregating views:', e);
+        return [{ total: 0 }];
+      }),
+      FollowModel.countDocuments({ followingId: userId }).catch(e => {
+        console.error('Error counting followers:', e);
+        return 0;
+      }),
+      PinModel.countDocuments({ userId }).catch(e => {
+        console.error('Error counting pins:', e);
+        return 0;
+      })
+    ]);
 
-  const totalViewCount = totalViews[0]?.total || 0;
-  const serializedLists = serializeLists(recentActivity);
+    const [totalLists, totalViews, followerCount, pinnedCount] = stats;
+    const totalViewCount = totalViews[0]?.total || 0;
 
-  return (
-    <div className="container space-y-8 py-8">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Lists"
-          value={totalLists}
-          icon={ListChecks}
-        />
-        <StatCard
-          title="Total Views"
-          value={totalViewCount}
-          icon={Eye}
-        />
-        <StatCard
-          title="Followers"
-          value={followerCount}
-          icon={Users}
-        />
-        <StatCard
-          title="Pinned Lists"
-          value={pinnedCount}
-          icon={Bookmark}
-        />
+    return (
+      <div className="px-4 md:px-6 lg:px-8 space-y-8 py-8 pb-20 sm:pb-8">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Total Lists"
+            value={totalLists}
+            icon={ListChecks}
+          />
+          <StatCard
+            title="Total Views"
+            value={totalViewCount}
+            icon={Eye}
+          />
+          <StatCard
+            title="Followers"
+            value={followerCount}
+            icon={Users}
+          />
+          <StatCard
+            title="Pinned Lists"
+            value={pinnedCount}
+            icon={Bookmark}
+          />
+        </div>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {serializedLists.map((list) => (
-              <ListCard 
-                key={list.id} 
-                list={list}
-                showPrivacyBadge
-              />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error('Dashboard error:', error);
+    return (
+      <div className="px-4 md:px-6 lg:px-8 py-8">
+        <div className="text-red-500">
+          Something went wrong loading the dashboard.
+          {process.env.NODE_ENV === 'development' && (
+            <pre>{error instanceof Error ? error.message : 'Unknown error'}</pre>
+          )}
+        </div>
+      </div>
+    );
+  }
 } 

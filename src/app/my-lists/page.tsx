@@ -4,9 +4,11 @@ import dbConnect from "@/lib/db/mongodb";
 import { ListCard } from "@/components/lists/list-card";
 import { ListSearchControls } from "@/components/lists/list-search-controls";
 import { serializeLists } from '@/lib/utils';
+import { HomeTabs } from "@/components/home/home-tabs";
 import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/types/mongodb";
 import { ensureUserExists } from "@/lib/actions/user";
 import type { ListCategory, ListPrivacy } from "@/types/list";
+import { CreateListFAB } from "@/components/lists/create-list-fab";
 
 interface SearchParams {
   q?: string;
@@ -69,36 +71,37 @@ export default async function MyListsPage({
   const serializedLists = serializeLists(lists);
 
   return (
-    <div className="container py-8">
-      <div className="space-y-2 mb-6">
-        <h1 className="text-3xl font-bold">My Lists</h1>
-        <p className="text-muted-foreground">
-          Manage and organize your created lists
-        </p>
+    <div>
+      <HomeTabs />
+      
+      <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
+        <div className="space-y-8">
+          <ListSearchControls 
+            defaultQuery={searchParams.q}
+            defaultCategory={searchParams.category}
+            defaultSort={searchParams.sort}
+            defaultPrivacy={searchParams.privacy}
+          />
+
+          {serializedLists.length > 0 ? (
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {serializedLists.map((list) => (
+                <ListCard 
+                  key={list.id}
+                  list={list}
+                  showPrivacyBadge
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No lists found.</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      <ListSearchControls 
-        defaultQuery={searchParams.q}
-        defaultCategory={searchParams.category}
-        defaultSort={searchParams.sort}
-        defaultPrivacy={searchParams.privacy}
-      />
-
-      {serializedLists.length > 0 ? (
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {serializedLists.map((list) => (
-            <ListCard 
-              key={list.id} 
-              list={list}
-              showPrivacyBadge
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No lists found.</p>
-        </div>
-      )}
+      <CreateListFAB />
     </div>
   );
 } 

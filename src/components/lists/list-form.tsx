@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import type { ListFormProps } from './list-form-content';
+import { Lock } from "lucide-react";
 
 const LoadingForm = () => (
   <div className="space-y-6 animate-pulse">

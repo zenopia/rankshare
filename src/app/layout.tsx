@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/images/favicon.ico' },
+      { url: '/favicon.ico' },
       { url: '/images/icon-192.png', type: 'image/png', sizes: '192x192' },
       { url: '/images/icon-512.png', type: 'image/png', sizes: '512x512' },
     ],
@@ -67,7 +67,11 @@ export default function RootLayout({
         }
       }}
     >
-      <html lang="en" suppressHydrationWarning>
+      <html 
+        lang="en" 
+        data-domain={process.env.NEXT_PUBLIC_APP_URL} 
+        suppressHydrationWarning
+      >
         <body className="min-h-screen font-sans antialiased">
           <Providers>
             <div className="relative min-h-screen">

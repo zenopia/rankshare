@@ -1,7 +1,9 @@
-const next = require('next');
-const compression = require('compression');
-const express = require('express');
-const helmet = require('helmet');
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import next from 'next';
+import compression from 'compression';
+import express from 'express';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -29,7 +31,6 @@ app.prepare().then(() => {
   }));
 
   // Improved rate limiting
-  const rateLimit = require('express-rate-limit');
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,

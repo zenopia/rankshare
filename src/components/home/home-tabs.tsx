@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@clerk/nextjs";
 
-export function SearchTabs() {
-  const searchParams = useSearchParams();
-  const currentTab = searchParams.get('tab') || 'lists';
+export function HomeTabs() {
+  const pathname = usePathname();
+  const { isSignedIn } = useAuth();
   
   return (
     <div className="border-b bg-background">
@@ -16,27 +17,40 @@ export function SearchTabs() {
           aria-label="Tabs"
         >
           <Link
-            href={{ pathname: '/search', query: { tab: 'lists' } }}
+            href="/"
             className={cn(
               "flex-1 px-3 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap text-center",
-              currentTab === 'lists'
+              pathname === "/" 
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
             )}
           >
-            Lists
+            Latest
           </Link>
           <Link
-            href={{ pathname: '/search', query: { tab: 'people' } }}
+            href="/pinned"
             className={cn(
               "flex-1 px-3 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap text-center",
-              currentTab === 'people'
+              pathname === "/pinned"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
             )}
           >
-            People
+            Pinned
           </Link>
+          {isSignedIn && (
+            <Link
+              href="/my-lists"
+              className={cn(
+                "flex-1 px-3 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap text-center",
+                pathname === "/my-lists"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+              )}
+            >
+              My Lists
+            </Link>
+          )}
         </nav>
       </div>
     </div>

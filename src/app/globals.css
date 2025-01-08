@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @layer base {
+  /* Production styles */
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -34,7 +35,21 @@
  
     --radius: 0.5rem;
   }
- 
+
+  /* Development styles */
+  @media screen {
+    html[data-domain*="curate-dev"],
+    html[data-domain="localhost:3000"] {
+      --background: 270 100% 98%; /* Light purple */
+    }
+  }
+
+  /* Dark mode development styles */
+  .dark[data-domain*="curate-dev"],
+  .dark[data-domain="localhost:3000"] {
+    --background: 270 50% 10%; /* Dark purple */
+  }
+
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
