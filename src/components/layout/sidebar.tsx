@@ -11,40 +11,73 @@ import {
   BookmarkIcon,
   Users2,
   UserPlus,
+  Home,
+  ListOrdered,
+  PlusCircle,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarProfile } from "@/components/layout/sidebar-profile";
 
 const menuItems = [
   {
-    title: "My Dashboard",
-    icon: LayoutDashboard,
-    href: "/dashboard",
-    description: "View your stats and activity",
+    title: "Home",
+    icon: Home,
+    href: "/",
+    description: "Return to homepage",
   },
   {
-    title: "My Lists",
-    icon: ListChecks,
-    href: "/my-lists",
-    description: "Manage your created lists",
+    title: "Latest",
+    icon: ListOrdered,
+    href: "/",
+    description: "Latest lists",
+    indent: true,
   },
   {
     title: "Pinned Lists",
     icon: BookmarkIcon,
     href: "/pinned",
-    description: "Lists you're following",
+    description: "Lists you've pinned",
+    indent: true,
+  },
+  {
+    title: "My Lists",
+    icon: ListChecks,
+    href: "/my-lists",
+    description: "Your created lists",
+    indent: true,
+  },
+  {
+    title: "People",
+    icon: Users,
+    href: "/following",
+    description: "View people",
   },
   {
     title: "Following",
     icon: Users2,
     href: "/following",
     description: "Users you follow",
+    indent: true,
   },
   {
     title: "Followers",
     icon: UserPlus,
     href: "/followers",
     description: "Users following you",
+    indent: true,
+  },
+  {
+    title: "Dashboard",
+    icon: LayoutDashboard,
+    href: "/dashboard",
+    description: "View your dashboard",
+  },
+  {
+    title: "Create List",
+    icon: PlusCircle,
+    href: "/lists/create",
+    description: "Create a new list",
   },
 ];
 
@@ -103,7 +136,8 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
                 isActive
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                (collapsed && !isMobile) && "justify-center"
+                (collapsed && !isMobile) && "justify-center",
+                (!collapsed && item.indent) && "ml-4"
               )}
               aria-current={isActive ? "page" : undefined}
               role="menuitem"
