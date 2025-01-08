@@ -3,7 +3,6 @@ import { ListModel } from "@/lib/db/models/list";
 import { PinModel } from "@/lib/db/models/pin";
 import dbConnect from "@/lib/db/mongodb";
 import { ListCard } from "@/components/lists/list-card";
-import { DashboardSearchForm } from "@/components/search/dashboard-search-form";
 import type { List } from "@/types/list";
 import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/types/mongodb";
 import type { SortOrder } from 'mongoose';
