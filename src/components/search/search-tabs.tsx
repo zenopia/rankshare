@@ -6,51 +6,38 @@ import { cn } from "@/lib/utils";
 
 export function SearchTabs() {
   const searchParams = useSearchParams();
-  const currentTab = searchParams?.get("tab") || "lists";
+  const currentTab = searchParams.get('tab') || 'lists';
   
-  // Preserve existing search params when switching tabs
-  const params = new URLSearchParams(searchParams?.toString());
-  params.delete("tab"); // Remove tab before creating new URLs
-  const queryString = params.toString();
-  const baseQuery = queryString ? `?${queryString}&` : "?";
-
   return (
-    <div className="border-b mb-6">
-      <div className="flex w-full">
-        <Link
-          href={`/search${baseQuery}tab=lists`}
-          className={cn(
-            "flex-1 flex items-center justify-center px-6 py-4",
-            "text-sm font-medium transition-colors relative",
-            "hover:text-foreground hover:bg-muted/50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring",
-            currentTab === "lists" ? [
-              "text-foreground",
-              "after:absolute after:bottom-0 after:left-0 after:right-0",
-              "after:h-[2px] after:bg-primary",
-              "bg-muted/50"
-            ] : "text-muted-foreground"
-          )}
+    <div className="border-b bg-background">
+      <div className="px-4 md:px-6 lg:px-8">
+        <nav 
+          className="flex w-full -mb-px" 
+          aria-label="Tabs"
         >
-          Lists
-        </Link>
-        <Link
-          href={`/search${baseQuery}tab=people`}
-          className={cn(
-            "flex-1 flex items-center justify-center px-6 py-4",
-            "text-sm font-medium transition-colors relative",
-            "hover:text-foreground hover:bg-muted/50",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring",
-            currentTab === "people" ? [
-              "text-foreground",
-              "after:absolute after:bottom-0 after:left-0 after:right-0",
-              "after:h-[2px] after:bg-primary",
-              "bg-muted/50"
-            ] : "text-muted-foreground"
-          )}
-        >
-          People
-        </Link>
+          <Link
+            href={{ pathname: '/search', query: { tab: 'lists' } }}
+            className={cn(
+              "flex-1 px-3 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap text-center",
+              currentTab === 'lists'
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            )}
+          >
+            Lists
+          </Link>
+          <Link
+            href={{ pathname: '/search', query: { tab: 'people' } }}
+            className={cn(
+              "flex-1 px-3 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap text-center",
+              currentTab === 'people'
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            )}
+          >
+            People
+          </Link>
+        </nav>
       </div>
     </div>
   );

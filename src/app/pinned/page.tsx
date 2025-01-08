@@ -8,6 +8,7 @@ import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/typ
 import type { SortOrder } from 'mongoose';
 import type { ListCategory } from "@/types/list";
 import { HomeTabs } from "@/components/home/home-tabs";
+import { CreateListFAB } from "@/components/lists/create-list-fab";
 
 interface SearchParams {
   q?: string;
@@ -113,6 +114,8 @@ export default async function PinnedListsPage({
           </div>
         </div>
       </div>
+
+      <CreateListFAB />
     </div>
   );
 } 

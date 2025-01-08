@@ -9,11 +9,11 @@ import type { ListDocument } from "@/types/list";
 export default async function HomePage() {
   await dbConnect();
 
-  // Fetch recent lists
+  // Fetch recent lists sorted by updatedAt
   const recentLists = await ListModel.find({ 
     privacy: 'public' 
   })
-    .sort({ createdAt: -1 })
+    .sort({ updatedAt: -1 }) // Sort by last edited date, newest first
     .limit(10)
     .lean()
     .exec() as unknown as ListDocument[];

@@ -55,9 +55,6 @@ export default function RootLayout({
     throw new Error('Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY');
   }
 
-  // Instead, use this simpler check that works on both client and server
-  const isDev = process.env.NODE_ENV === 'development';
-
   return (
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
@@ -67,7 +64,11 @@ export default function RootLayout({
         }
       }}
     >
-      <html lang="en" data-env={isDev ? 'development' : 'production'} suppressHydrationWarning>
+      <html 
+        lang="en" 
+        data-domain={process.env.NEXT_PUBLIC_APP_URL} 
+        suppressHydrationWarning
+      >
         <body className="min-h-screen font-sans antialiased">
           <Providers>
             <div className="relative min-h-screen">
