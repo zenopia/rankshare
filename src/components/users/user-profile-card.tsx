@@ -47,7 +47,7 @@ export function UserProfileCard({
             <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <Link href={`/users/${userId}/lists`} className="hover:underline">
+            <Link href={`/@${user.username}`} className="hover:underline">
               <h3 className="font-semibold truncate">{displayName}</h3>
               <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
             </Link>

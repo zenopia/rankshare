@@ -21,7 +21,7 @@ interface ListViewProps {
 
 export function ListView({ list, isOwner, isPinned, isFollowing, isAuthenticated, children }: ListViewProps) {
   return (
-    <div className="container max-w-7xl mx-auto px-4 py-8">
+    <div className="container max-w-7xl mx-auto px-0 md:px-6 lg:px-8 pb-14 space-y-8">
       {children}
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
