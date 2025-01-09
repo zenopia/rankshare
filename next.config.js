@@ -19,11 +19,18 @@ const nextConfig = {
   generateEtags: true,
   distDir: '.next',
   images: {
-    domains: ['rankshare.app', 'img.clerk.com'],
     deviceSizes: [640, 750, 828, 1080, 1200],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
     formats: ['image/webp'],
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'rankshare.app',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.clerk.com',
+      },
       {
         protocol: 'https',
         hostname: 'api.dicebear.com',
@@ -43,6 +50,21 @@ const nextConfig = {
   },
   experimental: {
     webpackBuildWorker: false,
+  },
+  rewrites: async () => {
+    return [
+      {
+        source: '/api/:path*',
+        destination: '/api/:path*',
+        has: [
+          {
+            type: 'query',
+            key: 'q',
+            value: undefined,
+          },
+        ],
+      },
+    ];
   },
 };
 

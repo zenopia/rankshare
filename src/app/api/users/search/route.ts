@@ -4,13 +4,14 @@ import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
 import type { User } from "@/types/list";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
     
-    // Get search query from URL params
-    const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q')?.toLowerCase();
+    const searchParams = request.nextUrl.searchParams;
+    const query = searchParams.get('q') || '';
     
     // Get all users from Clerk without filtering
     const clerkUsers = await clerkClient.users.getUserList();
