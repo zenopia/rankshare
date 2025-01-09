@@ -9,6 +9,7 @@ import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/typ
 import { ensureUserExists } from "@/lib/actions/user";
 import type { ListCategory, ListPrivacy } from "@/types/list";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
+import { MainLayout } from "@/components/layout/main-layout";
 
 interface SearchParams {
   q?: string;
@@ -71,37 +72,37 @@ export default async function MyListsPage({
   const serializedLists = serializeLists(lists);
 
   return (
-    <div>
-      <HomeTabs />
-      
-      <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
-        <div className="space-y-8">
-          <ListSearchControls 
-            defaultQuery={searchParams.q}
-            defaultCategory={searchParams.category}
-            defaultSort={searchParams.sort}
-            defaultPrivacy={searchParams.privacy}
-          />
+    <MainLayout>
+      <div className="relative">
+        <HomeTabs />
+        <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
+          <div className="space-y-8">
+            <ListSearchControls 
+              defaultQuery={searchParams.q}
+              defaultCategory={searchParams.category}
+              defaultSort={searchParams.sort}
+              defaultPrivacy={searchParams.privacy}
+            />
 
-          {serializedLists.length > 0 ? (
-            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {serializedLists.map((list) => (
-                <ListCard 
-                  key={list.id}
-                  list={list}
-                  showPrivacyBadge
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No lists found.</p>
-            </div>
-          )}
+            {serializedLists.length > 0 ? (
+              <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {serializedLists.map((list) => (
+                  <ListCard 
+                    key={list.id}
+                    list={list}
+                    showPrivacyBadge
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No lists found.</p>
+              </div>
+            )}
+          </div>
         </div>
+        <CreateListFAB />
       </div>
-
-      <CreateListFAB />
-    </div>
+    </MainLayout>
   );
 } 

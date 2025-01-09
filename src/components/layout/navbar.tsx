@@ -20,14 +20,13 @@ export function Navbar() {
         return 'Search';
       case '/dashboard':
         return 'Dashboard';
-      case '/my-lists':
-        return 'My Lists';
-      case '/pinned':
-        return 'Pinned Lists';
       case '/following':
-        return 'Following';
       case '/followers':
-        return 'Followers';
+        return 'People';
+      case '/':
+      case '/pinned':
+      case '/my-lists':
+        return 'Curate';
       default:
         return 'Curate';
     }

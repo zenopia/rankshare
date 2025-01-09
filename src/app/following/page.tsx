@@ -8,6 +8,7 @@ import type { User } from "@/types/list";
 import type { MongoListDocument } from "@/types/mongodb";
 import { UserProfileCard } from "@/components/users/user-profile-card";
 import { UserTabs } from "@/components/users/user-tabs";
+import { MainLayout } from "@/components/layout/main-layout";
 
 interface SearchParams {
   q?: string;
@@ -83,41 +84,42 @@ export default async function FollowingPage({
     );
 
   return (
-    <div>
-      <UserTabs />
-      
-      <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
-        <div className="space-y-8">
-          <div className="max-w-md">
-            <SearchInput 
-              placeholder="Search following..." 
-              defaultValue={searchParams.q}
-            />
-          </div>
+    <MainLayout>
+      <div className="relative">
+        <UserTabs />
+        <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
+          <div className="space-y-8">
+            <div className="max-w-md">
+              <SearchInput 
+                placeholder="Search following..." 
+                defaultValue={searchParams.q}
+              />
+            </div>
 
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {filteredUsers.length > 0 ? (
-              filteredUsers.map((user) => (
-                <UserProfileCard 
-                  key={user.clerkId}
-                  userId={user.clerkId}
-                  isFollowing={true}
-                  hideFollow={false}
-                  listCount={user.listCount}
-                />
-              ))
-            ) : (
-              <div className="col-span-full text-center">
-                <p className="text-muted-foreground">
-                  {searchParams.q 
-                    ? "No users found matching your search."
-                    : "You're not following anyone yet. Find users to follow!"}
-                </p>
-              </div>
-            )}
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <UserProfileCard 
+                    key={user.clerkId}
+                    userId={user.clerkId}
+                    isFollowing={true}
+                    hideFollow={false}
+                    listCount={user.listCount}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center">
+                  <p className="text-muted-foreground">
+                    {searchParams.q 
+                      ? "No users found matching your search."
+                      : "You're not following anyone yet. Find users to follow!"}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 } 

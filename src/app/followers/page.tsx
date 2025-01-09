@@ -6,6 +6,7 @@ import { SearchInput } from "@/components/search/search-input";
 import { UserProfileCard } from "@/components/users/user-profile-card";
 import type { FollowDocument } from "@/types/mongodb";
 import { UserTabs } from "@/components/users/user-tabs";
+import { MainLayout } from "@/components/layout/main-layout";
 
 interface SearchParams {
   q?: string;
@@ -38,39 +39,40 @@ export default async function FollowersPage({
   );
 
   return (
-    <div>
-      <UserTabs />
-      
-      <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
-        <div className="space-y-8">
-          <div className="max-w-md">
-            <SearchInput 
-              placeholder="Search followers..." 
-              defaultValue={searchParams.q}
-            />
-          </div>
+    <MainLayout>
+      <div className="relative">
+        <UserTabs />
+        <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
+          <div className="space-y-8">
+            <div className="max-w-md">
+              <SearchInput 
+                placeholder="Search followers..." 
+                defaultValue={searchParams.q}
+              />
+            </div>
 
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {followers.length > 0 ? (
-              followers.map((follower: { id: string; listCount: number }) => (
-                <UserProfileCard 
-                  key={follower.id}
-                  userId={follower.id}
-                  isFollowing={false}
-                  hideFollow={false}
-                  listCount={follower.listCount}
-                />
-              ))
-            ) : (
-              <div className="col-span-full text-center">
-                <p className="text-muted-foreground">
-                  You don&apos;t have any followers yet. Share your lists to get noticed!
-                </p>
-              </div>
-            )}
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {followers.length > 0 ? (
+                followers.map((follower: { id: string; listCount: number }) => (
+                  <UserProfileCard 
+                    key={follower.id}
+                    userId={follower.id}
+                    isFollowing={false}
+                    hideFollow={false}
+                    listCount={follower.listCount}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full text-center">
+                  <p className="text-muted-foreground">
+                    You don&apos;t have any followers yet. Share your lists to get noticed!
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }

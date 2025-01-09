@@ -2,8 +2,7 @@
 
 import type { List, ItemProperty, ItemDetails } from "@/types/list";
 import { ItemCard } from "@/components/items/item-card";
-import { Link2, ArrowLeft, Lock } from "lucide-react";
-import Link from "next/link";
+import { Link2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "@/components/lists/category-badge";
 import { toast } from "sonner";
@@ -56,15 +55,6 @@ export function ItemView({
 
   return (
     <div className="max-w-3xl mx-auto px-4">
-      <Link href={`/lists/${list.id}`}>
-        <Button
-          variant="ghost"
-          className="mb-6 -ml-2 h-8 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to list
-        </Button>
-      </Link>
 
       <div className="space-y-6">
         <div className="space-y-4">
