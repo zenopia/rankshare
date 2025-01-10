@@ -36,7 +36,7 @@ export function UserProfile({
     <div className="space-y-6">
       <div className="flex items-start gap-4">
         <Avatar className="h-20 w-20">
-          <AvatarImage src={imageUrl} alt={fullName} />
+          <AvatarImage src={imageUrl || undefined} alt={fullName} />
           <AvatarFallback>{fullName[0]}</AvatarFallback>
         </Avatar>
         

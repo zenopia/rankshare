@@ -40,7 +40,7 @@ export function UserCard({
       <div className="p-6">
         <div className="flex items-center gap-4">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={user.imageUrl} alt={displayName} />
+            <AvatarImage src={user.imageUrl || undefined} alt={displayName} />
             <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
