@@ -1,26 +1,37 @@
-name: Deploy Application
+name: Deploy
 
 on:
   push:
-    branches:
+    branches: 
       - main
       - develop
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
     steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
       - name: Set deployment target
         id: set-target
         run: |
           if [ ${{ github.ref }} = 'refs/heads/main' ]; then
             echo "host=curate.fileopia.com" >> $GITHUB_OUTPUT
             echo "user=fileopia-curate" >> $GITHUB_OUTPUT
+            echo "port=3000" >> $GITHUB_OUTPUT
           else
             echo "host=curate-dev.fileopia.com" >> $GITHUB_OUTPUT
             echo "user=fileopia-curate-dev" >> $GITHUB_OUTPUT
+            echo "port=3001" >> $GITHUB_OUTPUT
           fi
-
+          
       - name: Deploy to server
         uses: appleboy/ssh-action@master
         with:
@@ -28,52 +39,9 @@ jobs:
           username: ${{ steps.set-target.outputs.user }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "Starting deployment..."
-            
-            # Load NVM and Node
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-            
-            # Ensure we're using the right Node version
-            nvm use 18 || nvm install 18
-            
-            # Install PM2 globally if not present
-            which pm2 || npm install -g pm2
-            
             cd ~/htdocs/${{ steps.set-target.outputs.host }}
-            
-            # Pull latest changes
-            git fetch origin ${{ github.ref_name }}
-            git reset --hard origin/${{ github.ref_name }}
-            
-            # Install and build with increased memory
+            git pull
             npm install
-            npm cache clean --force
-            rm -rf .next
-            NODE_OPTIONS="--max-old-space-size=4096" npm run build
-            
-            # Ensure proper permissions for static files
-            chmod -R 755 .next
-            
-            # Create logs directory if it doesn't exist
-            mkdir -p logs
-            chmod 755 logs
-            
-            # Clear PM2 cache before restart
-            pm2 flush
-            pm2 delete all || true
-            
-            # Restart the application using the appropriate config
-            if [ ${{ github.ref }} = 'refs/heads/main' ]; then
-              NODE_ENV=production pm2 start ecosystem.config.js --update-env
-            else
-              NODE_ENV=production pm2 start ecosystem.config.dev.js --update-env
-            fi
-            
-            # Show application status
-            sleep 5
-            pm2 list
-            
-            echo "Deployment complete!"
+            npm run build
+            pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
               
