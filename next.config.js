@@ -64,6 +64,7 @@ const nextConfig = {
   },
   experimental: {
     webpackBuildWorker: false,
+    optimizeCss: true,
   },
   rewrites: async () => {
     return [
@@ -92,6 +93,10 @@ const nextConfig = {
         ]
       }
     ];
+  },
+  staticPageGenerationTimeout: 120,
+  generateBuildId: async () => {
+    return 'build-' + Date.now();
   }
 };
 
