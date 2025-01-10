@@ -3,8 +3,9 @@ import { LucideIcon } from 'lucide-react';
 export interface NavItem {
   title: string;
   href: string;
-  icon: LucideIcon;
+  icon: any;
+  description: string;
   public?: boolean;
-  description?: string;
   indent?: boolean;
+  id?: string;
 } 

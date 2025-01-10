@@ -123,13 +123,13 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
       <SidebarProfile collapsed={collapsed} />
 
       <nav className="flex-1 space-y-1 p-2" aria-label="Sidebar navigation">
-        {menuItems.map((item) => {
+        {menuItems.map((item, index) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
 
           return (
             <Link
-              key={item.href}
+              key={`${item.href}-${index}`}
               href={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",

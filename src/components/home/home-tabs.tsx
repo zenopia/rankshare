@@ -1,13 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@clerk/nextjs";
 
 export function HomeTabs() {
   const pathname = usePathname();
   const { isSignedIn } = useAuth();
+  const router = useRouter();
+  
+  const handleProtectedClick = (e: React.MouseEvent, path: string) => {
+    if (!isSignedIn) {
+      e.preventDefault();
+      router.push(`/sign-in?return_to=${path}`);
+    }
+  };
   
   return (
     <div className="border-b bg-background">
@@ -29,6 +37,7 @@ export function HomeTabs() {
           </Link>
           <Link
             href="/pinned"
+            onClick={(e) => handleProtectedClick(e, '/pinned')}
             className={cn(
               "flex-1 px-3 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap text-center",
               pathname === "/pinned"
@@ -38,19 +47,18 @@ export function HomeTabs() {
           >
             Pinned
           </Link>
-          {isSignedIn && (
-            <Link
-              href="/my-lists"
-              className={cn(
-                "flex-1 px-3 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap text-center",
-                pathname === "/my-lists"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-              )}
-            >
-              My Lists
-            </Link>
-          )}
+          <Link
+            href="/my-lists"
+            onClick={(e) => handleProtectedClick(e, '/my-lists')}
+            className={cn(
+              "flex-1 px-3 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap text-center",
+              pathname === "/my-lists"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            )}
+          >
+            My Lists
+          </Link>
         </nav>
       </div>
     </div>

@@ -22,6 +22,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
+  SheetDescription
 } from "@/components/ui/sheet";
 import { useAuth } from "@clerk/nextjs";
 import type { NavItem } from "@/types/nav";
@@ -53,7 +54,8 @@ const navItems: NavItem[] = [
     public: true,
     icon: ListOrdered,
     description: "Latest lists",
-    indent: true
+    indent: true,
+    id: "latest"
   },
   {
     title: "Pinned Lists",
@@ -76,7 +78,8 @@ const navItems: NavItem[] = [
     href: "/following",
     public: false,
     icon: Users,
-    description: "View people"
+    description: "View people",
+    id: "people"
   },
   {
     title: "Following",
@@ -84,7 +87,8 @@ const navItems: NavItem[] = [
     public: false,
     icon: Users2,
     description: "Users you follow",
-    indent: true
+    indent: true,
+    id: "following"
   },
   {
     title: "Followers",
@@ -116,11 +120,11 @@ export function MobileNav() {
 
   const handleClose = () => setOpen(false);
 
-  const renderNavLink = (item: NavItem) => {
+  const renderNavLink = (item: NavItem, index: number) => {
     const Icon = item.icon;
     return (
       <Link
-        key={item.href}
+        key={`${item.href}-${index}`}
         href={item.href}
         onClick={() => setOpen(false)}
         className={cn(
@@ -153,6 +157,9 @@ export function MobileNav() {
       >
         <SheetHeader className="text-left">
           <SheetTitle>Menu</SheetTitle>
+          <SheetDescription>
+            Access all areas of the application
+          </SheetDescription>
         </SheetHeader>
 
         {isSignedIn && <SidebarProfile collapsed={false} onClick={handleClose} />}
@@ -161,10 +168,10 @@ export function MobileNav() {
           className="flex flex-col space-y-4 mt-4"
           aria-label="Mobile navigation"
         >
-          {mobileOnlyNavItems.map((item) =>
-            (item.public || isSignedIn) && renderNavLink(item)
+          {mobileOnlyNavItems.map((item, index) =>
+            (item.public || isSignedIn) && renderNavLink(item, index)
           )}
-          {isSignedIn && navItems.map(renderNavLink)}
+          {isSignedIn && navItems.map((item, index) => renderNavLink(item, index))}
           
           {!isSignedIn && (
             <>
