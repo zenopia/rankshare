@@ -1,9 +1,8 @@
 import { auth } from '@clerk/nextjs/server';
 import { FollowModel } from "@/lib/db/models/follow";
-import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
 import { SearchInput } from "@/components/search/search-input";
-import { UserProfileCard } from "@/components/users/user-profile-card";
+import { UserCard } from "@/components/users/user-card";
 import type { FollowDocument } from "@/types/mongodb";
 import { UserTabs } from "@/components/users/user-tabs";
 import { MainLayout } from "@/components/layout/main-layout";
@@ -26,17 +25,21 @@ export default async function FollowersPage({
   const follows = await FollowModel.find({ followingId: userId }).lean() as FollowDocument[];
   const followerIds = follows.map(follow => follow.followerId);
 
-  // Get followers and their stats
-  const followers = await Promise.all(
-    followerIds.map(async (followerId: string) => {
-      const listCount = await ListModel.countDocuments({
-        ownerId: followerId,
-        privacy: 'public',
-      });
-
-      return { id: followerId, listCount };
-    })
+  // Check if current user follows back each follower
+  const followBackStatuses = await Promise.all(
+    followerIds.map(followerId => 
+      FollowModel.findOne({
+        followerId: userId,
+        followingId: followerId
+      }).lean()
+    )
   );
+
+  // Combine follower IDs with their follow-back status
+  const followers = followerIds.map((followerId, index) => ({
+    id: followerId,
+    isFollowing: !!followBackStatuses[index]
+  }));
 
   return (
     <MainLayout>
@@ -53,13 +56,12 @@ export default async function FollowersPage({
 
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {followers.length > 0 ? (
-                followers.map((follower: { id: string; listCount: number }) => (
-                  <UserProfileCard 
+                followers.map((follower) => (
+                  <UserCard 
                     key={follower.id}
                     userId={follower.id}
-                    isFollowing={false}
+                    isFollowing={follower.isFollowing}
                     hideFollow={false}
-                    listCount={follower.listCount}
                   />
                 ))
               ) : (

@@ -89,9 +89,7 @@ export default async function ListPage({ params }: ListPageProps) {
           isPinned={serializedList.isPinned}
           isFollowing={!!followStatus}
           isAuthenticated={!!userId}
-        >
-          {/* Remove this section since UserProfileCard is already in ListView */}
-        </ListView>
+        />
       </SubLayout>
     );
   } catch (error) {

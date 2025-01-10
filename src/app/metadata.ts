@@ -1,5 +1,8 @@
 import { Metadata, Viewport } from 'next';
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'Curate';
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -7,32 +10,27 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://curate-dev.fileopia.com'),
-  title: 'Curate',
+  metadataBase: new URL(siteUrl),
+  title: siteName,
   description: 'Create and share ranked lists of your favorite things',
   keywords: ['ranking', 'lists', 'recommendations', 'sharing'],
-  authors: [{ name: 'Curate Team' }],
+  authors: [{ name: `${siteName} Team` }],
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: process.env.NEXT_PUBLIC_APP_URL || 'https://curate-dev.fileopia.com',
-    siteName: 'Curate',
-    title: 'Curate - Create and Share Ranked Lists',
+    url: siteUrl,
+    siteName,
+    title: `${siteName} - Create and Share Ranked Lists`,
     description: 'Create and share ranked lists of your favorite things',
   },
   robots: {
     index: true,
     follow: true,
   },
-  manifest: '/manifest.json',
   icons: {
-    icon: [
-      { url: '/favicon.ico' },
-      { url: '/images/icon-192.png', type: 'image/png', sizes: '192x192' },
-      { url: '/images/icon-512.png', type: 'image/png', sizes: '512x512' },
-    ],
-    apple: [
-      { url: '/images/apple-icon.png', sizes: '180x180' },
-    ],
+    icon: '/favicon-32x32.png',
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
+  manifest: '/site.webmanifest',
 }; 

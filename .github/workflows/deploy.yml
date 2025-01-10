@@ -43,9 +43,9 @@ jobs:
             git fetch origin ${{ github.ref_name }}
             git reset --hard origin/${{ github.ref_name }}
             
-            # Install and build
+            # Install and build with increased memory
             npm install
-            npm run build
+            NODE_OPTIONS="--max-old-space-size=4096" npm run build
             
             # Restart the application
             if [ ${{ github.ref }} = 'refs/heads/main' ]; then

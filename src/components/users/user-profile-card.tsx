@@ -43,11 +43,11 @@ export function UserProfileCard({
       <div className="p-6">
         <div className="flex items-center gap-4">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={user.imageUrl} alt={displayName} />
+            <AvatarImage src={user.imageUrl || undefined} alt={displayName} />
             <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <Link href={`/users/${userId}/lists`} className="hover:underline">
+            <Link href={`/@${user.username}`} className="hover:underline">
               <h3 className="font-semibold truncate">{displayName}</h3>
               <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
             </Link>
