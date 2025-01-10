@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "rm -rf .next && next build",
     "start": "next start -p $PORT",
     "start:prod": "NODE_ENV=production next start -p $PORT",
     "lint": "next lint",
@@ -12,7 +12,7 @@
     "analyze": "ANALYZE=true next build",
     "postinstall": "next build",
     "production:start": "NODE_ENV=production next start -p $PORT",
-    "deploy": "pm2 start pm2.config.js --env production",
+    "deploy": "npm run build && pm2 reload curate-dev",
     "deploy:stop": "pm2 stop curate",
     "deploy:reload": "pm2 reload curate",
     "deploy:logs": "pm2 logs curate",

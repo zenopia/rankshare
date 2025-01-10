@@ -18,6 +18,7 @@ const nextConfig = {
   compress: true,
   generateEtags: true,
   distDir: '.next',
+  output: 'standalone',
   images: {
     deviceSizes: [640, 750, 828, 1080, 1200],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
@@ -38,7 +39,7 @@ const nextConfig = {
       },
     ],
   },
-  webpack: (config) => {
+  webpack: (config, { dev, isServer }) => {
     config.resolve.fallback = { 
       fs: false,
       net: false,
@@ -46,6 +47,19 @@ const nextConfig = {
       dns: false,
       punycode: false,
     };
+
+    if (!dev && !isServer) {
+      config.optimization = {
+        ...config.optimization,
+        runtimeChunk: 'single',
+        splitChunks: {
+          chunks: 'all',
+          maxInitialRequests: 25,
+          minSize: 20000
+        }
+      };
+    }
+
     return config;
   },
   experimental: {
@@ -66,6 +80,19 @@ const nextConfig = {
       },
     ];
   },
+  headers: async () => {
+    return [
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      }
+    ];
+  }
 };
 
 module.exports = nextConfig; 
