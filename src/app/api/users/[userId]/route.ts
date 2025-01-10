@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/clerk-sdk-node";
 
+interface UserResponse {
+  id: string;
+  username: string;
+  firstName: string | null;
+  lastName: string | null;
+  imageUrl: string;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { userId: string } }

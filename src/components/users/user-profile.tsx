@@ -10,7 +10,7 @@ interface UserProfileProps {
   username: string;
   fullName: string;
   bio?: string | null;
-  imageUrl?: string;
+  imageUrl?: string | null;
   stats: {
     followers: number;
     following: number;
