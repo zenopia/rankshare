@@ -56,6 +56,10 @@ jobs:
             # Ensure proper permissions for static files
             chmod -R 755 .next
             
+            # Create logs directory if it doesn't exist
+            mkdir -p logs
+            chmod 755 logs
+            
             # Clear PM2 cache before restart
             pm2 flush
             pm2 delete all || true
