@@ -64,7 +64,10 @@ const nextConfig = {
   },
   experimental: {
     webpackBuildWorker: false,
-    optimizeCss: true,
+    optimizeCss: {
+      minify: true,
+      inlineThreshold: 1024,
+    },
   },
   rewrites: async () => {
     return [
