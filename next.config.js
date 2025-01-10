@@ -1,5 +1,3 @@
-import path from 'path';
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -52,7 +50,7 @@ const nextConfig = {
 
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@': path.join(process.cwd(), 'src'),
+      '@': './src',
     };
 
     if (!dev && !isServer) {
@@ -106,4 +104,4 @@ const nextConfig = {
   }
 };
 
-export default nextConfig; 
+module.exports = nextConfig; 
