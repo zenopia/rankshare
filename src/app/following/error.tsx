@@ -1,4 +1,3 @@
 'use client';
-
-import { ErrorBoundary } from '@/components/error-boundary';
-export default ErrorBoundary; 
+import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
+export default ErrorBoundaryWrapper; 
