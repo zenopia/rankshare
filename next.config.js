@@ -19,6 +19,8 @@ const nextConfig = {
   generateEtags: true,
   distDir: '.next',
   output: 'standalone',
+  assetPrefix: process.env.NODE_ENV === 'production' ? '/_next' : undefined,
+  staticPageGenerationTimeout: 180,
   images: {
     deviceSizes: [640, 750, 828, 1080, 1200],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
@@ -38,6 +40,9 @@ const nextConfig = {
         pathname: '/7.x/**',
       },
     ],
+  },
+  httpAgentOptions: {
+    keepAlive: true,
   },
   webpack: (config, { dev, isServer }) => {
     config.resolve.fallback = { 
@@ -69,6 +74,8 @@ const nextConfig = {
   },
   experimental: {
     webpackBuildWorker: false,
+    optimizeCss: true,
+    legacyBrowsers: false,
   },
   rewrites: async () => {
     return [
@@ -98,7 +105,6 @@ const nextConfig = {
       }
     ];
   },
-  staticPageGenerationTimeout: 120,
   generateBuildId: async () => {
     return 'build-' + Date.now();
   }

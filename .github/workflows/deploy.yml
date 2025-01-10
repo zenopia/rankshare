@@ -51,6 +51,12 @@ jobs:
             npm install
             NODE_OPTIONS="--max-old-space-size=4096" npm run build
             
+            # Ensure proper permissions for static files
+            chmod -R 755 .next/static
+            
+            # Clear PM2 cache before restart
+            pm2 flush
+            
             # Restart the application using the appropriate config
             if [ ${{ github.ref }} = 'refs/heads/main' ]; then
               pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start ecosystem.config.js
