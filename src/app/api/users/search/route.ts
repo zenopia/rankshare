@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clerkClient } from "@clerk/clerk-sdk-node";
+import { auth } from "@clerk/nextjs/server";
 import { ListModel } from "@/lib/db/models/list";
+import { FollowModel } from "@/lib/db/models/follow";
 import dbConnect from "@/lib/db/mongodb";
 import type { User } from "@/types/list";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
+    const { userId } = auth();
     
-    // Get search query from URL params
-    const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q')?.toLowerCase();
+    const searchParams = request.nextUrl.searchParams;
+    const query = searchParams.get('q') || '';
     
-    // Get all users from Clerk without filtering
+    // Get all users from Clerk
     const clerkUsers = await clerkClient.users.getUserList();
 
     // Filter users if there's a search query
@@ -24,13 +28,19 @@ export async function GET(request: NextRequest) {
         })
       : clerkUsers;
 
-    // Get list counts for filtered users in parallel
-    const usersWithCounts = await Promise.all(
+    // Get list counts and follow status for filtered users in parallel
+    const usersWithData = await Promise.all(
       filteredUsers.map(async (user): Promise<User> => {
-        const listCount = await ListModel.countDocuments({
-          ownerId: user.id,
-          privacy: 'public'
-        });
+        const [listCount, followStatus] = await Promise.all([
+          ListModel.countDocuments({
+            ownerId: user.id,
+            privacy: 'public'
+          }),
+          userId ? FollowModel.findOne({
+            followerId: userId,
+            followingId: user.id
+          }) : null
+        ]);
 
         return {
           clerkId: user.id,
@@ -39,12 +49,13 @@ export async function GET(request: NextRequest) {
           imageUrl: user.imageUrl,
           hasNewLists: false,
           lastListCreated: undefined,
-          listCount
+          listCount,
+          isFollowing: !!followStatus
         };
       })
     );
 
-    return NextResponse.json(usersWithCounts);
+    return NextResponse.json(usersWithData);
   } catch (error) {
     console.error("Error fetching users:", error);
     return NextResponse.json(

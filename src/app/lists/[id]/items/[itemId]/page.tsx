@@ -7,6 +7,7 @@ import { serializeList } from "@/lib/utils";
 import { ItemView } from "@/components/items/item-view";
 import type { ListDocument } from "@/types/list";
 import type { MongoListDocument } from "@/types/mongodb";
+import { SubLayout } from "@/components/layout/sub-layout";
 
 interface ItemPageProps {
   params: {
@@ -52,14 +53,20 @@ export default async function ItemPage({ params }: ItemPageProps) {
     const serializedList = serializeList(list as ListDocument);
     const isOwner = userId === serializedList.ownerId;
 
-    return <ItemView 
-      list={serializedList}
-      item={serializedItem}
-      isOwner={isOwner}
-      isFollowing={!!followStatus}
-      ownerUsername={owner?.username ?? undefined}
-      ownerName={fullName || owner?.username || serializedList.ownerName}
-    />;
+    return (
+      <SubLayout title="Item">
+        <div className="px-0 md:px-6 lg:px-8 py-8">
+          <ItemView 
+            list={serializedList}
+            item={serializedItem}
+            isOwner={isOwner}
+            isFollowing={!!followStatus}
+            ownerUsername={owner?.username ?? undefined}
+            ownerName={fullName || owner?.username || serializedList.ownerName}
+          />
+        </div>
+      </SubLayout>
+    );
     
   } catch (error) {
     console.error('Error fetching list item:', error);

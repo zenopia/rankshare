@@ -10,6 +10,7 @@ interface ListSearchControlsProps {
   defaultSort?: string;
   defaultPrivacy?: ListPrivacy | 'all';
   defaultQuery?: string;
+  hideSearch?: boolean;
 }
 
 export function ListSearchControls({
@@ -17,6 +18,7 @@ export function ListSearchControls({
   defaultSort,
   defaultPrivacy,
   defaultQuery,
+  hideSearch = false,
 }: ListSearchControlsProps) {
   const searchParams = useSearchParams();
 
@@ -27,18 +29,20 @@ export function ListSearchControls({
   const privacyValue = searchParams?.get('privacy') as ListPrivacy | 'all' ?? defaultPrivacy;
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 mb-6">
-      <div className="flex-1">
-        <SearchInput 
-          placeholder="Search your lists..."
-          defaultValue={queryValue}
-        />
-      </div>
+    <div className={`flex flex-col sm:flex-row gap-4 mb-6 ${hideSearch ? 'sm:justify-end' : ''}`}>
+      {!hideSearch && (
+        <div className="flex-1">
+          <SearchInput 
+            placeholder="Search your lists..."
+            defaultValue={queryValue}
+          />
+        </div>
+      )}
       <FilterSheet 
         defaultCategory={categoryValue}
         defaultSort={sortValue}
         defaultPrivacy={privacyValue}
-        showPrivacyFilter={true}
+        showPrivacyFilter={false}
       />
     </div>
   );

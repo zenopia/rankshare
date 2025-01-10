@@ -9,6 +9,7 @@ import { serializeList } from "@/lib/utils";
 import { ensureUserExists } from "@/lib/actions/user";
 import { ListView } from "@/components/lists/list-view";
 import { MongoListDocument } from "@/types/mongodb";
+import { SubLayout } from "@/components/layout/sub-layout";
 
 interface ListPageProps {
   params: {
@@ -81,15 +82,15 @@ export default async function ListPage({ params }: ListPageProps) {
     }
 
     return (
-      <ListView 
-        list={serializedList}
-        isOwner={userId === serializedList.ownerId}
-        isPinned={serializedList.isPinned}
-        isFollowing={!!followStatus}
-        isAuthenticated={!!userId}
-      >
-        {/* Remove this section since UserProfileCard is already in ListView */}
-      </ListView>
+      <SubLayout title="List">
+        <ListView 
+          list={serializedList}
+          isOwner={userId === serializedList.ownerId}
+          isPinned={serializedList.isPinned}
+          isFollowing={!!followStatus}
+          isAuthenticated={!!userId}
+        />
+      </SubLayout>
     );
   } catch (error) {
     notFound();

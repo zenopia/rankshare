@@ -56,7 +56,7 @@ export function ListCard({ list, showPrivacyBadge = false, showUpdateBadge = fal
                   category={list.category}
                   className="pointer-events-none"
                 />
-                {list.privacy === 'private' && (
+                {showPrivacyBadge && list.privacy === 'private' && (
                   <Lock className="h-4 w-4 text-muted-foreground" />
                 )}
               </div>

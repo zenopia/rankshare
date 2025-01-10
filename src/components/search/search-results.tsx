@@ -41,7 +41,7 @@ function ListResults() {
 
         const response = await fetch(`/api/lists/search?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch results');
-        
+
         const data = await response.json();
         setLists(data.lists);
       } catch (error) {

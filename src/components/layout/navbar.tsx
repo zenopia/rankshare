@@ -13,21 +13,19 @@ export function Navbar() {
   const { isSignedIn } = useAuth();
   const pathname = usePathname();
   
-  // Get page title based on current path
   const getPageTitle = () => {
     switch (pathname) {
       case '/search':
         return 'Search';
       case '/dashboard':
         return 'Dashboard';
-      case '/my-lists':
-        return 'My Lists';
-      case '/pinned':
-        return 'Pinned Lists';
       case '/following':
-        return 'Following';
       case '/followers':
-        return 'Followers';
+        return 'People';
+      case '/':
+      case '/pinned':
+      case '/my-lists':
+        return 'Curate';
       default:
         return 'Curate';
     }
@@ -37,13 +35,11 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center px-4">
         <div className="flex items-center justify-between w-full">
-          {/* Left: Mobile Menu + Desktop Nav */}
           <div className="flex items-center gap-2">
             <div className="md:hidden">
               <MobileNav />
             </div>
             
-            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-1">
               <Button
                 variant="ghost"
@@ -76,14 +72,12 @@ export function Navbar() {
             </div>
           </div>
 
-          {/* Center: Page Title */}
-          <div className="flex-1 flex justify-center">
+          <div className="absolute left-1/2 -translate-x-1/2">
             <h1 className="text-xl font-semibold">
               {getPageTitle()}
             </h1>
           </div>
 
-          {/* Right: User Nav or Sign In */}
           <div className="flex items-center">
             {isSignedIn ? (
               <UserNav />

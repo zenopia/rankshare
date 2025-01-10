@@ -8,10 +8,12 @@ import {
   Search,
   PlusCircle,
   ListChecks,
+  ListOrdered,
   Bookmark,
   Users2,
   UserPlus,
-  LayoutDashboard
+  LayoutDashboard,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -20,20 +22,15 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
+  SheetDescription
 } from "@/components/ui/sheet";
 import { useAuth } from "@clerk/nextjs";
 import type { NavItem } from "@/types/nav";
 import { SidebarProfile } from "./sidebar-profile";
+import { cn } from "@/lib/utils";
 
 // Additional nav items only for mobile
 const mobileOnlyNavItems: NavItem[] = [
-  {
-    title: "Home",
-    href: "/",
-    public: true,
-    icon: Home,
-    description: "Return to homepage"
-  },
   {
     title: "Search",
     href: "/search",
@@ -41,29 +38,48 @@ const mobileOnlyNavItems: NavItem[] = [
     icon: Search,
     description: "Search for lists"
   },
+  {
+    title: "Home",
+    href: "/",
+    public: true,
+    icon: Home,
+    description: "Return to homepage"
+  },
 ];
 
 const navItems: NavItem[] = [
   {
-    title: "Dashboard",
-    href: "/dashboard",
-    public: false,
-    icon: LayoutDashboard,
-    description: "View your dashboard"
-  },
-  {
-    title: "My Lists",
-    href: "/my-lists",
-    public: false,
-    icon: ListChecks,
-    description: "View your created lists"
+    title: "Latest",
+    href: "/",
+    public: true,
+    icon: ListOrdered,
+    description: "Latest lists",
+    indent: true,
+    id: "latest"
   },
   {
     title: "Pinned Lists",
     href: "/pinned",
     public: false,
     icon: Bookmark,
-    description: "View your pinned lists"
+    description: "View your pinned lists",
+    indent: true
+  },
+  {
+    title: "My Lists",
+    href: "/my-lists",
+    public: false,
+    icon: ListChecks,
+    description: "View your created lists",
+    indent: true
+  },
+  {
+    title: "People",
+    href: "/following",
+    public: false,
+    icon: Users,
+    description: "View people",
+    id: "people"
   },
   {
     title: "Following",
@@ -71,6 +87,8 @@ const navItems: NavItem[] = [
     public: false,
     icon: Users2,
     description: "Users you follow",
+    indent: true,
+    id: "following"
   },
   {
     title: "Followers",
@@ -78,6 +96,14 @@ const navItems: NavItem[] = [
     public: false,
     icon: UserPlus,
     description: "Users following you",
+    indent: true
+  },
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    public: false,
+    icon: LayoutDashboard,
+    description: "View your dashboard"
   },
   {
     title: "Create List",
@@ -94,14 +120,17 @@ export function MobileNav() {
 
   const handleClose = () => setOpen(false);
 
-  const renderNavLink = (item: NavItem) => {
+  const renderNavLink = (item: NavItem, index: number) => {
     const Icon = item.icon;
     return (
       <Link
-        key={item.href}
+        key={`${item.href}-${index}`}
         href={item.href}
         onClick={() => setOpen(false)}
-        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+        className={cn(
+          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
+          item.indent && "ml-4"
+        )}
         aria-label={item.description}
       >
         <Icon className="h-4 w-4" aria-hidden="true" />
@@ -128,6 +157,9 @@ export function MobileNav() {
       >
         <SheetHeader className="text-left">
           <SheetTitle>Menu</SheetTitle>
+          <SheetDescription>
+            Access all areas of the application
+          </SheetDescription>
         </SheetHeader>
 
         {isSignedIn && <SidebarProfile collapsed={false} onClick={handleClose} />}
@@ -136,10 +168,10 @@ export function MobileNav() {
           className="flex flex-col space-y-4 mt-4"
           aria-label="Mobile navigation"
         >
-          {mobileOnlyNavItems.map((item) =>
-            (item.public || isSignedIn) && renderNavLink(item)
+          {mobileOnlyNavItems.map((item, index) =>
+            (item.public || isSignedIn) && renderNavLink(item, index)
           )}
-          {isSignedIn && navItems.map(renderNavLink)}
+          {isSignedIn && navItems.map((item, index) => renderNavLink(item, index))}
           
           {!isSignedIn && (
             <>
