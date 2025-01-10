@@ -35,7 +35,7 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
             
-            # Ensure we're using the right Node version
+            # Ensure we're using Node 18
             nvm use 18 || nvm install 18
             
             # Install PM2 globally if not present
@@ -47,20 +47,29 @@ jobs:
             git fetch origin ${{ github.ref_name }}
             git reset --hard origin/${{ github.ref_name }}
             
-            # Install and build
+            # Clean install and build
+            rm -rf node_modules
+            rm -rf .next
             npm install
-            npm run build
+            NODE_OPTIONS="--max-old-space-size=4096" npm run build
             
-            # Restart the application using the appropriate config
+            # Stop existing PM2 process
+            pm2 delete ${{ steps.set-target.outputs.host }} || true
+            
+            # Start application with correct environment
             if [ ${{ github.ref }} = 'refs/heads/main' ]; then
-              pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start ecosystem.config.js
+              PORT=3000 NODE_ENV=production pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
             else
-              pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start ecosystem.config.dev.js
+              PORT=3001 NODE_ENV=production pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
             fi
+            
+            # Save PM2 process list
+            pm2 save
             
             # Show application status
             sleep 5
             pm2 list
+            pm2 logs --lines 50
             
             echo "Deployment complete!"
               
