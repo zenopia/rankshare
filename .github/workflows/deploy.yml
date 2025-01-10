@@ -36,6 +36,8 @@ jobs:
         run: |
           rm -rf node_modules
           rm -rf .next
+          rm -rf .next/cache
+          npm cache clean --force
           npm install
         env:
           NODE_ENV: production
@@ -43,10 +45,7 @@ jobs:
           
       - name: Build
         run: |
-          rm -rf .next
-          rm -rf node_modules/.cache
-          rm -rf .next/cache
-          npm run build
+          NODE_OPTIONS="--max-old-space-size=4096" npm run build
         env:
           NODE_ENV: production
           NEXT_TELEMETRY_DISABLED: 1
@@ -69,6 +68,6 @@ jobs:
             echo "MONGODB_URI=${MONGODB_URI}" >> .env.production
             npm ci
             rm -rf .next
-            npm run build
+            NODE_OPTIONS="--max-old-space-size=4096" npm run build
             PORT=${{ steps.set-target.outputs.port }} pm2 reload ${{ steps.set-target.outputs.host }} || PORT=${{ steps.set-target.outputs.port }} pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
               
