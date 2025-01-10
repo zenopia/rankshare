@@ -39,14 +39,17 @@ jobs:
           npm install
         env:
           NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: 1
           
       - name: Build
         run: |
           rm -rf .next
           rm -rf node_modules/.cache
+          rm -rf .next/cache
           npm run build
         env:
           NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: 1
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
