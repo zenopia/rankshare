@@ -1,73 +1,66 @@
-name: Deploy
+name: Deploy Application
 
 on:
   push:
-    branches: 
+    branches:
       - main
       - develop
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-          cache: 'npm'
-
       - name: Set deployment target
         id: set-target
         run: |
           if [ ${{ github.ref }} = 'refs/heads/main' ]; then
             echo "host=curate.fileopia.com" >> $GITHUB_OUTPUT
             echo "user=fileopia-curate" >> $GITHUB_OUTPUT
-            echo "port=3000" >> $GITHUB_OUTPUT
           else
             echo "host=curate-dev.fileopia.com" >> $GITHUB_OUTPUT
             echo "user=fileopia-curate-dev" >> $GITHUB_OUTPUT
-            echo "port=3001" >> $GITHUB_OUTPUT
           fi
-          
-      - name: Clean install dependencies
-        run: |
-          rm -rf node_modules
-          rm -rf .next
-          rm -rf .next/cache
-          npm cache clean --force
-          npm install
-        env:
-          NODE_ENV: production
-          NEXT_TELEMETRY_DISABLED: 1
-          
-      - name: Build
-        run: |
-          NODE_OPTIONS="--max-old-space-size=4096" npm run build
-        env:
-          NODE_ENV: production
-          NEXT_TELEMETRY_DISABLED: 1
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          
+
       - name: Deploy to server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.SSH_HOST }}
+          host: ${{ secrets.SERVER_IP }}
           username: ${{ steps.set-target.outputs.user }}
-          key: ${{ secrets.SSH_KEY }}
-          envs: MONGODB_URI,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,CLERK_SECRET_KEY
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            echo "Starting deployment..."
+            
+            # Load NVM and Node
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+            
+            # Ensure we're using the right Node version
+            nvm use 18 || nvm install 18
+            
+            # Install PM2 globally if not present
+            which pm2 || npm install -g pm2
+            
             cd ~/htdocs/${{ steps.set-target.outputs.host }}
-            git pull
-            echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}" > .env.production
-            echo "CLERK_SECRET_KEY=${CLERK_SECRET_KEY}" >> .env.production
-            echo "MONGODB_URI=${MONGODB_URI}" >> .env.production
-            npm ci
-            rm -rf .next
+            
+            # Pull latest changes
+            git fetch origin ${{ github.ref_name }}
+            git reset --hard origin/${{ github.ref_name }}
+            
+            # Install and build with increased memory
+            npm install
             NODE_OPTIONS="--max-old-space-size=4096" npm run build
-            PORT=${{ steps.set-target.outputs.port }} pm2 reload ${{ steps.set-target.outputs.host }} || PORT=${{ steps.set-target.outputs.port }} pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+            
+            # Restart the application using the appropriate config
+            if [ ${{ github.ref }} = 'refs/heads/main' ]; then
+              pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start ecosystem.config.js
+            else
+              pm2 restart ${{ steps.set-target.outputs.host }} || pm2 start ecosystem.config.dev.js
+            fi
+            
+            # Show application status
+            sleep 5
+            pm2 list
+            
+            echo "Deployment complete!"
               
