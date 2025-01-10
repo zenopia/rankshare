@@ -14,7 +14,7 @@ interface SearchParams {
   q?: string;
 }
 
-interface UserWithStats extends User {
+interface UserWithStats extends Omit<User, 'firstName' | 'imageUrl'> {
   hasNewLists: boolean;
   lastListCreated?: Date;
   listCount: number;
