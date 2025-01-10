@@ -49,23 +49,22 @@ jobs:
             
             # Install and build with increased memory
             npm install
+            npm cache clean --force
+            rm -rf .next
             NODE_OPTIONS="--max-old-space-size=4096" npm run build
             
             # Ensure proper permissions for static files
-            sudo chown -R $USER:www-data .next
-            sudo chmod -R 775 .next
-            sudo find .next/static -type f -exec chmod 664 {} \;
-            sudo find .next/static -type d -exec chmod 775 {} \;
+            chmod -R 755 .next
             
             # Clear PM2 cache before restart
             pm2 flush
-            pm2 delete ${{ steps.set-target.outputs.host }} || true
+            pm2 delete all || true
             
             # Restart the application using the appropriate config
             if [ ${{ github.ref }} = 'refs/heads/main' ]; then
-              pm2 start ecosystem.config.js --update-env
+              NODE_ENV=production pm2 start ecosystem.config.js --update-env
             else
-              pm2 start ecosystem.config.dev.js --update-env
+              NODE_ENV=production pm2 start ecosystem.config.dev.js --update-env
             fi
             
             # Show application status

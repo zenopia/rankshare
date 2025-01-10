@@ -73,9 +73,13 @@ const nextConfig = {
     return config;
   },
   experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb'
+    },
+    optimizePackageImports: ['@/components'],
     webpackBuildWorker: false,
     optimizeCss: true,
-    legacyBrowsers: false,
+    legacyBrowsers: false
   },
   rewrites: async () => {
     return [
