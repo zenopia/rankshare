@@ -30,16 +30,12 @@ jobs:
           script: |
             echo "Starting deployment..."
             
-            # Load NVM and Node
+            # Load NVM
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
             
-            # Ensure we're using Node 18
-            nvm use 18 || nvm install 18
-            
-            # Install PM2 globally if not present
-            which pm2 || npm install -g pm2
+            # Use Node 18
+            nvm use 18
             
             cd ~/htdocs/${{ steps.set-target.outputs.host }}
             
@@ -47,29 +43,19 @@ jobs:
             git fetch origin ${{ github.ref_name }}
             git reset --hard origin/${{ github.ref_name }}
             
-            # Clean install and build
-            rm -rf node_modules
-            rm -rf .next
+            # Install and build
             npm install
-            NODE_OPTIONS="--max-old-space-size=4096" npm run build
+            npm run build
             
-            # Stop existing PM2 process
-            pm2 delete ${{ steps.set-target.outputs.host }} || true
-            
-            # Start application with correct environment
+            # Restart the application
             if [ ${{ github.ref }} = 'refs/heads/main' ]; then
-              PORT=3000 NODE_ENV=production pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+              PORT=3000 pm2 restart ${{ steps.set-target.outputs.host }} || PORT=3000 pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
             else
-              PORT=3001 NODE_ENV=production pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+              PORT=3001 pm2 restart ${{ steps.set-target.outputs.host }} || PORT=3001 pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
             fi
             
-            # Save PM2 process list
-            pm2 save
-            
-            # Show application status
-            sleep 5
+            # Show status
             pm2 list
-            pm2 logs --lines 50
             
             echo "Deployment complete!"
               
