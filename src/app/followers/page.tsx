@@ -1,6 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
 import { FollowModel } from "@/lib/db/models/follow";
-import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
 import { SearchInput } from "@/components/search/search-input";
 import { UserCard } from "@/components/users/user-card";
