@@ -4,7 +4,7 @@ import { ListModel } from "@/lib/db/models/list";
 import dbConnect from "@/lib/db/mongodb";
 import type { MongoListDocument } from "@/types/mongodb";
 import type { ItemProperty } from "@/types/list";
-import ErrorBoundary from "@/components/error-boundary";
+import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
 import { ObjectId } from "mongodb";
 
 interface EditListPageProps {
@@ -56,12 +56,12 @@ export default async function EditListPage({ params }: EditListPageProps) {
 
     return (
       <div className="container max-w-3xl py-8">
-        <ErrorBoundary>
+        <ErrorBoundaryWrapper>
           <ListFormContent 
             initialData={serializedList} 
             mode="edit" 
           />
-        </ErrorBoundary>
+        </ErrorBoundaryWrapper>
       </div>
     );
   } catch (error) {
