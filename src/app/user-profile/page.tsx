@@ -1,21 +1,23 @@
 "use client";
 
-import { UserProfile as ClerkUserProfile } from "@clerk/nextjs/app-beta/client";
+import { UserProfile as ClerkUserProfile } from "@clerk/clerk-react";
+import { SubLayout } from "@/components/layout/sub-layout";
 
 export default function UserProfilePage() {
   return (
-    <div className="container py-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
-        <ClerkUserProfile 
-          appearance={{
-            elements: {
-              rootBox: "mx-auto",
-              card: "shadow-none border-0 p-0"
-            }
-          }}
-        />
+    <SubLayout title="Account Settings">
+      <div className="px-0 md:px-6 lg:px-8 pb-8">
+        <div className="max-w-2xl mx-auto">
+          <ClerkUserProfile 
+            appearance={{
+              elements: {
+                rootBox: "mx-auto",
+                card: "shadow-none border-0 p-0"
+              }
+            }}
+          />
+        </div>
       </div>
-    </div>
+    </SubLayout>
   );
 } 

@@ -5,6 +5,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import Image from "next/image";
+import { LocationDisplay } from "@/components/profile/location-display";
+import type { User } from "@/types/user";
 
 interface UserProfileProps {
   username: string;
@@ -18,6 +22,7 @@ interface UserProfileProps {
   };
   isFollowing: boolean;
   hideFollow?: boolean;
+  userData?: Partial<User>;
 }
 
 export function UserProfile({
@@ -28,6 +33,7 @@ export function UserProfile({
   stats,
   isFollowing,
   hideFollow = false,
+  userData
 }: UserProfileProps) {
   const [isBioExpanded, setIsBioExpanded] = useState(false);
   const [showMoreButton, setShowMoreButton] = useState(false);
@@ -43,7 +49,7 @@ export function UserProfile({
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold truncate">{fullName}</h2>
           <p className="text-muted-foreground">@{username}</p>
-          
+  
           <div className="flex gap-4 mt-2">
             <Link href={`/@${username}/followers`} className="text-sm">
               <span className="font-semibold">{stats.followers}</span>{" "}
@@ -59,7 +65,7 @@ export function UserProfile({
             </div>
           </div>
         </div>
-
+  
         {!hideFollow && (
           <Button 
             variant={isFollowing ? "secondary" : "default"}
@@ -69,6 +75,8 @@ export function UserProfile({
           </Button>
         )}
       </div>
+
+      {userData && <LocationDisplay user={userData} />}
 
       {bio && (
         <div className="relative">
