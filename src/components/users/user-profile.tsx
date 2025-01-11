@@ -5,8 +5,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
-import Image from "next/image";
 import { LocationDisplay } from "@/components/profile/location-display";
 import type { User } from "@/types/user";
 
