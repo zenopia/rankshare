@@ -52,6 +52,10 @@ export default async function UserPage({ params, searchParams }: PageProps) {
     FollowModel.countDocuments({ followerId: profileUser.id }),
   ]);
 
+  if (!mongoUser) {
+    notFound();
+  }
+
   // Build filter for lists
   const filter: MongoListFilter = { 
     ownerId: profileUser.id,
@@ -84,37 +88,40 @@ export default async function UserPage({ params, searchParams }: PageProps) {
   const serializedLists = serializeLists(lists);
 
   return (
-    <SubLayout title="Profile">
-      <div className="px-0 md:px-6 lg:px-8 pb-8 space-y-8">
-        <UserProfile 
-          username={profileUser.username || ""}
-          fullName={`${profileUser.firstName || ""} ${profileUser.lastName || ""}`.trim()}
-          bio={mongoUser?.bio || null}
-          imageUrl={profileUser.imageUrl}
-          stats={{
-            followers: followerCount,
-            following: followingCount,
-            lists: serializedLists.length,
-          }}
-          isFollowing={!!followStatus}
-          hideFollow={userId === profileUser.id}
-        />
-
-        <div className="space-y-8">
-          <ListSearchControls 
-            defaultCategory={searchParams.category as ListCategory}
-            defaultSort={searchParams.sort}
-            hideSearch
+    <SubLayout title={username}>
+      <div className="px-0 md:px-6 lg:px-8 pb-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <UserProfile 
+            username={profileUser.username || ""}
+            fullName={`${profileUser.firstName || ""} ${profileUser.lastName || ""}`.trim()}
+            bio={mongoUser?.bio || null}
+            imageUrl={profileUser.imageUrl}
+            stats={{
+              followers: followerCount,
+              following: followingCount,
+              lists: serializedLists.length,
+            }}
+            isFollowing={!!followStatus}
+            hideFollow={userId === profileUser.id}
+            userData={mongoUser}
           />
+          
+          <div className="space-y-8">
+            <ListSearchControls 
+              defaultCategory={searchParams.category as ListCategory}
+              defaultSort={searchParams.sort}
+              hideSearch
+            />
 
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {serializedLists.map((list) => (
-              <ListCard 
-                key={list.id}
-                list={list}
-                showPrivacyBadge
-              />
-            ))}
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {serializedLists.map((list) => (
+                <ListCard 
+                  key={list.id}
+                  list={list}
+                  showPrivacyBadge
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

@@ -155,11 +155,9 @@ export function MobileNav() {
         side="left" 
         className="w-[280px] pt-10 pb-20 data-[state=open]:animate-slide-in-left data-[state=closed]:animate-slide-out-left"
       >
-        <SheetHeader className="text-left">
-          <SheetTitle>Menu</SheetTitle>
-          <SheetDescription>
-            Access all areas of the application
-          </SheetDescription>
+        <SheetHeader className="sr-only">
+          <SheetTitle>Navigation Menu</SheetTitle>
+          <SheetDescription>Access all areas of the application</SheetDescription>
         </SheetHeader>
 
         {isSignedIn && <SidebarProfile collapsed={false} onClick={handleClose} />}

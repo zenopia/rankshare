@@ -12,7 +12,7 @@ export function ConditionalBottomNav() {
   const isHomeRoute = ['/', '/pinned', '/my-lists'].includes(pathname);
 
   // Hide bottom nav on list view pages and other pages with their own bottom nav
-  if (pathname.startsWith('/lists/')) return null;
+  if (pathname.startsWith('/lists/') || pathname === '/profile') return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] sm:hidden">
