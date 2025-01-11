@@ -1,6 +1,5 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { MapPin } from "lucide-react";
 import type { User } from "@/types/user";
 
