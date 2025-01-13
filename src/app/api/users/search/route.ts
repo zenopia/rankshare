@@ -1,66 +1,67 @@
-import { NextRequest, NextResponse } from "next/server";
-import { clerkClient } from "@clerk/clerk-sdk-node";
 import { auth } from "@clerk/nextjs/server";
-import { ListModel } from "@/lib/db/models/list";
-import { FollowModel } from "@/lib/db/models/follow";
+import { UserModel } from "@/lib/db/models/user";
 import dbConnect from "@/lib/db/mongodb";
-import type { User } from "@/types/list";
+import { searchParamsSchema } from "@/lib/validations/api";
+import { handleApiError, apiResponse } from "@/lib/api-utils";
+import { rateLimit } from "@/lib/rate-limit";
+import type { BaseUser } from "@/types/user";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    await dbConnect();
+    await rateLimit('user-search', { limit: 20, window: 60 });
+
     const { userId } = auth();
+    const { searchParams } = new URL(request.url);
     
-    const searchParams = request.nextUrl.searchParams;
-    const query = searchParams.get('q') || '';
-    
-    // Get all users from Clerk
-    const clerkUsers = await clerkClient.users.getUserList();
+    // Validate search params with defaults
+    const validatedParams = searchParamsSchema.parse({
+      q: searchParams.get('q'),
+      page: searchParams.get('page') || '1',
+      pageSize: searchParams.get('pageSize') || '20'
+    });
 
-    // Filter users if there's a search query
-    const filteredUsers = query 
-      ? clerkUsers.filter(user => {
-          const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
-          const username = (user.username || '').toLowerCase();
-          return fullName.includes(query) || username.includes(query);
-        })
-      : clerkUsers;
+    await dbConnect();
 
-    // Get list counts and follow status for filtered users in parallel
-    const usersWithData = await Promise.all(
-      filteredUsers.map(async (user): Promise<User> => {
-        const [listCount, followStatus] = await Promise.all([
-          ListModel.countDocuments({
-            ownerId: user.id,
-            privacy: 'public'
-          }),
-          userId ? FollowModel.findOne({
-            followerId: userId,
-            followingId: user.id
-          }) : null
-        ]);
+    // Build query
+    const query = validatedParams.q
+      ? {
+          $or: [
+            { username: { $regex: validatedParams.q, $options: 'i' } },
+            { email: { $regex: validatedParams.q, $options: 'i' } }
+          ]
+        }
+      : {};
 
-        return {
-          clerkId: user.id,
-          username: user.username || "",
-          firstName: user.firstName || "",
-          imageUrl: user.imageUrl,
-          hasNewLists: false,
-          lastListCreated: undefined,
-          listCount,
-          isFollowing: !!followStatus
-        };
-      })
+    const [users, total] = await Promise.all([
+      UserModel.find(query)
+        .skip((validatedParams.page - 1) * validatedParams.pageSize)
+        .limit(validatedParams.pageSize)
+        .lean<BaseUser[]>(),
+      UserModel.countDocuments(query)
+    ]);
+
+    // If authenticated, get follow status for each user
+    const enrichedUsers = await Promise.all(
+      users.map(async (user) => ({
+        ...user,
+        isFollowing: userId
+          ? Boolean(await UserModel.exists({ 
+              followerId: userId, 
+              followingId: user.clerkId 
+            }))
+          : false
+      }))
     );
 
-    return NextResponse.json(usersWithData);
+    return apiResponse({
+      results: enrichedUsers,
+      total,
+      page: validatedParams.page,
+      pageSize: validatedParams.pageSize
+    });
   } catch (error) {
-    console.error("Error fetching users:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch users" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 } 

@@ -3,32 +3,68 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { UserCard } from "@/components/users/user-card";
-import type { User } from "@/types/list";
+import type { User } from "@/types/user";
+
+interface SearchResponse {
+  data: {
+    results: User[];
+    total: number;
+    page: number;
+    pageSize: number;
+  };
+  status: number;
+}
 
 export function PeopleResults() {
   const searchParams = useSearchParams();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function fetchResults() {
+      if (!isMounted) return;
+      
       setIsLoading(true);
+      setError(null);
+      
       try {
         const q = searchParams.get("q");
         const response = await fetch(`/api/users/search?q=${q || ''}`);
-        if (!response.ok) throw new Error('Failed to fetch results');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch results');
+        }
 
-        const data = await response.json();
-        setUsers(data);
+        const data: SearchResponse = await response.json();
+        
+        if (!isMounted) return;
+        
+        if (Array.isArray(data.data.results)) {
+          setUsers(data.data.results);
+        } else {
+          setUsers([]);
+          console.error('Expected results to be an array:', data);
+        }
       } catch (error) {
+        if (!isMounted) return;
         console.error('Error fetching search results:', error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch results');
         setUsers([]);
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
 
     fetchResults();
+
+    return () => {
+      isMounted = false;
+    };
   }, [searchParams]);
 
   if (isLoading) {
@@ -41,7 +77,15 @@ export function PeopleResults() {
     );
   }
 
-  if (users.length === 0) {
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-destructive">{error}</p>
+      </div>
+    );
+  }
+
+  if (!Array.isArray(users) || users.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">No users found matching your search</p>

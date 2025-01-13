@@ -1,45 +1,50 @@
 import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
 import { UserModel } from "@/lib/db/models/user";
 import dbConnect from "@/lib/db/mongodb";
-import type { User } from "@/types/user";
+import { profileUpdateSchema, type ProfileUpdateInput } from "@/lib/validations/api";
+import { handleApiError, apiResponse, validateRequest } from "@/lib/api-utils";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    await rateLimit('get-profile', { limit: 30, window: 60 });
+
     const { userId } = auth();
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      throw new Error('Unauthorized');
     }
 
     await dbConnect();
     const user = await UserModel.findOne({ clerkId: userId });
     
     if (!user) {
-      return new NextResponse("User not found", { status: 404 });
+      throw new Error('User not found');
     }
 
-    return NextResponse.json(user);
+    return apiResponse(user);
   } catch (error) {
-    console.error('Error fetching profile:', error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return handleApiError(error);
   }
 }
 
 export async function PUT(request: Request) {
   try {
+    await rateLimit('update-profile', { limit: 10, window: 60 });
+
     const { userId } = auth();
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      throw new Error('Unauthorized');
     }
 
-    const data = await request.json() as Partial<User>;
+    // Validate request data
+    const data = await validateRequest<ProfileUpdateInput>(request, profileUpdateSchema);
     await dbConnect();
 
     let user = await UserModel.findOne({ clerkId: userId });
     if (!user) {
-      return new NextResponse("User not found", { status: 404 });
+      throw new Error('User not found');
     }
 
     user = await UserModel.findOneAndUpdate(
@@ -63,9 +68,8 @@ export async function PUT(request: Request) {
       );
     }
 
-    return NextResponse.json(user);
+    return apiResponse(user);
   } catch (error) {
-    console.error('Error updating profile:', error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return handleApiError(error);
   }
 } 
