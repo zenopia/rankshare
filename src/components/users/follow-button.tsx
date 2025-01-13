@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface FollowButtonProps {
@@ -37,7 +38,12 @@ export function FollowButton({ userId, isFollowing: initialIsFollowing }: Follow
       onClick={handleClick}
       disabled={isLoading}
     >
-      {isLoading ? 'Loading...' : (isFollowing ? 'Unfollow' : 'Follow')}
+      {isLoading ? 'Loading...' : (isFollowing ? (
+        <>
+          <Check className="h-4 w-4 mr-2" />
+          Following
+        </>
+      ) : 'Follow')}
     </Button>
   );
 } 

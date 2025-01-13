@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@clerk/nextjs";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { UserNav } from "@/components/layout/user-nav";
 import { usePathname } from "next/navigation";
@@ -10,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
-  const { isSignedIn } = useAuth();
   const pathname = usePathname();
   
   const getPageTitle = () => {

@@ -6,12 +6,11 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { ListModel } from "@/lib/db/models/list";
 import { FollowModel } from "@/lib/db/models/follow";
 import dbConnect from "@/lib/db/mongodb";
-import { serializeLists } from "@/lib/utils";
+import { serializeLists, serializeUser } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import type { ListCategory } from "@/types/list";
 import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/types/mongodb";
 import { UserModel } from "@/lib/db/models/user";
-import type { User } from "@/types/user";
 
 interface PageProps {
   params: {
@@ -43,7 +42,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
 
   // Get user data from MongoDB and other counts
   const [mongoUser, followStatus, followerCount, followingCount] = await Promise.all([
-    UserModel.findOne({ clerkId: profileUser.id }).lean() as unknown as User | null,
+    UserModel.findOne({ clerkId: profileUser.id }).lean(),
     userId ? FollowModel.findOne({ 
       followerId: userId,
       followingId: profileUser.id 
@@ -55,6 +54,8 @@ export default async function UserPage({ params, searchParams }: PageProps) {
   if (!mongoUser) {
     notFound();
   }
+
+  const serializedUser = serializeUser(mongoUser);
 
   // Build filter for lists
   const filter: MongoListFilter = { 
@@ -94,7 +95,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
           <UserProfile 
             username={profileUser.username || ""}
             fullName={`${profileUser.firstName || ""} ${profileUser.lastName || ""}`.trim()}
-            bio={mongoUser?.bio || null}
+            bio={serializedUser?.bio || null}
             imageUrl={profileUser.imageUrl}
             stats={{
               followers: followerCount,
@@ -103,7 +104,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
             }}
             isFollowing={!!followStatus}
             hideFollow={userId === profileUser.id}
-            userData={mongoUser}
+            userData={serializedUser}
           />
           
           <div className="space-y-8">

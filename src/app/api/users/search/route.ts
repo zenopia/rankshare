@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { UserModel } from "@/lib/db/models/user";
+import { FollowModel } from "@/lib/db/models/follow";
 import dbConnect from "@/lib/db/mongodb";
 import { searchParamsSchema } from "@/lib/validations/api";
 import { handleApiError, apiResponse } from "@/lib/api-utils";
@@ -47,7 +48,7 @@ export async function GET(request: Request) {
       users.map(async (user) => ({
         ...user,
         isFollowing: userId
-          ? Boolean(await UserModel.exists({ 
+          ? Boolean(await FollowModel.exists({ 
               followerId: userId, 
               followingId: user.clerkId 
             }))

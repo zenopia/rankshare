@@ -123,7 +123,7 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
       <SidebarProfile collapsed={collapsed} />
 
       <nav className="flex-1 space-y-1 p-2" aria-label="Sidebar navigation">
-        {menuItems.map((item, index) => {
+        {menuItems.map((item, _index) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
 
