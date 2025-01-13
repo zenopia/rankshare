@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@clerk/nextjs";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { UserNav } from "@/components/layout/user-nav";
 import { usePathname } from "next/navigation";
@@ -10,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
-  const { isSignedIn } = useAuth();
   const pathname = usePathname();
   
   const getPageTitle = () => {
@@ -79,16 +77,7 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center">
-            {isSignedIn ? (
-              <UserNav />
-            ) : (
-              <Link
-                href="/sign-in"
-                className="text-sm font-medium hover:text-primary"
-              >
-                Sign In
-              </Link>
-            )}
+            <UserNav />
           </div>
         </div>
       </div>

@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { LocationDisplay } from "@/components/profile/location-display";
+import { Check } from "lucide-react";
+import { toast } from "sonner";
 import type { User } from "@/types/user";
 
 interface UserProfileProps {
@@ -29,12 +31,32 @@ export function UserProfile({
   bio,
   imageUrl,
   stats,
-  isFollowing,
+  isFollowing: initialIsFollowing,
   hideFollow = false,
   userData
 }: UserProfileProps) {
+  const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
+  const [isLoading, setIsLoading] = useState(false);
   const [isBioExpanded, setIsBioExpanded] = useState(false);
   const [showMoreButton, setShowMoreButton] = useState(false);
+
+  const handleFollowClick = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/users/${userData?.clerkId}/follow`, {
+        method: isFollowing ? 'DELETE' : 'POST',
+      });
+
+      if (!response.ok) throw new Error();
+
+      setIsFollowing(!isFollowing);
+      toast.success(isFollowing ? 'Unfollowed user' : 'Following user');
+    } catch (error) {
+      toast.error('Failed to update follow status');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -66,10 +88,16 @@ export function UserProfile({
   
         {!hideFollow && (
           <Button 
-            variant={isFollowing ? "secondary" : "default"}
-            className={cn(isFollowing && "bg-primary text-primary-foreground")}
+            variant={isFollowing ? "outline" : "default"}
+            onClick={handleFollowClick}
+            disabled={isLoading}
           >
-            {isFollowing ? "Following" : "Follow"}
+            {isLoading ? 'Loading...' : (isFollowing ? (
+              <>
+                <Check className="h-4 w-4 mr-2" />
+                Following
+              </>
+            ) : 'Follow')}
           </Button>
         )}
       </div>

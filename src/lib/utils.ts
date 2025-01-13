@@ -2,6 +2,8 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { ListDocument, List, ItemProperty } from "@/types/list";
 import type { MongoListDocument } from "@/types/mongodb";
+import type { User } from "@/types/user";
+import type { FlattenMaps } from "mongoose";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -50,4 +52,24 @@ export function formatDate(date: Date) {
 
 export function serializeLists(docs: ListDocument[]): List[] {
   return docs.map(doc => serializeList(doc));
+}
+
+export function serializeUser(user: FlattenMaps<Record<string, unknown>> | FlattenMaps<Record<string, unknown>>[] | null): Partial<User> | undefined {
+  if (!user || Array.isArray(user)) return undefined;
+  
+  return {
+    _id: (user._id as unknown)?.toString(),
+    clerkId: user.clerkId as string,
+    username: user.username as string,
+    email: user.email as string,
+    bio: user.bio as string | undefined,
+    location: user.location as string | undefined,
+    dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth as Date) : undefined,
+    gender: user.gender as User['gender'],
+    livingStatus: user.livingStatus as User['livingStatus'],
+    isProfileComplete: user.isProfileComplete as boolean,
+    privacySettings: user.privacySettings as User['privacySettings'],
+    createdAt: new Date(user.createdAt as Date),
+    updatedAt: new Date(user.updatedAt as Date)
+  };
 } 

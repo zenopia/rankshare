@@ -1,5 +1,6 @@
 import { Document, Types, SortOrder } from 'mongoose';
 import type { ListPrivacy, ListCategory, ListDocument } from '@/types/list';
+import type { BaseUser } from "./user";
 
 export type MongoDoc<T> = T & Document & {
   _id: unknown;
@@ -40,5 +41,10 @@ export interface FollowDocument {
   _id: unknown;
   followerId: string;
   followingId: string;
+  __v: number;
+}
+
+export interface MongoUserDocument extends Omit<BaseUser, '_id'> {
+  _id: unknown;
   __v: number;
 }

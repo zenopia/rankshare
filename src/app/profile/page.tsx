@@ -77,15 +77,26 @@ export default function ProfilePage() {
         const response = await fetch('/api/profile');
         if (!response.ok) throw new Error('Failed to fetch profile');
         
-        const data = await response.json();
+        const { data } = await response.json();
         
-        const formattedData = {
-          ...data,
-          dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
-        };
-        
-        setIsProfileComplete(data.isProfileComplete);
-        setProfileData(formattedData);
+        if (data) {
+          setProfileData({
+            bio: data.bio || "",
+            location: data.location || "",
+            dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
+            gender: data.gender || undefined,
+            livingStatus: data.livingStatus || undefined,
+            privacySettings: {
+              showBio: true,
+              showLocation: true,
+              showDateOfBirth: false,
+              showGender: true,
+              showLivingStatus: true,
+              ...(data.privacySettings || {}),
+            },
+          });
+          setIsProfileComplete(data.isProfileComplete);
+        }
       } catch (error) {
         console.error('Error fetching profile:', error);
         toast.error('Failed to load profile data');
@@ -116,13 +127,13 @@ export default function ProfilePage() {
 
       if (!response.ok) throw new Error('Failed to update profile');
       
-      const updatedProfile = await response.json();
+      const { data } = await response.json();
       
-      if (updatedProfile.isProfileComplete) {
+      if (data) {
         toast.success('Profile updated successfully');
         router.push(returnTo);
       } else {
-        toast.error('Please fill in all required fields');
+        toast.error('Failed to update profile');
       }
     } catch (error) {
       console.error('Error updating profile:', error);

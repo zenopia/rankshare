@@ -1,6 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 
-export interface User {
+export interface BaseUser {
   _id: string;
   clerkId: string;
   username: string;
@@ -10,7 +10,8 @@ export interface User {
   dateOfBirth?: Date;
   gender?: 'male' | 'female' | 'other' | 'prefer-not-to-say';
   livingStatus?: 'single' | 'couple' | 'family' | 'shared' | 'other';
-  privacySettings?: {
+  isProfileComplete: boolean;
+  privacySettings: {
     showBio: boolean;
     showLocation: boolean;
     showDateOfBirth: boolean;
@@ -19,6 +20,11 @@ export interface User {
   };
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface User extends BaseUser {
+  // Additional fields that might be added by the application
+  isFollowing?: boolean;
 }
 
 export interface ProfileSection {
