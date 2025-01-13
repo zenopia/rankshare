@@ -1,66 +1,38 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import { TabNavigation, type TabItem } from "@/components/ui/tab-navigation";
 
 export function HomeTabs() {
-  const pathname = usePathname();
   const { isSignedIn } = useAuth();
   const router = useRouter();
   
-  const handleProtectedClick = (e: React.MouseEvent, path: string) => {
+  const handleProtectedClick = (path: string) => (e: React.MouseEvent) => {
     if (!isSignedIn) {
       e.preventDefault();
       router.push(`/sign-in?return_to=${path}`);
     }
   };
-  
-  return (
-    <div className="border-b bg-background">
-      <div className="px-4 md:px-6 lg:px-8">
-        <nav 
-          className="flex w-full -mb-px" 
-          aria-label="Tabs"
-        >
-          <Link
-            href="/"
-            className={cn(
-              "flex-1 px-3 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap text-center",
-              pathname === "/" 
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-            )}
-          >
-            Latest
-          </Link>
-          <Link
-            href="/pinned"
-            onClick={(e) => handleProtectedClick(e, '/pinned')}
-            className={cn(
-              "flex-1 px-3 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap text-center",
-              pathname === "/pinned"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-            )}
-          >
-            Pinned
-          </Link>
-          <Link
-            href="/my-lists"
-            onClick={(e) => handleProtectedClick(e, '/my-lists')}
-            className={cn(
-              "flex-1 px-3 py-3.5 text-sm font-medium border-b-2 whitespace-nowrap text-center",
-              pathname === "/my-lists"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-            )}
-          >
-            My Lists
-          </Link>
-        </nav>
-      </div>
-    </div>
-  );
+
+  const tabs: TabItem[] = [
+    {
+      label: "Latest",
+      href: "/",
+    },
+    {
+      label: "Pinned",
+      href: "/pinned",
+      isProtected: true,
+      onProtectedClick: handleProtectedClick('/pinned'),
+    },
+    {
+      label: "My Lists",
+      href: "/my-lists",
+      isProtected: true,
+      onProtectedClick: handleProtectedClick('/my-lists'),
+    },
+  ];
+
+  return <TabNavigation tabs={tabs} />;
 } 
