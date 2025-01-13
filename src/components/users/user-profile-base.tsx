@@ -1,0 +1,225 @@
+"use client";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { FollowButton } from "@/components/users/follow-button";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { MapPin, Calendar, Users } from "lucide-react";
+
+export interface UserProfileBaseProps {
+  // Core user data
+  userId: string;
+  username: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  imageUrl?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  dateOfBirth?: Date | null;
+  gender?: string | null;
+  livingStatus?: string | null;
+  privacySettings?: {
+    showBio?: boolean;
+    showLocation?: boolean;
+    showPersonalDetails?: boolean;
+  };
+  
+  // Display options
+  variant?: "full" | "card" | "compact";
+  hideFollow?: boolean;
+  isFollowing?: boolean;
+  showLocation?: boolean;
+  showStats?: boolean;
+  stats?: {
+    followers?: number;
+    following?: number;
+    lists?: number;
+  };
+  
+  // Additional options
+  className?: string;
+  linkToProfile?: boolean;
+  onClick?: () => void;
+}
+
+export function formatDisplayName(firstName: string | null | undefined, lastName: string | null | undefined, username: string): string {
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
+  return fullName || username;
+}
+
+function calculateAge(dateOfBirth: Date): number {
+  const today = new Date();
+  let age = today.getFullYear() - dateOfBirth.getFullYear();
+  const monthDiff = today.getMonth() - dateOfBirth.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())) {
+    age--;
+  }
+  
+  return age;
+}
+
+export function UserProfileBase({
+  userId,
+  username,
+  firstName,
+  lastName,
+  imageUrl,
+  bio,
+  location,
+  dateOfBirth,
+  gender,
+  livingStatus,
+  privacySettings,
+  variant = "card",
+  hideFollow = false,
+  isFollowing = false,
+  showLocation = true,
+  showStats = false,
+  stats,
+  className,
+  linkToProfile = true,
+  onClick,
+}: UserProfileBaseProps) {
+  const displayName = formatDisplayName(firstName, lastName, username);
+  
+  const content = (
+    <div className={cn(
+      "flex items-center gap-4",
+      variant === "full" && "flex-col w-full items-start sm:flex-row sm:items-center",
+      className
+    )}>
+      <Avatar className={cn(
+        "shrink-0",
+        variant === "full" ? "h-20 w-20" : "h-10 w-10",
+        variant === "compact" && "h-8 w-8"
+      )}>
+        <AvatarImage src={imageUrl || undefined} alt={displayName} />
+        <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
+      </Avatar>
+
+      <div className={cn(
+        "flex-1 min-w-0",
+        variant === "full" && "w-full"
+      )}>
+        {variant === "full" ? (
+          <>
+            <div className="flex items-start justify-between gap-4 mb-4 sm:mb-2">
+              <div>
+                <h2 className="text-2xl font-bold truncate">{displayName}</h2>
+                <p className="text-muted-foreground">@{username}</p>
+              </div>
+              {!hideFollow && (
+                <FollowButton
+                  userId={userId}
+                  isFollowing={isFollowing}
+                  variant="default"
+                />
+              )}
+            </div>
+            
+            {showStats && stats && (
+              <div className="flex gap-4 mt-2">
+                {stats.followers !== undefined && (
+                  <Link href={`/@${username}/followers`} className="text-sm">
+                    <span className="font-semibold">{stats.followers}</span>{" "}
+                    <span className="text-muted-foreground">Followers</span>
+                  </Link>
+                )}
+                {stats.following !== undefined && (
+                  <Link href={`/@${username}/following`} className="text-sm">
+                    <span className="font-semibold">{stats.following}</span>{" "}
+                    <span className="text-muted-foreground">Following</span>
+                  </Link>
+                )}
+                {stats.lists !== undefined && (
+                  <div className="text-sm">
+                    <span className="font-semibold">{stats.lists}</span>{" "}
+                    <span className="text-muted-foreground">Lists</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <div className="flex flex-wrap gap-4 mt-4 text-sm text-muted-foreground">
+              {showLocation && location && privacySettings?.showLocation && (
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  <span>{location}</span>
+                </div>
+              )}
+              {privacySettings?.showPersonalDetails && (
+                <>
+                  {livingStatus && (
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      <span className="capitalize">{livingStatus.replace('-', ' ')}</span>
+                    </div>
+                  )}
+                  {dateOfBirth && (
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      <span>{calculateAge(new Date(dateOfBirth))} years old</span>
+                    </div>
+                  )}
+                  {gender && gender !== 'prefer-not-to-say' && (
+                    <div className="flex items-center gap-1">
+                      <span className="capitalize">{gender}</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            
+            {bio && privacySettings?.showBio && (
+              <p className="mt-4 text-sm text-muted-foreground whitespace-pre-wrap">
+                {bio}
+              </p>
+            )}
+          </>
+        ) : (
+          <div>
+            <div className={cn(
+              "font-semibold truncate",
+              variant === "compact" && "text-sm"
+            )}>
+              {displayName}
+            </div>
+            <p className={cn(
+              "text-muted-foreground truncate",
+              variant === "compact" && "text-xs"
+            )}>
+              @{username}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {!hideFollow && variant !== "full" && (
+        <FollowButton
+          userId={userId}
+          isFollowing={isFollowing}
+          variant="outline"
+        />
+      )}
+    </div>
+  );
+
+  if (linkToProfile) {
+    return (
+      <Link
+        href={variant === "compact" ? "/profile" : `/@${username}`}
+        className={cn(
+          "block",
+          onClick && "cursor-pointer",
+          variant === "card" && "p-6 rounded-lg border bg-card hover:border-primary transition-colors"
+        )}
+        onClick={onClick}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
+} 

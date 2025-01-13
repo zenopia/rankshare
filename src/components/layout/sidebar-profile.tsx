@@ -1,8 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import Link from "next/link";
-import Image from "next/image";
+import { UserProfileBase } from "@/components/users/user-profile-base";
 
 interface SidebarProfileProps {
   collapsed: boolean;
@@ -15,28 +14,17 @@ export function SidebarProfile({ collapsed, onClick }: SidebarProfileProps) {
   if (!user) return null;
 
   return (
-    <Link 
-      href="/profile"
-      className="flex items-center gap-3 p-4 border-b transition-colors hover:bg-accent"
+    <UserProfileBase
+      userId={user.id}
+      username={user.username || ""}
+      firstName={user.firstName}
+      lastName={user.lastName}
+      imageUrl={user.imageUrl}
+      variant="compact"
+      hideFollow={true}
+      linkToProfile={true}
       onClick={onClick}
-    >
-      <Image
-        src={user.imageUrl}
-        alt={user.username || "Profile"}
-        width={32}
-        height={32}
-        className="rounded-full"
-      />
-      {!collapsed && (
-        <div className="flex flex-col min-w-0">
-          <span className="text-sm font-medium truncate">
-            {user.fullName || user.username}
-          </span>
-          <span className="text-xs text-muted-foreground truncate">
-            @{user.username}
-          </span>
-        </div>
-      )}
-    </Link>
+      className={collapsed ? "justify-center" : ""}
+    />
   );
 } 

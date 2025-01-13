@@ -25,9 +25,7 @@ const userSchema = new Schema<UserDocument>({
   privacySettings: {
     showBio: { type: Boolean, default: true },
     showLocation: { type: Boolean, default: true },
-    showDateOfBirth: { type: Boolean, default: false },
-    showGender: { type: Boolean, default: true },
-    showLivingStatus: { type: Boolean, default: true }
+    showPersonalDetails: { type: Boolean, default: false }
   }
 }, {
   timestamps: true

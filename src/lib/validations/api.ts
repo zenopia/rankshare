@@ -37,9 +37,7 @@ export const profileUpdateSchema = z.object({
   privacySettings: z.object({
     showBio: z.boolean(),
     showLocation: z.boolean(),
-    showDateOfBirth: z.boolean(),
-    showGender: z.boolean(),
-    showLivingStatus: z.boolean()
+    showPersonalDetails: z.boolean()
   }).optional()
 });
 

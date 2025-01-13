@@ -5,16 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
 
-interface FollowButtonProps {
+export interface FollowButtonProps {
   userId: string;
   isFollowing: boolean;
+  variant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive";
+  size?: "default" | "sm" | "lg" | "icon";
 }
 
-export function FollowButton({ userId, isFollowing: initialIsFollowing }: FollowButtonProps) {
+export function FollowButton({ 
+  userId, 
+  isFollowing: initialIsFollowing,
+  variant = "default",
+  size = "default"
+}: FollowButtonProps) {
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleClick = async () => {
+  const handleFollowClick = async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/users/${userId}/follow`, {
@@ -33,9 +40,10 @@ export function FollowButton({ userId, isFollowing: initialIsFollowing }: Follow
   };
 
   return (
-    <Button
-      variant={isFollowing ? "outline" : "default"}
-      onClick={handleClick}
+    <Button 
+      variant={isFollowing ? "outline" : variant}
+      size={size}
+      onClick={handleFollowClick}
       disabled={isLoading}
     >
       {isLoading ? 'Loading...' : (isFollowing ? (

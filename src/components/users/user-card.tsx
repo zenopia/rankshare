@@ -1,10 +1,7 @@
 "use client";
 
-import * as React from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FollowButton } from "@/components/users/follow-button";
-import Link from "next/link";
 import useSWR from "swr";
+import { UserProfileBase } from "@/components/users/user-profile-base";
 
 interface UserCardProps {
   userId: string;
@@ -29,34 +26,16 @@ export function UserCard({
 
   if (error || !user) return null;
 
-  const fullName = [user.firstName, user.lastName]
-    .filter(Boolean)
-    .join(' ');
-  
-  const displayName = fullName || user.username || '';
-
   return (
-    <div className="overflow-hidden rounded-lg border bg-card hover:border-primary transition-colors">
-      <div className="p-6">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={user.imageUrl || undefined} alt={displayName} />
-            <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <Link href={`/@${user.username}`} className="hover:underline">
-              <h3 className="font-semibold truncate">{displayName}</h3>
-              <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
-            </Link>
-          </div>
-          {!hideFollow && (
-            <FollowButton
-              userId={userId}
-              isFollowing={isFollowing}
-            />
-          )}
-        </div>
-      </div>
-    </div>
+    <UserProfileBase
+      userId={userId}
+      username={user.username}
+      firstName={user.firstName}
+      lastName={user.lastName}
+      imageUrl={user.imageUrl}
+      isFollowing={isFollowing}
+      hideFollow={hideFollow}
+      variant="card"
+    />
   );
 } 

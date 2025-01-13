@@ -14,9 +14,7 @@ export interface BaseUser {
   privacySettings: {
     showBio: boolean;
     showLocation: boolean;
-    showDateOfBirth: boolean;
-    showGender: boolean;
-    showLivingStatus: boolean;
+    showPersonalDetails: boolean;
   };
   createdAt: Date;
   updatedAt: Date;
