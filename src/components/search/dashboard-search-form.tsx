@@ -1,8 +1,7 @@
 "use client";
 
-import { SearchInput } from "@/components/search/search-input";
-import { FilterSheet } from "@/components/search/filter-sheet";
-import { ListCategory, ListPrivacyFilter } from "@/types/list";
+import { SearchControls } from "@/components/ui/search-controls";
+import type { ListCategory, ListPrivacyFilter } from "@/types/list";
 
 interface DashboardSearchFormProps {
   defaultValues?: {
@@ -15,19 +14,11 @@ interface DashboardSearchFormProps {
 
 export function DashboardSearchForm({ defaultValues }: DashboardSearchFormProps) {
   return (
-    <div className="flex flex-col sm:flex-row gap-4">
-      <div className="flex-1">
-        <SearchInput 
-          placeholder="Search your lists..."
-          defaultValue={defaultValues?.q}
-        />
-      </div>
-      <FilterSheet 
-        defaultCategory={defaultValues?.category}
-        defaultSort={defaultValues?.sort}
-        defaultPrivacy={defaultValues?.privacy}
-        showPrivacyFilter={true}
-      />
-    </div>
+    <SearchControls
+      defaultValues={defaultValues}
+      placeholder="Search your lists..."
+      showPrivacyFilter={true}
+      useUrlParams={true}
+    />
   );
 } 
