@@ -6,6 +6,7 @@ import type { MongoListDocument } from "@/types/mongodb";
 import type { ItemProperty } from "@/types/list";
 import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
 import { ObjectId } from "mongodb";
+import { SubLayout } from "@/components/layout/sub-layout";
 
 interface EditListPageProps {
   params: { id: string };
@@ -55,14 +56,14 @@ export default async function EditListPage({ params }: EditListPageProps) {
     };
 
     return (
-      <div className="container max-w-3xl py-8">
+      <SubLayout title="Edit List">
         <ErrorBoundaryWrapper>
           <ListFormContent 
             initialData={serializedList} 
             mode="edit" 
           />
         </ErrorBoundaryWrapper>
-      </div>
+      </SubLayout>
     );
   } catch (error) {
     console.error('Error loading list:', error);

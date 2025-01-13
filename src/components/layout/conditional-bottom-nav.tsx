@@ -11,7 +11,7 @@ export function ConditionalBottomNav() {
   // Consider these paths as "home" routes
   const isHomeRoute = ['/', '/pinned', '/my-lists'].includes(pathname);
 
-  // Hide bottom nav on list view pages and other pages with their own bottom nav
+  // Hide bottom nav on list view pages, profile, and other pages with their own bottom nav
   if (pathname.startsWith('/lists/') || pathname === '/profile') return null;
 
   return (
