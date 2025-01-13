@@ -1,27 +1,29 @@
+import withPWA from 'next-pwa';
+
+const pwaConfig = withPWA({
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development'
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  experimental: {
-    webpackBuildWorker: false,
-  },
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'img.clerk.com',
+        hostname: 'img.clerk.com'
       },
       {
         protocol: 'https',
-        hostname: 'images.clerk.dev',
+        hostname: 'images.clerk.dev'
       }
-    ],
+    ]
+  },
+  experimental: {
+    webpackBuildWorker: false
   }
 };
 
-module.exports = nextConfig; 
+export default pwaConfig(nextConfig); 
