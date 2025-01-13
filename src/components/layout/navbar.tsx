@@ -79,16 +79,7 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center">
-            {isSignedIn ? (
-              <UserNav />
-            ) : (
-              <Link
-                href="/sign-in"
-                className="text-sm font-medium hover:text-primary"
-              >
-                Sign In
-              </Link>
-            )}
+            <UserNav />
           </div>
         </div>
       </div>

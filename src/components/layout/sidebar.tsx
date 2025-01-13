@@ -129,7 +129,7 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
 
           return (
             <Link
-              key={`${item.href}-${index}`}
+              key={item.title.toLowerCase()}
               href={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
