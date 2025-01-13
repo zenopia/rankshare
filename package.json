@@ -4,14 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
     "start": "next start -p $PORT",
     "lint": "next lint",
     "format": "prettier --write .",
     "analyze": "ANALYZE=true next build",
-    "deploy": "npm run build && pm2 reload curate",
-    "deploy:dev": "npm run build && pm2 reload curate-dev",
-    "deploy:logs": "pm2 logs curate",
+    "deploy": "npm run build && pm2 reload curate.fileopia.com",
+    "deploy:dev": "npm run build && pm2 reload curate-dev.fileopia.com",
+    "deploy:logs": "pm2 logs",
     "deploy:monitor": "pm2 monit"
   },
   "dependencies": {
