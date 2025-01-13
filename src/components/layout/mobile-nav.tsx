@@ -160,10 +160,15 @@ export function MobileNav() {
           <SheetDescription>Access all areas of the application</SheetDescription>
         </SheetHeader>
 
-        {isSignedIn && <SidebarProfile collapsed={false} onClick={handleClose} />}
+        {isSignedIn && (
+          <>
+            <SidebarProfile collapsed={false} onClick={handleClose} />
+            <div className="h-px bg-border my-4" />
+          </>
+        )}
 
         <nav 
-          className="flex flex-col space-y-4 mt-4"
+          className="flex flex-col space-y-4"
           aria-label="Mobile navigation"
         >
           {mobileOnlyNavItems.map((item, index) =>

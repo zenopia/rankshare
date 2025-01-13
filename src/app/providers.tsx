@@ -17,6 +17,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           footer: "hidden",
         }
       }}
+      navigate={(to) => window.location.href = to}
     >
       <SWRConfig 
         value={{
