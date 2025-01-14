@@ -10,9 +10,10 @@ export type ListCategory =
   | "other";
 
 export type ListPrivacy = "public" | "private";
-export type ListPrivacyFilter = ListPrivacy | "all";
+export type ListPrivacyFilter = ListPrivacy | "shared" | "all";
 export type ListSortOption = "newest" | "oldest" | "most-viewed" | "least-viewed";
 export type CollaboratorRole = "owner" | "admin" | "editor" | "viewer";
+export type OwnerFilter = "all" | "mine" | "others";
 
 export interface ItemProperty {
   id: string;
@@ -96,10 +97,10 @@ export const LIST_CATEGORIES: { label: string; value: ListCategory }[] = [
 ];
 
 // Helper constant for privacy options (including 'all' for filtering)
-export const PRIVACY_OPTIONS: { label: string; value: ListPrivacy | 'all' }[] = [
+export const PRIVACY_OPTIONS: { label: string; value: ListPrivacyFilter }[] = [
+  { label: "All Lists", value: "all" },
   { label: "Public", value: "public" },
   { label: "Private", value: "private" },
-  { label: "All", value: "all" },
 ];
 
 // New constant for create/edit form privacy options
@@ -133,4 +134,11 @@ export const COLLABORATOR_ROLES: { label: string; value: CollaboratorRole }[] = 
   { label: "Admin", value: "admin" },
   { label: "Editor", value: "editor" },
   { label: "Viewer", value: "viewer" },
+];
+
+// Helper constant for owner filter options on collab page
+export const OWNER_FILTER_OPTIONS: { label: string; value: OwnerFilter }[] = [
+  { label: "All Lists", value: "all" },
+  { label: "My Lists", value: "mine" },
+  { label: "Others' Lists", value: "others" },
 ];

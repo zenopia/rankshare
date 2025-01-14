@@ -7,7 +7,7 @@ import { serializeLists } from '@/lib/utils';
 import { HomeTabs } from "@/components/home/home-tabs";
 import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/types/mongodb";
 import { ensureUserExists } from "@/lib/actions/user";
-import type { ListCategory, ListPrivacyFilter } from "@/types/list";
+import type { ListCategory, ListPrivacyFilter, OwnerFilter } from "@/types/list";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
 import { MainLayout } from "@/components/layout/main-layout";
 
@@ -15,48 +15,78 @@ interface SearchParams {
   q?: string;
   category?: ListCategory;
   sort?: 'newest' | 'oldest' | 'most-viewed';
-  privacy?: ListPrivacyFilter;
+  owner?: OwnerFilter;
 }
 
 export const revalidate = 30; // Revalidate every 30 seconds
 
-export default async function MyListsPage({
+export default async function CollabPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
   const { userId } = auth();
+  if (!userId) return null;
 
   await dbConnect();
   await ensureUserExists();
 
-  // Build filter
-  let filter: MongoListFilter = {};
+  // Build filter to show lists that have collaborators where user is owner or collaborator
+  let filter: MongoListFilter = {
+    $and: [
+      // Must have at least one accepted collaborator
+      { 'collaborators.status': 'accepted' },
+      // User must be owner or collaborator
+      {
+        $or: [
+          { ownerId: userId },
+          {
+            'collaborators.userId': userId,
+            'collaborators.status': 'accepted'
+          }
+        ]
+      }
+    ]
+  };
 
-  if (searchParams.privacy === 'shared') {
-    // Show lists where user is a collaborator but not the owner
-    filter = {
-      ownerId: { $ne: userId },
-      'collaborators.userId': userId,
-      'collaborators.status': 'accepted'
-    };
-  } else {
-    // Show lists owned by the user
-    filter = { ownerId: userId };
-    if (searchParams.privacy && searchParams.privacy !== 'all') {
-      filter.privacy = searchParams.privacy;
-    }
-  }
-
+  // Add search filter if query exists
   if (searchParams.q) {
-    filter.$or = [
-      { title: { $regex: searchParams.q, $options: 'i' } },
-      { description: { $regex: searchParams.q, $options: 'i' } },
-    ];
+    filter.$and?.push({
+      $or: [
+        { title: { $regex: searchParams.q, $options: 'i' } },
+        { description: { $regex: searchParams.q, $options: 'i' } }
+      ]
+    });
   }
 
+  // Add category filter if specified
   if (searchParams.category) {
     filter.category = searchParams.category;
+  }
+
+  // Add owner filter if specified
+  if (searchParams.owner && searchParams.owner !== 'all') {
+    if (searchParams.owner === 'mine') {
+      // Show only lists where user is the owner
+      filter = {
+        $and: [
+          { 'collaborators.status': 'accepted' },
+          { ownerId: userId }
+        ]
+      };
+    } else if (searchParams.owner === 'others') {
+      // Show only lists where user is a collaborator but not the owner
+      filter = {
+        $and: [
+          { 'collaborators.status': 'accepted' },
+          {
+            ownerId: { $ne: userId },
+            'collaborators.userId': userId,
+            'collaborators.status': 'accepted'
+          }
+        ]
+      };
+    }
   }
 
   // Build sort
@@ -92,7 +122,8 @@ export default async function MyListsPage({
               defaultQuery={searchParams.q}
               defaultCategory={searchParams.category}
               defaultSort={searchParams.sort}
-              defaultPrivacy={searchParams.privacy}
+              defaultOwner={searchParams.owner}
+              showOwnerFilter
             />
 
             {serializedLists.length > 0 ? (
@@ -107,7 +138,7 @@ export default async function MyListsPage({
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No lists found.</p>
+                <p className="text-muted-foreground">No collaborative lists found.</p>
               </div>
             )}
           </div>

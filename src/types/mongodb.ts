@@ -14,19 +14,29 @@ export interface MongoDocument extends Document {
   __v?: number;
 }
 
+interface MongoListFilterCondition {
+  title?: { $regex: string; $options: string };
+  description?: { $regex: string; $options: string };
+  ownerName?: { $regex: string; $options: string };
+  'items.title'?: { $regex: string; $options: string };
+  'items.comment'?: { $regex: string; $options: string };
+  ownerId?: string | { $ne: string };
+  'collaborators.userId'?: string;
+  'collaborators.status'?: string;
+  privacy?: ListPrivacy;
+  category?: ListCategory;
+}
+
 export interface MongoListFilter {
-  ownerId?: string;
+  ownerId?: string | { $ne: string };
   privacy?: ListPrivacy;
   category?: ListCategory;
   $text?: { $search: string };
-  $or?: Array<{
-    title?: { $regex: string; $options: string };
-    description?: { $regex: string; $options: string };
-    ownerName?: { $regex: string; $options: string };
-    'items.title'?: { $regex: string; $options: string };
-    'items.comment'?: { $regex: string; $options: string };
-  }>;
+  $or?: MongoListFilterCondition[];
+  $and?: (MongoListFilterCondition | { $or?: MongoListFilterCondition[] })[];
   _id?: { $in: string[] };
+  'collaborators.userId'?: string;
+  'collaborators.status'?: string;
 }
 
 export interface MongoListDocument extends Omit<ListDocument, '_id'> {

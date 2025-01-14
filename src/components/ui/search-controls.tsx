@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { SearchInput } from "@/components/search/search-input";
 import { FilterSheet } from "@/components/search/filter-sheet";
-import type { ListCategory, ListPrivacy } from "@/types/list";
+import type { ListCategory, ListPrivacyFilter, OwnerFilter } from "@/types/list";
 import { cn } from "@/lib/utils";
 
 interface SearchControlsProps {
@@ -11,11 +11,13 @@ interface SearchControlsProps {
     q?: string;
     category?: ListCategory;
     sort?: string;
-    privacy?: ListPrivacy | 'all';
+    privacy?: ListPrivacyFilter;
+    owner?: OwnerFilter;
   };
   placeholder?: string;
   hideSearch?: boolean;
   showPrivacyFilter?: boolean;
+  showOwnerFilter?: boolean;
   className?: string;
   searchInputClassName?: string;
   useUrlParams?: boolean;
@@ -26,6 +28,7 @@ export function SearchControls({
   placeholder = "Search...",
   hideSearch = false,
   showPrivacyFilter = false,
+  showOwnerFilter = false,
   className,
   searchInputClassName,
   useUrlParams = false,
@@ -37,7 +40,8 @@ export function SearchControls({
     q: searchParams?.get('q') ?? defaultValues?.q,
     category: (searchParams?.get('category') as ListCategory) ?? defaultValues?.category,
     sort: searchParams?.get('sort') ?? defaultValues?.sort,
-    privacy: (searchParams?.get('privacy') as ListPrivacy | 'all') ?? defaultValues?.privacy,
+    privacy: (searchParams?.get('privacy') as ListPrivacyFilter) ?? defaultValues?.privacy,
+    owner: (searchParams?.get('owner') as OwnerFilter) ?? defaultValues?.owner,
   } : defaultValues;
 
   return (
@@ -58,7 +62,9 @@ export function SearchControls({
         defaultCategory={values?.category}
         defaultSort={values?.sort}
         defaultPrivacy={values?.privacy}
+        defaultOwner={values?.owner}
         showPrivacyFilter={showPrivacyFilter}
+        showOwnerFilter={showOwnerFilter}
       />
     </div>
   );

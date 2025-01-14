@@ -7,21 +7,25 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { LIST_CATEGORIES, LIST_PRIVACY_OPTIONS } from "@/types/list";
-import type { ListPrivacy } from "@/types/list";
+import { LIST_CATEGORIES, PRIVACY_OPTIONS, OWNER_FILTER_OPTIONS } from "@/types/list";
+import type { ListPrivacy, ListPrivacyFilter, OwnerFilter } from "@/types/list";
 
 interface FilterSheetProps {
   defaultCategory?: string;
   defaultSort?: string;
-  defaultPrivacy?: ListPrivacy | 'all';
+  defaultPrivacy?: ListPrivacyFilter;
+  defaultOwner?: OwnerFilter;
   showPrivacyFilter?: boolean;
+  showOwnerFilter?: boolean;
 }
 
 export function FilterSheet({ 
   defaultCategory, 
   defaultSort,
   defaultPrivacy,
-  showPrivacyFilter = false
+  defaultOwner,
+  showPrivacyFilter = false,
+  showOwnerFilter = false
 }: FilterSheetProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -56,6 +60,17 @@ export function FilterSheet({
       params.delete("privacy");
     } else {
       params.set("privacy", value);
+    }
+    router.push(`${pathname}?${params.toString()}`);
+    setIsOpen(false);
+  };
+
+  const handleOwnerChange = (value: string) => {
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    if (value === "all") {
+      params.delete("owner");
+    } else {
+      params.set("owner", value);
     }
     router.push(`${pathname}?${params.toString()}`);
     setIsOpen(false);
@@ -138,14 +153,28 @@ export function FilterSheet({
                   onValueChange={handlePrivacyChange}
                   className="space-y-3"
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="all" id="privacy-all" />
-                    <Label htmlFor="privacy-all" className="text-sm">All</Label>
-                  </div>
-                  {LIST_PRIVACY_OPTIONS.map((option) => (
+                  {PRIVACY_OPTIONS.map((option) => (
                     <div key={option.value} className="flex items-center space-x-2">
                       <RadioGroupItem value={option.value} id={`privacy-${option.value}`} />
                       <Label htmlFor={`privacy-${option.value}`} className="text-sm">{option.label}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+            )}
+
+            {showOwnerFilter && (
+              <div>
+                <h4 className="mb-4 text-sm font-medium">Owner</h4>
+                <RadioGroup
+                  defaultValue="all"
+                  onValueChange={handleOwnerChange}
+                  className="space-y-3"
+                >
+                  {OWNER_FILTER_OPTIONS.map((option) => (
+                    <div key={option.value} className="flex items-center space-x-2">
+                      <RadioGroupItem value={option.value} id={`owner-${option.value}`} />
+                      <Label htmlFor={`owner-${option.value}`} className="text-sm">{option.label}</Label>
                     </div>
                   ))}
                 </RadioGroup>

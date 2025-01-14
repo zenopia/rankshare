@@ -32,6 +32,12 @@ export function HomeTabs() {
       isProtected: true,
       onProtectedClick: handleProtectedClick('/my-lists'),
     },
+    {
+      label: "Collab",
+      href: "/collab",
+      isProtected: true,
+      onProtectedClick: handleProtectedClick('/collab'),
+    },
   ];
 
   return <TabNavigation tabs={tabs} />;
