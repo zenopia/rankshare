@@ -9,6 +9,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function isValidEmail(email: string) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
 export function serializeList(list: ListDocument): List {
   const plainList = JSON.parse(JSON.stringify(list));
 

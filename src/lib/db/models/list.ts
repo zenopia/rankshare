@@ -1,7 +1,7 @@
 import type { Document, UpdateQuery, SchemaOptions } from 'mongoose';
 import { Schema, model, models } from 'mongoose';
 import type { ToObjectOptions } from 'mongoose';
-import { LIST_CATEGORIES } from '@/types/list';
+import { LIST_CATEGORIES, COLLABORATOR_ROLES } from '@/types/list';
 
 // Define the document interface
 interface ListDoc extends Document {
@@ -29,6 +29,14 @@ interface ListDoc extends Document {
   lastEditedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  collaborators: Array<{
+    userId: string;
+    email: string;
+    role: string;
+    status: string;
+    invitedAt: Date;
+    acceptedAt: Date;
+  }>;
 }
 
 const schemaOptions: SchemaOptions<ListDoc> = {
@@ -60,6 +68,36 @@ const itemSchema = new Schema({
     value: String
   }],
   rank: { type: Number, required: true }
+});
+
+const collaboratorSchema = new Schema({
+  userId: {
+    type: String,
+    required: false,
+  },
+  email: {
+    type: String,
+    required: false,
+  },
+  role: {
+    type: String,
+    required: true,
+    enum: COLLABORATOR_ROLES.map(role => role.value),
+  },
+  status: {
+    type: String,
+    required: true,
+    enum: ['pending', 'accepted'],
+    default: 'pending',
+  },
+  invitedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  acceptedAt: {
+    type: Date,
+    required: false,
+  },
 });
 
 const listSchema = new Schema({
@@ -112,6 +150,7 @@ const listSchema = new Schema({
     required: false,
     default: undefined
   },
+  collaborators: [collaboratorSchema],
 }, schemaOptions);
 
 // Update middleware to ensure lastEditedAt is set only on content updates
@@ -138,6 +177,10 @@ listSchema.pre(['findOneAndUpdate'], function(next) {
   
   next();
 });
+
+// Add index for faster collaborator lookups
+listSchema.index({ 'collaborators.userId': 1 });
+listSchema.index({ 'collaborators.email': 1 });
 
 // Export as ListModel to match imports across the application
 export const ListModel = models.List || model('List', listSchema);

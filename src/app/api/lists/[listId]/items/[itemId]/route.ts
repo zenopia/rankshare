@@ -5,7 +5,7 @@ import dbConnect from "@/lib/db/mongodb";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string; itemId: string } }
+  { params }: { params: { listId: string; itemId: string } }
 ) {
   try {
     const { userId } = await auth();
@@ -18,7 +18,7 @@ export async function PATCH(
 
     const list = await ListModel.findOneAndUpdate(
       { 
-        _id: params.id,
+        _id: params.listId,
         ownerId: userId,
         "items.rank": parseInt(params.itemId)
       },

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { listId: string } }
 ) {
   try {
     const { userId } = auth();
@@ -21,7 +21,7 @@ export async function POST(
     // Check if pin already exists
     const existingPin = await PinModel.findOne({
       userId,
-      listId: params.id
+      listId: params.listId
     });
 
     if (existingPin) {
@@ -31,13 +31,13 @@ export async function POST(
     // Create new pin
     const pin = await PinModel.create({
       userId,
-      listId: params.id,
+      listId: params.listId,
       lastViewedAt: new Date()
     });
 
     // Increment pin count on list
     await ListModel.findByIdAndUpdate(
-      params.id,
+      params.listId,
       { $inc: { totalPins: 1 } },
       { timestamps: false }
     );
@@ -51,7 +51,7 @@ export async function POST(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { listId: string } }
 ) {
   try {
     const { userId } = auth();
@@ -64,7 +64,7 @@ export async function DELETE(
     // Delete pin
     const result = await PinModel.findOneAndDelete({
       userId,
-      listId: params.id
+      listId: params.listId
     });
 
     if (!result) {
@@ -73,7 +73,7 @@ export async function DELETE(
 
     // Decrement pin count on list
     await ListModel.findByIdAndUpdate(
-      params.id,
+      params.listId,
       { $inc: { totalPins: -1 } },
       { timestamps: false }
     );

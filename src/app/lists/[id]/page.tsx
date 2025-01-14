@@ -89,6 +89,7 @@ export default async function ListPage({ params }: ListPageProps) {
           isPinned={serializedList.isPinned}
           isFollowing={!!followStatus}
           isAuthenticated={!!userId}
+          currentUserId={userId}
         />
       </SubLayout>
     );

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { listId: string } }
 ) {
   try {
     const { userId } = auth();
@@ -19,7 +19,7 @@ export async function POST(
     await dbConnect();
     
     // Get the original list
-    const originalList = await ListModel.findById(params.id).lean() as MongoListDocument;
+    const originalList = await ListModel.findById(params.listId).lean() as MongoListDocument;
     if (!originalList) {
       return new NextResponse("List not found", { status: 404 });
     }
@@ -39,7 +39,7 @@ export async function POST(
 
     // Increment copy count on original list
     await ListModel.findByIdAndUpdate(
-      params.id,
+      params.listId,
       { $inc: { totalCopies: 1 } },
       { timestamps: false }
     );

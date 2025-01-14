@@ -12,6 +12,7 @@ export type ListCategory =
 export type ListPrivacy = "public" | "private";
 export type ListPrivacyFilter = ListPrivacy | "all";
 export type ListSortOption = "newest" | "oldest" | "most-viewed" | "least-viewed";
+export type CollaboratorRole = "owner" | "admin" | "editor" | "viewer";
 
 export interface ItemProperty {
   id: string;
@@ -35,6 +36,17 @@ export interface ListItem {
   rank: number;
 }
 
+export interface ListCollaborator {
+  _id: string;  // MongoDB ID
+  userId?: string;  // Optional for email-only invites
+  email?: string;   // Optional if user exists
+  imageUrl?: string; // User's avatar URL
+  role: CollaboratorRole;
+  status: "pending" | "accepted";
+  invitedAt: Date;
+  acceptedAt?: Date;
+}
+
 export interface List {
   id: string;
   ownerId: string;
@@ -52,6 +64,7 @@ export interface List {
   createdAt: Date;
   updatedAt: Date;
   lastEditedAt?: Date;
+  collaborators?: ListCollaborator[];
 }
 
 // Separate MongoDB item type to handle _id
@@ -113,3 +126,11 @@ export interface ListFilters {
   privacy?: ListPrivacyFilter;
   sort?: ListSortOption;
 }
+
+// Helper constant for collaborator roles
+export const COLLABORATOR_ROLES: { label: string; value: CollaboratorRole }[] = [
+  { label: "Owner", value: "owner" },
+  { label: "Admin", value: "admin" },
+  { label: "Editor", value: "editor" },
+  { label: "Viewer", value: "viewer" },
+];

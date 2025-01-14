@@ -6,77 +6,76 @@ import { ApiError } from "@/lib/errors";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { listId: string } }
 ) {
   try {
     const { userId } = auth();
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 }) as NextResponse;
     }
 
     await dbConnect();
 
     // Find the list and verify ownership
-    const list = await ListModel.findById(params.id);
+    const list = await ListModel.findById(params.listId);
     if (!list) {
-      return new NextResponse("List not found", { status: 404 });
+      return NextResponse.json({ error: "List not found" }, { status: 404 }) as NextResponse;
     }
 
     if (list.ownerId !== userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 }) as NextResponse;
     }
 
     // Delete the list
-    await ListModel.findByIdAndDelete(params.id);
+    await ListModel.findByIdAndDelete(params.listId);
 
-    return new NextResponse(null, { status: 204 });
+    return NextResponse.json(null, { status: 204 }) as NextResponse;
   } catch (error) {
     console.error('Error deleting list:', error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 }) as NextResponse;
   }
 }
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { listId: string } }
 ) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      throw new ApiError("Unauthorized", 401);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 }) as NextResponse;
     }
 
     await dbConnect();
     const data = await request.json();
     
-    const list = await ListModel.findById(params.id);
+    const list = await ListModel.findById(params.listId);
     if (!list) {
-      throw new ApiError("List not found", 404);
+      return NextResponse.json({ error: "List not found" }, { status: 404 }) as NextResponse;
     }
 
     if (list.ownerId !== userId) {
-      throw new ApiError("Unauthorized", 401);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 }) as NextResponse;
     }
 
     const updatedList = await ListModel.findByIdAndUpdate(
-      params.id,
+      params.listId,
       { $set: { ...data, lastEditedAt: new Date() } },
       { new: true, runValidators: true }
     );
 
-    return NextResponse.json(updatedList);
+    return NextResponse.json(updatedList) as NextResponse;
   } catch (err: unknown) {
     if (err instanceof ApiError) {
-      const apiError = err as ApiError;
       return NextResponse.json(
-        { error: apiError.message },
-        { status: apiError.status }
-      );
+        { error: err.message },
+        { status: err.status }
+      ) as NextResponse;
     }
     const message = err instanceof Error ? err.message : "Internal server error";
     return NextResponse.json(
       { error: message },
       { status: 500 }
-    );
+    ) as NextResponse;
   }
 } 

@@ -10,6 +10,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ItemCard } from "@/components/items/item-card";
 import { UserCard } from "@/components/users/user-card";
 import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
+import { CollaboratorManagement } from "@/components/lists/collaborator-management";
+import { useState } from "react";
 
 interface ListViewProps {
   list: List;
@@ -17,10 +19,21 @@ interface ListViewProps {
   isPinned: boolean;
   isFollowing: boolean;
   isAuthenticated: boolean;
+  currentUserId?: string | null;
   children?: React.ReactNode;
 }
 
-export function ListView({ list, isOwner, isPinned, isFollowing, isAuthenticated, children }: ListViewProps) {
+export function ListView({ list, isOwner, isPinned, isFollowing, isAuthenticated, currentUserId, children }: ListViewProps) {
+  const [privacy, setPrivacy] = useState(list.privacy);
+  
+  const isAdmin = Boolean(list.collaborators?.some(
+    c => c.userId === list.ownerId && c.role === "admin" && c.status === "accepted"
+  ));
+  
+  const isCollaborator = Boolean(list.collaborators?.some(
+    c => c.userId === currentUserId && c.status === "accepted"
+  ));
+
   return (
     <ErrorBoundaryWrapper>
       <div className="container max-w-7xl mx-auto px-0 md:px-6 lg:px-8 pb-14 space-y-8">
@@ -47,6 +60,15 @@ export function ListView({ list, isOwner, isPinned, isFollowing, isAuthenticated
                   />
                   {list.privacy === 'private' && (
                     <Lock className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  {isAuthenticated && (isOwner || isCollaborator) && (
+                    <CollaboratorManagement
+                      listId={list.id}
+                      isOwner={isOwner}
+                      isAdmin={isAdmin}
+                      privacy={privacy}
+                      onPrivacyChange={setPrivacy}
+                    />
                   )}
                 </div>
               </div>
