@@ -12,6 +12,7 @@ interface ListSearchControlsProps {
   defaultOwner?: OwnerFilter;
   hideSearch?: boolean;
   showOwnerFilter?: boolean;
+  showPrivacyFilter?: boolean;
   className?: string;
 }
 
@@ -23,6 +24,7 @@ export function ListSearchControls({
   defaultOwner,
   hideSearch = false,
   showOwnerFilter = false,
+  showPrivacyFilter = true,
   className,
 }: ListSearchControlsProps) {
   return (
@@ -36,7 +38,7 @@ export function ListSearchControls({
       }}
       placeholder="Search your lists..."
       hideSearch={hideSearch}
-      showPrivacyFilter={true}
+      showPrivacyFilter={showPrivacyFilter}
       showOwnerFilter={showOwnerFilter}
       className={className}
       useUrlParams={true}

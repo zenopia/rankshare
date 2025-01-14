@@ -27,7 +27,7 @@ export function ListView({ list, isOwner, isPinned, isFollowing, isAuthenticated
   const [privacy, setPrivacy] = useState(list.privacy);
   
   const isAdmin = Boolean(list.collaborators?.some(
-    c => c.userId === list.ownerId && c.role === "admin" && c.status === "accepted"
+    c => c.userId === currentUserId && c.role === "admin" && c.status === "accepted"
   ));
   
   const isCollaborator = Boolean(list.collaborators?.some(

@@ -123,7 +123,8 @@ export default async function CollabPage({
               defaultCategory={searchParams.category}
               defaultSort={searchParams.sort}
               defaultOwner={searchParams.owner}
-              showOwnerFilter
+              showOwnerFilter={true}
+              showPrivacyFilter={false}
             />
 
             {serializedLists.length > 0 ? (

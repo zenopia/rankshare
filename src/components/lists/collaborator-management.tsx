@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useUser } from '@clerk/nextjs';
 import { Search, Globe, Lock, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ import useSWR from 'swr';
 import { cn } from '@/lib/utils';
 import { isValidEmail } from '@/lib/utils';
 import { getListCollaborators, addListCollaborator, updateCollaboratorRole, removeListCollaborator, updateListPrivacy } from '@/lib/api/lists';
-import { CollaboratorRole, ListCollaborator, COLLABORATOR_ROLES, ListPrivacy } from '@/types/list';
+import { CollaboratorRole, ListCollaborator, ListPrivacy } from '@/types/list';
 
 interface UserProfile {
   id: string;
@@ -52,7 +51,6 @@ interface CollaboratorManagementProps {
 }
 
 export function CollaboratorManagement({ listId, isOwner, isAdmin, privacy, onPrivacyChange }: CollaboratorManagementProps) {
-  const { user } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<SelectedUser[]>([]);
@@ -153,7 +151,7 @@ export function CollaboratorManagement({ listId, isOwner, isAdmin, privacy, onPr
     }
   };
 
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+  const handleBlur = () => {
     setTimeout(() => {
       setIsFocused(false);
     }, 200);
@@ -215,7 +213,7 @@ export function CollaboratorManagement({ listId, isOwner, isAdmin, privacy, onPr
           </div>
 
           <div className="space-y-4">
-            {/* Privacy selector */}
+            {/* Privacy section - show to all but make it read-only for non-admin/owner */}
             <div className="flex flex-col gap-2">
               <h3 className="text-sm font-medium">General access</h3>
               <div className="flex items-start gap-3">
@@ -225,14 +223,20 @@ export function CollaboratorManagement({ listId, isOwner, isAdmin, privacy, onPr
                   <Globe className="h-4 w-4 mt-2" />
                 )}
                 <div className="flex-1">
-                  <select
-                    value={privacy}
-                    onChange={(e) => handlePrivacyChange(e.target.value as ListPrivacy)}
-                    className="w-full bg-transparent text-sm mb-1"
-                  >
-                    <option value="private">Restricted</option>
-                    <option value="public">Anyone with the link</option>
-                  </select>
+                  {(isOwner || isAdmin) ? (
+                    <select
+                      value={privacy}
+                      onChange={(e) => handlePrivacyChange(e.target.value as ListPrivacy)}
+                      className="w-full bg-transparent text-sm mb-1"
+                    >
+                      <option value="private">Restricted</option>
+                      <option value="public">Anyone with the link</option>
+                    </select>
+                  ) : (
+                    <div className="text-sm mb-1">
+                      {privacy === 'private' ? 'Restricted' : 'Anyone with the link'}
+                    </div>
+                  )}
                   <span className="text-xs text-muted-foreground">
                     {privacy === 'private' 
                       ? "Only people with access can open with the link"
@@ -246,71 +250,73 @@ export function CollaboratorManagement({ listId, isOwner, isAdmin, privacy, onPr
             {/* Divider */}
             <div className="h-[1px] bg-border" />
 
-            {/* Search input */}
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 shrink-0 text-muted-foreground" />
-              <Input
-                placeholder="Add people I follow or email invite"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={handleBlur}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && isEmail) {
-                    handleEmailSubmit();
-                  }
-                }}
-                className="pl-9"
-              />
-              {(isFocused || searchTerm.length > 0) && (
-                <div className="absolute w-full mt-1 bg-background border rounded-md shadow-md search-dropdown z-50">
-                  <ScrollArea className="max-h-[350px]">
-                    <div className="p-2">
-                      {!filteredUsers?.length && !isEmail ? (
-                        <div className="py-6 text-center text-sm text-muted-foreground">
-                          No users found
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          {isEmail && (
-                            <button
-                              onClick={handleEmailSubmit}
-                              className="w-full flex items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                            >
-                              <div className="flex flex-col items-start">
-                                <span>Invite "{searchTerm}"</span>
-                                <span className="text-xs text-muted-foreground">Send invitation email</span>
-                              </div>
-                            </button>
-                          )}
-                          {filteredUsers?.map((user) => (
-                            <button
-                              key={user.clerkId}
-                              onClick={() => {
-                                handleSelect(user);
-                                setIsFocused(false);
-                              }}
-                              className="w-full flex items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                            >
-                              <UserProfileBase
-                                userId={user.clerkId}
-                                username={user.username}
-                                firstName={user.firstName}
-                                lastName={user.lastName}
-                                imageUrl={user.imageUrl}
-                                variant="compact"
-                                hideFollow
-                                linkToProfile={false}
-                              />
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </div>
-              )}
-            </div>
+            {/* Search input - only show for owner/admin */}
+            {(isOwner || isAdmin) && (
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 shrink-0 text-muted-foreground" />
+                <Input
+                  placeholder="Add people I follow or email invite"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={handleBlur}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && isEmail) {
+                      handleEmailSubmit();
+                    }
+                  }}
+                  className="pl-9"
+                />
+                {(isFocused || searchTerm.length > 0) && (
+                  <div className="absolute w-full mt-1 bg-background border rounded-md shadow-md search-dropdown z-50">
+                    <ScrollArea className="max-h-[350px]">
+                      <div className="p-2">
+                        {!filteredUsers?.length && !isEmail ? (
+                          <div className="py-6 text-center text-sm text-muted-foreground">
+                            No users found
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {isEmail && (
+                              <button
+                                onClick={handleEmailSubmit}
+                                className="w-full flex items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                              >
+                                <div className="flex flex-col items-start">
+                                  <span>Invite &quot;{searchTerm}&quot;</span>
+                                  <span className="text-xs text-muted-foreground">Send invitation email</span>
+                                </div>
+                              </button>
+                            )}
+                            {filteredUsers?.map((user) => (
+                              <button
+                                key={user.clerkId}
+                                onClick={() => {
+                                  handleSelect(user);
+                                  setIsFocused(false);
+                                }}
+                                className="w-full flex items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                              >
+                                <UserProfileBase
+                                  userId={user.clerkId}
+                                  username={user.username}
+                                  firstName={user.firstName}
+                                  lastName={user.lastName}
+                                  imageUrl={user.imageUrl}
+                                  variant="compact"
+                                  hideFollow
+                                  linkToProfile={false}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
+              </div>
+            )}
 
             {selectedUsers.length > 0 && (
               <div className="mt-4 space-y-2">
@@ -344,7 +350,7 @@ export function CollaboratorManagement({ listId, isOwner, isAdmin, privacy, onPr
                       </div>
                       {user.isOwner ? (
                         <span className="text-sm text-muted-foreground">Owner</span>
-                      ) : (
+                      ) : (isOwner || isAdmin) ? (
                         <select 
                           className="text-sm bg-transparent border rounded px-2 py-1"
                           onChange={(e) => handleUserAction(user.id, e.target.value)}
@@ -352,11 +358,14 @@ export function CollaboratorManagement({ listId, isOwner, isAdmin, privacy, onPr
                         >
                           <option value="viewer">Viewer</option>
                           <option value="editor">Editor</option>
+                          <option value="admin">Admin</option>
                           {isOwner && (
                             <option value="make-owner">Make owner</option>
                           )}
                           <option value="remove" className="text-destructive">Remove</option>
                         </select>
+                      ) : (
+                        <span className="text-sm text-muted-foreground capitalize">{user.role}</span>
                       )}
                     </div>
                   ))}

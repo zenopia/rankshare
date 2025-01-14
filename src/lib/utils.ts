@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { ListDocument, List, ItemProperty } from "@/types/list";
+import type { ListDocument, List, ItemProperty, ListCollaborator } from "@/types/list";
 import type { MongoListDocument } from "@/types/mongodb";
 import type { User } from "@/types/user";
 import type { FlattenMaps } from "mongoose";
@@ -32,6 +32,12 @@ export function serializeList(list: ListDocument): List {
     createdAt: new Date(plainList.createdAt),
     updatedAt: new Date(plainList.updatedAt),
     lastEditedAt: plainList.lastEditedAt ? new Date(plainList.lastEditedAt) : undefined,
+    collaborators: plainList.collaborators?.map((collaborator: ListCollaborator) => ({
+      ...collaborator,
+      _id: collaborator._id.toString(),
+      invitedAt: new Date(collaborator.invitedAt),
+      acceptedAt: collaborator.acceptedAt ? new Date(collaborator.acceptedAt) : undefined
+    })),
     items: plainList.items.map((item: MongoListDocument['items'][0]) => ({
       id: item._id?.toString() || crypto.randomUUID(),
       title: item.title,

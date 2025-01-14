@@ -187,7 +187,7 @@ export async function PATCH(
     const list = await ListModel.findOneAndUpdate(
       {
         _id: params.listId,
-        "collaborators._id": collaboratorId,
+        "collaborators.userId": collaboratorId,
       },
       {
         $set: {
