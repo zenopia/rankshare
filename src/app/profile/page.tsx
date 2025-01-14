@@ -30,7 +30,7 @@ const CardDescription = ({ children }: { children: React.ReactNode }) => (
 );
 
 // First, let's create a type for the privacy settings keys
-type PrivacySettingKey = 'showBio' | 'showLocation' | 'showDateOfBirth' | 'showGender' | 'showLivingStatus';
+type PrivacySettingKey = 'showBio' | 'showLocation' | 'showPersonalDetails';
 
 // Add validation schema
 const profileSchema = z.object({
@@ -63,9 +63,7 @@ export default function ProfilePage() {
     privacySettings: {
       showBio: true,
       showLocation: true,
-      showDateOfBirth: false,
-      showGender: true,
-      showLivingStatus: true,
+      showPersonalDetails: true,
     } as Required<User['privacySettings']>,
   });
   const { openUserProfile } = useClerk();
@@ -89,9 +87,7 @@ export default function ProfilePage() {
             privacySettings: {
               showBio: true,
               showLocation: true,
-              showDateOfBirth: false,
-              showGender: true,
-              showLivingStatus: true,
+              showPersonalDetails: true,
               ...(data.privacySettings || {}),
             },
           });
@@ -235,7 +231,11 @@ export default function ProfilePage() {
                     onChange={(e) => handleChange('bio', e.target.value)}
                     placeholder="Write a short bio..."
                     className="min-h-[100px]"
+                    maxLength={300}
                   />
+                  <div className="text-xs text-muted-foreground text-right mt-1">
+                    {(profileData.bio?.length || 0)}/300
+                  </div>
                 </CardContent>
               </Card>
 
@@ -379,12 +379,12 @@ export default function ProfilePage() {
                       <div className="space-y-0.5">
                         <Label>Show Personal Details</Label>
                         <p className="text-sm text-muted-foreground">
-                          Share your personal information
+                          Share your personal information (date of birth, gender, living status)
                         </p>
                       </div>
                       <Switch
-                        checked={profileData.privacySettings?.showDateOfBirth ?? false}
-                        onCheckedChange={(value) => handlePrivacyChange('showDateOfBirth', value)}
+                        checked={profileData.privacySettings?.showPersonalDetails ?? false}
+                        onCheckedChange={(value) => handlePrivacyChange('showPersonalDetails', value)}
                       />
                     </div>
                   </CardContent>

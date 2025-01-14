@@ -39,7 +39,7 @@ const mobileOnlyNavItems: NavItem[] = [
     description: "Search for lists"
   },
   {
-    title: "Home",
+    title: "Lists",
     href: "/",
     public: true,
     icon: Home,
@@ -71,6 +71,14 @@ const navItems: NavItem[] = [
     public: false,
     icon: ListChecks,
     description: "View your created lists",
+    indent: true
+  },
+  {
+    title: "Collab",
+    href: "/collab",
+    public: false,
+    icon: Users2,
+    description: "View collaborative lists",
     indent: true
   },
   {

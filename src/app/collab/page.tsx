@@ -7,7 +7,7 @@ import { serializeLists } from '@/lib/utils';
 import { HomeTabs } from "@/components/home/home-tabs";
 import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/types/mongodb";
 import { ensureUserExists } from "@/lib/actions/user";
-import type { ListCategory, ListPrivacyFilter, OwnerFilter } from "@/types/list";
+import type { ListCategory, OwnerFilter } from "@/types/list";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
 import { MainLayout } from "@/components/layout/main-layout";
 

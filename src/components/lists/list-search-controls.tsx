@@ -1,16 +1,16 @@
 "use client";
 
 import { SearchControls } from "@/components/ui/search-controls";
-import type { ListCategory, ListPrivacyFilter, OwnerFilter } from "@/types/list";
+import type { ListCategory, OwnerFilter } from "@/types/list";
+import type { ListPrivacyFilter as _ListPrivacyFilter } from "@/types/list";
 
 interface ListSearchControlsProps {
   defaultCategory?: ListCategory;
   defaultSort?: string;
-  defaultPrivacy?: ListPrivacyFilter;
-  defaultOwner?: OwnerFilter;
+  defaultPrivacy?: _ListPrivacyFilter;
   defaultQuery?: string;
+  defaultOwner?: OwnerFilter;
   hideSearch?: boolean;
-  showPrivacyFilter?: boolean;
   showOwnerFilter?: boolean;
   className?: string;
 }
@@ -19,10 +19,9 @@ export function ListSearchControls({
   defaultCategory,
   defaultSort,
   defaultPrivacy,
-  defaultOwner,
   defaultQuery,
+  defaultOwner,
   hideSearch = false,
-  showPrivacyFilter = false,
   showOwnerFilter = false,
   className,
 }: ListSearchControlsProps) {
@@ -37,7 +36,7 @@ export function ListSearchControls({
       }}
       placeholder="Search your lists..."
       hideSearch={hideSearch}
-      showPrivacyFilter={showPrivacyFilter}
+      showPrivacyFilter={true}
       showOwnerFilter={showOwnerFilter}
       className={className}
       useUrlParams={true}
