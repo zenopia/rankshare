@@ -12,7 +12,7 @@ const securityHeaders = {
   'Content-Security-Policy': isDevelopment 
     ? "" // Disable CSP in development
     : "default-src 'self' https://*.clerk.dev https://*.clerk.com; " +
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.dev https://*.clerk.com; " +
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev; " +
       "style-src 'self' 'unsafe-inline' https://*.clerk.dev https://*.clerk.com; " +
       "img-src 'self' blob: data: https: https://*.clerk.dev https://*.clerk.com https://img.clerk.com; " +
       "font-src 'self' data: https://*.clerk.dev https://*.clerk.com; " +
