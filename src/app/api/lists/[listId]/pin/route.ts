@@ -1,10 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { ListModel } from "@/lib/db/models/list";
-import { PinModel } from "@/lib/db/models/pin";
-import dbConnect from "@/lib/db/mongodb";
-
-export const dynamic = 'force-dynamic';
+import { getListModel } from "@/lib/db/models-v2/list";
+import { getPinModel } from "@/lib/db/models-v2/pin";
+import { connectToMongoDB } from "@/lib/db/client";
 
 export async function POST(
   request: Request,
@@ -16,36 +14,37 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    await dbConnect();
-    
-    // Check if pin already exists
-    const existingPin = await PinModel.findOne({
-      userId,
-      listId: params.listId
-    });
+    await connectToMongoDB();
+    const ListModel = await getListModel();
+    const PinModel = await getPinModel();
 
-    if (existingPin) {
-      return new NextResponse("List already pinned", { status: 400 });
+    // Get the list
+    const list = await ListModel.findById(params.listId);
+    if (!list) {
+      return new NextResponse("List not found", { status: 404 });
     }
 
-    // Create new pin
-    const pin = await PinModel.create({
-      userId,
-      listId: params.listId,
-      lastViewedAt: new Date()
+    // Create pin
+    await PinModel.create({
+      userId: list.owner.userId,
+      listId: list._id,
+      listInfo: {
+        title: list.title,
+        category: list.category,
+        ownerUsername: list.owner.username
+      }
     });
 
-    // Increment pin count on list
+    // Increment pin count
     await ListModel.findByIdAndUpdate(
       params.listId,
-      { $inc: { totalPins: 1 } },
-      { timestamps: false }
+      { $inc: { 'stats.pinCount': 1 } }
     );
 
-    return NextResponse.json(pin);
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error pinning list:', error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return new NextResponse("Internal error", { status: 500 });
   }
 }
 
@@ -59,28 +58,29 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    await dbConnect();
-    
+    await connectToMongoDB();
+    const ListModel = await getListModel();
+    const PinModel = await getPinModel();
+
     // Delete pin
-    const result = await PinModel.findOneAndDelete({
+    const result = await PinModel.deleteOne({
       userId,
       listId: params.listId
     });
 
-    if (!result) {
+    if (result.deletedCount === 0) {
       return new NextResponse("Pin not found", { status: 404 });
     }
 
-    // Decrement pin count on list
+    // Decrement pin count
     await ListModel.findByIdAndUpdate(
       params.listId,
-      { $inc: { totalPins: -1 } },
-      { timestamps: false }
+      { $inc: { 'stats.pinCount': -1 } }
     );
 
-    return new NextResponse(null, { status: 204 });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error unpinning list:', error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return new NextResponse("Internal error", { status: 500 });
   }
 } 

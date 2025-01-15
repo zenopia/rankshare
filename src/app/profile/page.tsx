@@ -30,7 +30,7 @@ const CardDescription = ({ children }: { children: React.ReactNode }) => (
 );
 
 // First, let's create a type for the privacy settings keys
-type PrivacySettingKey = 'showBio' | 'showLocation' | 'showPersonalDetails';
+type PrivacySettingKey = 'showBio' | 'showLocation' | 'showDateOfBirth' | 'showGender' | 'showLivingStatus';
 
 // Add validation schema
 const profileSchema = z.object({
@@ -63,8 +63,10 @@ export default function ProfilePage() {
     privacySettings: {
       showBio: true,
       showLocation: true,
-      showPersonalDetails: true,
-    } as Required<User['privacySettings']>,
+      showDateOfBirth: false,
+      showGender: true,
+      showLivingStatus: true,
+    },
   });
   const { openUserProfile } = useClerk();
 
@@ -75,23 +77,25 @@ export default function ProfilePage() {
         const response = await fetch('/api/profile');
         if (!response.ok) throw new Error('Failed to fetch profile');
         
-        const { data } = await response.json();
+        const { user, profile } = await response.json();
         
-        if (data) {
+        if (user) {
           setProfileData({
-            bio: data.bio || "",
-            location: data.location || "",
-            dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
-            gender: data.gender || undefined,
-            livingStatus: data.livingStatus || undefined,
+            bio: profile?.bio || "",
+            location: profile?.location || "",
+            dateOfBirth: profile?.dateOfBirth ? new Date(profile.dateOfBirth) : undefined,
+            gender: profile?.gender || undefined,
+            livingStatus: profile?.livingStatus || undefined,
             privacySettings: {
               showBio: true,
               showLocation: true,
-              showPersonalDetails: true,
-              ...(data.privacySettings || {}),
+              showDateOfBirth: false,
+              showGender: true,
+              showLivingStatus: true,
+              ...(profile?.privacySettings || {}),
             },
           });
-          setIsProfileComplete(data.isProfileComplete);
+          setIsProfileComplete(!!profile);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -116,16 +120,16 @@ export default function ProfilePage() {
       });
 
       const response = await fetch('/api/profile', {
-        method: 'PUT',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profileData),
       });
 
       if (!response.ok) throw new Error('Failed to update profile');
       
-      const { data } = await response.json();
+      const { user } = await response.json();
       
-      if (data) {
+      if (user) {
         toast.success('Profile updated successfully');
         router.push(returnTo);
       } else {
@@ -377,14 +381,38 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <Label>Show Personal Details</Label>
+                        <Label>Show Date of Birth</Label>
                         <p className="text-sm text-muted-foreground">
-                          Share your personal information (date of birth, gender, living status)
+                          Share your date of birth
                         </p>
                       </div>
                       <Switch
-                        checked={profileData.privacySettings?.showPersonalDetails ?? false}
-                        onCheckedChange={(value) => handlePrivacyChange('showPersonalDetails', value)}
+                        checked={profileData.privacySettings?.showDateOfBirth ?? false}
+                        onCheckedChange={(value) => handlePrivacyChange('showDateOfBirth', value)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Show Gender</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Share your gender
+                        </p>
+                      </div>
+                      <Switch
+                        checked={profileData.privacySettings?.showGender ?? false}
+                        onCheckedChange={(value) => handlePrivacyChange('showGender', value)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Show Living Status</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Share your living status
+                        </p>
+                      </div>
+                      <Switch
+                        checked={profileData.privacySettings?.showLivingStatus ?? false}
+                        onCheckedChange={(value) => handlePrivacyChange('showLivingStatus', value)}
                       />
                     </div>
                   </CardContent>

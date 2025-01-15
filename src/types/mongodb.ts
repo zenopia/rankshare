@@ -1,60 +1,60 @@
-import { Document, Types, SortOrder } from 'mongoose';
-import type { ListPrivacy, ListCategory, ListDocument } from '@/types/list';
-import type { BaseUser } from "./user";
+import type { ListCategory } from './list';
 
-export type MongoDoc<T> = T & Document & {
-  _id: unknown;
-  __v: number;
-};
-
-export interface MongoDocument extends Document {
-  _id: Types.ObjectId;
+export interface MongoListDocument {
+  _id: string;
+  title: string;
+  description?: string;
+  category: ListCategory;
+  privacy: 'public' | 'private';
+  owner: {
+    userId: string;
+    clerkId: string;
+    username: string;
+    joinedAt: Date;
+  };
+  items: Array<{
+    title: string;
+    comment?: string;
+    rank: number;
+    properties?: Array<{
+      type?: 'text' | 'link';
+      label: string;
+      value: string;
+    }>;
+  }>;
+  stats: {
+    viewCount: number;
+    pinCount: number;
+    copyCount: number;
+  };
+  collaborators?: Array<{
+    userId: string;
+    clerkId: string;
+    username: string;
+    email?: string;
+    role: string;
+    status: string;
+    invitedAt: Date;
+    acceptedAt?: Date;
+  }>;
+  lastEditedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
-  __v?: number;
-}
-
-interface MongoListFilterCondition {
-  title?: { $regex: string; $options: string };
-  description?: { $regex: string; $options: string };
-  ownerName?: { $regex: string; $options: string };
-  'items.title'?: { $regex: string; $options: string };
-  'items.comment'?: { $regex: string; $options: string };
-  ownerId?: string | { $ne: string };
-  'collaborators.userId'?: string;
-  'collaborators.status'?: string;
-  privacy?: ListPrivacy;
-  category?: ListCategory;
 }
 
 export interface MongoListFilter {
-  ownerId?: string | { $ne: string };
-  privacy?: ListPrivacy;
-  category?: ListCategory;
-  $text?: { $search: string };
-  $or?: MongoListFilterCondition[];
-  $and?: (MongoListFilterCondition | { $or?: MongoListFilterCondition[] })[];
-  _id?: { $in: string[] };
+  'owner.clerkId'?: string;
+  'owner.userId'?: string;
   'collaborators.userId'?: string;
-  'collaborators.status'?: string;
+  'collaborators.clerkId'?: string;
+  category?: ListCategory;
+  privacy?: 'public' | 'private';
 }
 
-export interface MongoListDocument extends Omit<ListDocument, '_id'> {
-  _id: Types.ObjectId;
-}
-
-export type MongoSortOptions = {
-  [key: string]: SortOrder | { $meta: "textScore" };
-};
-
-export interface FollowDocument {
-  _id: unknown;
-  followerId: string;
-  followingId: string;
-  __v: number;
-}
-
-export interface MongoUserDocument extends Omit<BaseUser, '_id'> {
-  _id: unknown;
-  __v: number;
+export interface MongoSortOptions {
+  createdAt?: 1 | -1;
+  'stats.viewCount'?: 1 | -1;
+  'stats.pinCount'?: 1 | -1;
+  'stats.copyCount'?: 1 | -1;
+  lastEditedAt?: 1 | -1;
 }

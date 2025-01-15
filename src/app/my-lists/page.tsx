@@ -1,118 +1,76 @@
-import { auth } from '@clerk/nextjs/server';
-import { ListModel } from "@/lib/db/models/list";
-import dbConnect from "@/lib/db/mongodb";
-import { ListCard } from "@/components/lists/list-card";
-import { ListSearchControls } from "@/components/lists/list-search-controls";
-import { serializeLists } from '@/lib/utils';
-import { HomeTabs } from "@/components/home/home-tabs";
-import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/types/mongodb";
-import { ensureUserExists } from "@/lib/actions/user";
-import type { ListCategory, ListPrivacyFilter } from "@/types/list";
-import { CreateListFAB } from "@/components/lists/create-list-fab";
+import { FilterQuery } from 'mongoose';
+import { auth } from "@clerk/nextjs/server";
 import { MainLayout } from "@/components/layout/main-layout";
+import { ListGrid } from "@/components/lists/list-grid";
+import { ListTabs } from "@/components/lists/list-tabs";
+import { getListModel } from "@/lib/db/models-v2/list";
+import { connectToMongoDB } from "@/lib/db/client";
+import { serializeLists } from "@/lib/utils";
+import type { ListCategory } from "@/types/list";
+import type { MongoListDocument } from "@/types/mongo";
 
 interface SearchParams {
   q?: string;
   category?: ListCategory;
-  sort?: 'newest' | 'oldest' | 'most-viewed';
-  privacy?: ListPrivacyFilter;
+  sort?: string;
 }
 
-export const revalidate = 30; // Revalidate every 30 seconds
-
-export default async function MyListsPage({
-  searchParams,
-}: {
+interface PageProps {
   searchParams: SearchParams;
-}) {
-  const { userId } = auth();
+}
 
-  await dbConnect();
-  await ensureUserExists();
+export default async function MyListsPage({ searchParams }: PageProps) {
+  const { userId } = auth();
+  if (!userId) {
+    return null;
+  }
+
+  await connectToMongoDB();
+  const ListModel = await getListModel();
 
   // Build filter
-  let filter: MongoListFilter = {};
-
-  if (searchParams.privacy === 'shared') {
-    // Show lists where user is a collaborator but not the owner
-    filter = {
-      ownerId: { $ne: userId },
-      'collaborators.userId': userId,
-      'collaborators.status': 'accepted'
-    };
-  } else {
-    // Show lists owned by the user
-    filter = { ownerId: userId };
-    if (searchParams.privacy && searchParams.privacy !== 'all') {
-      filter.privacy = searchParams.privacy;
-    }
-  }
-
-  if (searchParams.q) {
-    filter.$or = [
-      { title: { $regex: searchParams.q, $options: 'i' } },
-      { description: { $regex: searchParams.q, $options: 'i' } },
-    ];
-  }
+  const filter: FilterQuery<MongoListDocument> = {
+    'owner.clerkId': userId
+  };
 
   if (searchParams.category) {
     filter.category = searchParams.category;
   }
 
-  // Build sort
-  const sort: MongoSortOptions = {};
-  const sortOrder = -1;
+  // Get lists
+  const lists = await ListModel.find(filter).lean() as unknown as MongoListDocument[];
 
-  switch (searchParams.sort) {
-    case 'oldest':
-      sort.createdAt = 1;
-      break;
-    case 'most-viewed':
-      sort.viewCount = sortOrder;
-      break;
-    case 'newest':
-    default:
-      sort.createdAt = sortOrder;
-  }
-
-  const lists = await ListModel
-    .find(filter)
-    .sort(sort)
-    .lean() as MongoListDocument[];
-
+  // Serialize lists
   const serializedLists = serializeLists(lists);
+
+  // Sort lists
+  const sortedLists = [...serializedLists].sort((a, b) => {
+    switch (searchParams.sort) {
+      case 'views':
+        return (b.stats.viewCount || 0) - (a.stats.viewCount || 0);
+      case 'pins':
+        return (b.stats.pinCount || 0) - (a.stats.pinCount || 0);
+      case 'copies':
+        return (b.stats.copyCount || 0) - (a.stats.copyCount || 0);
+      case 'oldest':
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      default: // newest
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+  });
 
   return (
     <MainLayout>
       <div className="relative">
-        <HomeTabs />
+        <ListTabs />
         <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
-          <div className="space-y-8">
-            <ListSearchControls 
-              defaultQuery={searchParams.q}
-              defaultCategory={searchParams.category}
-              defaultSort={searchParams.sort}
-              defaultPrivacy={searchParams.privacy}
+          <div className="max-w-7xl mx-auto">
+            <ListGrid 
+              lists={sortedLists}
+              searchParams={searchParams}
             />
-
-            {serializedLists.length > 0 ? (
-              <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {serializedLists.map((list) => (
-                  <ListCard 
-                    key={list.id}
-                    list={list}
-                    showPrivacyBadge
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No lists found.</p>
-              </div>
-            )}
           </div>
         </div>
-        <CreateListFAB />
       </div>
     </MainLayout>
   );

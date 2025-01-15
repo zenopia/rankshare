@@ -1,68 +1,63 @@
 import { auth } from "@clerk/nextjs/server";
-import { UserModel } from "@/lib/db/models/user";
-import { FollowModel } from "@/lib/db/models/follow";
-import dbConnect from "@/lib/db/mongodb";
-import { searchParamsSchema } from "@/lib/validations/api";
-import { handleApiError, apiResponse } from "@/lib/api-utils";
-import { rateLimit } from "@/lib/rate-limit";
-import type { BaseUser } from "@/types/user";
+import { NextResponse } from "next/server";
+import { getUserModel } from "@/lib/db/models-v2/user";
+import { getFollowModel } from "@/lib/db/models-v2/follow";
+import { logDatabaseAccess } from "@/lib/db/migration-utils";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    await rateLimit('user-search', { limit: 20, window: 60 });
-
     const { userId } = auth();
     const { searchParams } = new URL(request.url);
-    
-    // Validate search params with defaults
-    const validatedParams = searchParamsSchema.parse({
-      q: searchParams.get('q'),
-      page: searchParams.get('page') || '1',
-      pageSize: searchParams.get('pageSize') || '20'
-    });
+    const query = searchParams.get('q');
+    const limit = parseInt(searchParams.get('limit') || '10');
 
-    await dbConnect();
+    logDatabaseAccess('User Search', true);
+    const UserModel = await getUserModel();
+    const FollowModel = await getFollowModel();
 
-    // Build query
-    const query = validatedParams.q
-      ? {
-          $or: [
-            { username: { $regex: validatedParams.q, $options: 'i' } },
-            { email: { $regex: validatedParams.q, $options: 'i' } }
-          ]
-        }
-      : {};
-
-    const [users, total] = await Promise.all([
-      UserModel.find(query)
-        .skip((validatedParams.page - 1) * validatedParams.pageSize)
-        .limit(validatedParams.pageSize)
-        .lean<BaseUser[]>(),
-      UserModel.countDocuments(query)
-    ]);
+    // Search users, either by query or get all users if no query
+    const users = await UserModel.find(
+      query ? {
+        $text: { $search: query },
+        clerkId: { $ne: userId } // Exclude the current user
+      } : {
+        clerkId: { $ne: userId } // Exclude the current user
+      },
+      query ? { score: { $meta: "textScore" } } : undefined
+    )
+      .sort(query ? { score: { $meta: "textScore" } } : { createdAt: -1 }) // Sort by relevance or newest first
+      .limit(limit)
+      .lean();
 
     // If authenticated, get follow status for each user
-    const enrichedUsers = await Promise.all(
-      users.map(async (user) => ({
-        ...user,
-        isFollowing: userId
-          ? Boolean(await FollowModel.exists({ 
-              followerId: userId, 
-              followingId: user.clerkId 
-            }))
-          : false
-      }))
-    );
+    if (userId) {
+      const followStatuses = await Promise.all(
+        users.map(user =>
+          FollowModel.findOne({
+            followerId: userId,
+            followingId: user.clerkId,
+            status: 'accepted'
+          }).lean()
+        )
+      );
 
-    return apiResponse({
-      results: enrichedUsers,
-      total,
-      page: validatedParams.page,
-      pageSize: validatedParams.pageSize
-    });
+      // Combine user data with follow status
+      const usersWithFollowStatus = users.map((user, index) => ({
+        ...user,
+        isFollowing: !!followStatuses[index]
+      }));
+
+      return NextResponse.json(usersWithFollowStatus);
+    }
+
+    return NextResponse.json(users);
   } catch (error) {
-    return handleApiError(error);
+    console.error('Error searching users:', error);
+    return NextResponse.json(
+      { error: "Failed to search users" },
+      { status: 500 }
+    );
   }
 } 

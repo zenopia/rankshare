@@ -1,75 +1,63 @@
+import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
-import { auth, clerkClient } from "@clerk/nextjs/server";
-import { ListModel } from "@/lib/db/models/list";
-import { FollowModel } from "@/lib/db/models/follow";
-import dbConnect from "@/lib/db/mongodb";
-import { serializeList } from "@/lib/utils";
-import { ItemView } from "@/components/items/item-view";
-import type { ListDocument } from "@/types/list";
-import type { MongoListDocument } from "@/types/mongodb";
 import { SubLayout } from "@/components/layout/sub-layout";
+import { ItemForm } from "@/components/lists/item-form";
+import { getListModel } from "@/lib/db/models-v2/list";
+import { connectToMongoDB } from "@/lib/db/client";
+import { MongoListDocument } from "@/types/mongo";
 
-interface ItemPageProps {
+interface PageProps {
   params: {
     id: string;
     itemId: string;
   };
 }
 
-export default async function ItemPage({ params }: ItemPageProps) {
-  try {
-    await dbConnect();
-    const { userId } = await auth();
+export default async function EditItemPage({ params }: PageProps) {
+  const { userId } = auth();
+  if (!userId) {
+    return null;
+  }
 
-    const list = await ListModel.findById(params.id).lean() as MongoListDocument;
-    if (!list) {
-      notFound();
-    }
+  await connectToMongoDB();
+  const ListModel = await getListModel();
 
-    const item = list.items.find(item => item.rank === parseInt(params.itemId));
-    if (!item) {
-      notFound();
-    }
-
-    // Serialize the item to remove MongoDB specific fields
-    const serializedItem = {
-      title: item.title,
-      comment: item.comment,
-      properties: item.properties,
-      rank: item.rank,
-      _id: item._id?.toString() || crypto.randomUUID()
-    };
-
-    // Get follow status
-    const followStatus = userId ? await FollowModel.findOne({ 
-      followerId: userId,
-      followingId: list.ownerId 
-    }) : null;
-
-    // Get the owner's Clerk user data
-    const owner = list.ownerId ? await clerkClient.users.getUser(list.ownerId) : null;
-    const fullName = owner ? `${owner.firstName ?? ''} ${owner.lastName ?? ''}`.trim() : '';
-
-    const serializedList = serializeList(list as ListDocument);
-    const isOwner = userId === serializedList.ownerId;
-
-    return (
-      <SubLayout title="Item">
-        <div className="px-0 md:px-6 lg:px-8 py-8">
-          <ItemView 
-            list={serializedList}
-            item={serializedItem}
-            isOwner={isOwner}
-            isFollowing={!!followStatus}
-            ownerUsername={owner?.username ?? undefined}
-            ownerName={fullName || owner?.username || serializedList.ownerName}
-          />
-        </div>
-      </SubLayout>
-    );
-    
-  } catch (error) {
-    console.error('Error fetching list item:', error);
+  const list = await ListModel.findById(params.id).lean() as unknown as MongoListDocument;
+  if (!list) {
     notFound();
   }
+
+  // Check if user is owner or collaborator
+  const isOwner = list.owner.clerkId === userId;
+  const isCollaborator = list.collaborators?.some(c => c.clerkId === userId && c.status === 'accepted');
+  
+  if (!isOwner && !isCollaborator) {
+    notFound();
+  }
+
+  const item = list.items.find(item => item._id.toString() === params.itemId);
+  if (!item) {
+    notFound();
+  }
+
+  const serializedItem = {
+    id: item._id.toString(),
+    title: item.title,
+    description: item.description || '',
+    properties: item.properties || []
+  };
+
+  return (
+    <SubLayout title="Edit Item">
+      <div className="px-0 md:px-6 lg:px-8 pb-8">
+        <div className="max-w-2xl mx-auto">
+          <ItemForm 
+            mode="edit"
+            defaultValues={serializedItem}
+            listId={params.id}
+          />
+        </div>
+      </div>
+    </SubLayout>
+  );
 } 

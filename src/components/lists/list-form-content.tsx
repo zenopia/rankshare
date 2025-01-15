@@ -3,16 +3,15 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { ListCategory, ListPrivacy, LIST_CATEGORIES, ItemProperty } from "@/types/list";
+import { DragDropContext, Droppable, Draggable, DropResult, DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
+import { ListCategory } from "@/types/list";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import * as z from "zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
 
 import {
   Form,
@@ -37,19 +36,31 @@ import { DraggableListItem } from "@/components/lists/draggable-list-item";
 import { Switch } from "@/components/ui/switch";
 
 export interface ListFormProps {
-  initialData?: {
+  mode?: 'create' | 'edit';
+  defaultValues?: {
     id: string;
     title: string;
-    category: ListCategory;
     description?: string;
-    privacy: ListPrivacy;
-    items: { id: string; title: string; comment?: string; properties?: ItemProperty[] }[];
+    category: ListCategory;
+    privacy: 'public' | 'private';
+    items: Array<{
+      id: string;
+      title: string;
+      comment?: string;
+      rank: number;
+      properties?: Array<{
+        type?: 'text' | 'link';
+        label: string;
+        value: string;
+      }>;
+    }>;
   };
-  mode?: 'create' | 'edit';
 }
 
 const formSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+  title: z.string()
+    .min(3, "Title must be at least 3 characters long")
+    .max(100, "Title cannot exceed 100 characters"),
   category: z.enum([
     "movies",
     "tv-shows",
@@ -59,43 +70,67 @@ const formSchema = z.object({
     "things-to-do",
     "other"
   ] as const),
-  description: z.string(),
+  description: z.string()
+    .max(500, "Description cannot exceed 500 characters")
+    .optional(),
   privacy: z.enum(["public", "private"] as const),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-export function ListFormContent({ initialData, mode = 'create' }: ListFormProps) {
+interface DraggableListItemProps {
+  item: {
+    id: string;
+    title: string;
+    comment?: string;
+    rank: number;
+    properties?: Array<{
+      id: string;
+      type?: 'text' | 'link';
+      label: string;
+      value: string;
+    }>;
+  };
+  dragHandleProps?: DraggableProvidedDragHandleProps | null;
+  onUpdate: (updates: Partial<{
+    title: string;
+    comment?: string;
+    rank: number;
+    properties?: Array<{
+      id: string;
+      type?: 'text' | 'link';
+      label: string;
+      value: string;
+    }>;
+  }>) => void;
+  onRemove: () => void;
+  disabled?: boolean;
+}
+
+export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProps) {
   const router = useRouter();
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [items, setItems] = useState<{ 
-    id: string; 
-    title: string; 
+  const [items, setItems] = useState<Array<{
+    id: string;
+    title: string;
     comment?: string;
-    properties?: ItemProperty[];
-  }[]>(() => {
-    return initialData?.items?.map(item => ({
-      id: item.id || crypto.randomUUID(),
-      title: item.title,
-      comment: item.comment,
-      properties: item.properties?.map(prop => ({
-        id: prop.id,
-        type: prop.type,
-        label: prop.label,
-        value: prop.value
-      })) || []
-    })) || [];
-  });
+    rank: number;
+    properties?: Array<{
+      type?: 'text' | 'link';
+      label: string;
+      value: string;
+    }>;
+  }>>(() => defaultValues?.items || []);
   const [isMounted, setIsMounted] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: initialData?.title || "",
-      category: (initialData?.category || "movies") as ListCategory,
-      description: initialData?.description || "",
-      privacy: initialData?.privacy || "public",
+      title: defaultValues?.title || "",
+      category: defaultValues?.category || "movies",
+      description: defaultValues?.description || "",
+      privacy: defaultValues?.privacy || "public",
     },
   });
 
@@ -103,86 +138,60 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
     setIsMounted(true);
   }, []);
 
+  if (!isMounted) {
+    return null;
+  }
+
   const onSubmit = async (data: FormData) => {
+    if (items.length === 0) {
+      toast.error("Please add at least one item to your list");
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      setIsSubmitting(true);
-      
-      if (!user) {
-        toast.error('You must be logged in to create a list');
-        return;
-      }
-
-      if (items.length === 0) {
-        toast.error('Add at least one item to your list');
-        return;
-      }
-
-      const emptyItems = items.filter(item => !item.title.trim());
-      if (emptyItems.length > 0) {
-        toast.error('All items must have a title');
-        return;
-      }
-
-      const formattedItems = items.map((item, index) => ({
-        title: item.title.trim(),
-        comment: item.comment?.trim() || undefined,
-        properties: item.properties?.length ? item.properties : undefined,
-        rank: index + 1,
-      }));
-
-      const ownerName = user.fullName || 
-                       `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
-                       user.username || 
-                       'Anonymous';
-
-      const listData = {
-        title: data.title.trim(),
-        category: data.category,
-        description: data.description.trim(),
-        privacy: data.privacy,
-        items: formattedItems,
-        ownerId: user.id,
-        ownerName: ownerName,
-        ownerImageUrl: user.imageUrl,
+      const payload = {
+        ...data,
+        items: items.map((item, index) => ({
+          ...item,
+          rank: index + 1
+        }))
       };
 
-      const toastId = toast.loading(
-        mode === 'edit' 
-          ? 'Updating your list...' 
-          : 'Creating your list...'
+      const response = await fetch(
+        mode === 'create' 
+          ? '/api/lists' 
+          : `/api/lists/${defaultValues?.id}`,
+        {
+          method: mode === 'create' ? 'POST' : 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
       );
-
-      const url = mode === 'edit' && initialData 
-        ? `/api/lists/${initialData.id}`
-        : '/api/lists';
-
-      const method = mode === 'edit' ? 'PATCH' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(listData),
-      });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => null);
-        throw new Error(error?.message || `Failed to ${mode} list`);
+        throw new Error('Failed to save list');
       }
+
+      const list = await response.json();
       
       toast.success(
-        `List ${mode === 'edit' ? 'updated' : 'created'} successfully!`, 
-        { id: toastId }
+        mode === 'create' 
+          ? "List created successfully!" 
+          : "List updated successfully!"
       );
-      
-      router.push('/my-lists');
+
+      router.push(`/lists/${list.id}`);
       router.refresh();
     } catch (error) {
+      console.error('Error saving list:', error);
       toast.error(
-        error instanceof Error 
-          ? error.message 
-          : `Failed to ${mode} list. Please try again.`
+        mode === 'create'
+          ? "Failed to create list"
+          : "Failed to update list"
       );
     } finally {
       setIsSubmitting(false);
@@ -192,63 +201,40 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
-    const newItems = Array.from(items);
-    const [reorderedItem] = newItems.splice(result.source.index, 1);
-    newItems.splice(result.destination.index, 0, reorderedItem);
+    const reorderedItems = Array.from(items);
+    const [removed] = reorderedItems.splice(result.source.index, 1);
+    reorderedItems.splice(result.destination.index, 0, removed);
 
-    setItems(newItems);
+    setItems(reorderedItems);
   };
 
   const addItem = () => {
-    setItems([...items, { 
-      id: crypto.randomUUID(), 
-      title: "", 
-      comment: "", 
-      properties: [] 
-    }]);
+    const newItem = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: "",
+      comment: "",
+      rank: items.length + 1,
+      properties: []
+    };
+
+    setItems([...items, newItem]);
+  };
+
+  const updateItem = (id: string, updates: Partial<typeof items[0]>) => {
+    setItems(items.map(item => 
+      item.id === id ? { ...item, ...updates } : item
+    ));
   };
 
   const removeItem = (id: string) => {
     setItems(items.filter(item => item.id !== id));
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (items[index].title.trim()) {
-        addItem();
-        setTimeout(() => {
-          const inputs = document.querySelectorAll<HTMLInputElement>('input[placeholder="Item title"]');
-          const newInput = inputs[inputs.length - 1];
-          newInput?.focus();
-        }, 0);
-      }
-    }
-  };
-
-  const updateItem = (
-    index: number, 
-    field: 'title' | 'comment' | 'properties', 
-    value: string | ItemProperty[] | undefined
-  ) => {
-    setItems(prevItems => {
-      const newItems = [...prevItems];
-      const currentItem = { ...newItems[index] };
-
-      if (field === 'properties') {
-        currentItem.properties = Array.isArray(value) ? value : [];
-      } else {
-        currentItem[field] = value as string;
-      }
-
-      newItems[index] = currentItem;
-      return newItems;
-    });
-  };
-
   const handleDelete = async () => {
+    if (!defaultValues?.id) return;
+
     try {
-      const response = await fetch(`/api/lists/${initialData?.id}`, {
+      const response = await fetch(`/api/lists/${defaultValues.id}`, {
         method: 'DELETE',
       });
 
@@ -256,127 +242,138 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
         throw new Error('Failed to delete list');
       }
 
-      toast.success('List deleted successfully');
+      toast.success("List deleted successfully!");
       router.push('/my-lists');
       router.refresh();
     } catch (error) {
-      toast.error('Failed to delete list');
+      console.error('Error deleting list:', error);
+      toast.error("Failed to delete list");
     }
   };
 
-  if (!isMounted) {
-    return null;
-  }
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="category"
-          render={({ field }) => (
-            <FormItem>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                disabled={isSubmitting}
-              >
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Title</FormLabel>
                 <FormControl>
-                  <SelectTrigger className="h-14">
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
+                  <Input placeholder="My Awesome List" {...field} />
                 </FormControl>
-                <SelectContent>
-                  {LIST_CATEGORIES.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base text-muted-foreground">Title</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="Enter list title" className="h-14" />
-              </FormControl>
-              <FormMessage className="text-sm" />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="movies">Movies</SelectItem>
+                    <SelectItem value="tv-shows">TV Shows</SelectItem>
+                    <SelectItem value="books">Books</SelectItem>
+                    <SelectItem value="restaurants">Restaurants</SelectItem>
+                    <SelectItem value="recipes">Recipes</SelectItem>
+                    <SelectItem value="things-to-do">Things to do</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base text-muted-foreground">Description</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Add a description..." 
-                  {...field} 
-                  className="min-h-[100px] resize-none"
-                />
-              </FormControl>
-              <div className="text-xs text-muted-foreground text-right">
-                {field.value?.length || 0}/300
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Tell us about your list..."
+                    className="resize-none"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="privacy"
-          render={({ field }) => (
-            <div className="flex items-center gap-4 py-4 px-6 rounded-lg bg-muted/50">
-              <FormItem className="flex-1 space-y-0">
-                <div className="space-y-1">
-                  <FormLabel className="text-base">Private</FormLabel>
+          <FormField
+            control={form.control}
+            name="privacy"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">
+                    Private List
+                  </FormLabel>
                   <FormDescription>
-                    Only you can see this list
+                    Only you and collaborators can see this list
                   </FormDescription>
                 </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value === "private"}
+                    onCheckedChange={(checked) =>
+                      field.onChange(checked ? "private" : "public")
+                    }
+                  />
+                </FormControl>
               </FormItem>
-              <FormControl>
-                <Switch
-                  checked={field.value === 'private'}
-                  onCheckedChange={(checked: boolean) => 
-                    field.onChange(checked ? 'private' : 'public')
-                  }
-                />
-              </FormControl>
-            </div>
-          )}
-        />
+            )}
+          />
+        </div>
 
         <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Items</h2>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addItem}
+              disabled={isSubmitting}
+            >
+              Add Item
+            </Button>
+          </div>
+
           <DragDropContext onDragEnd={onDragEnd}>
             <Droppable droppableId="items">
               {(provided) => (
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className="space-y-2"
+                  className="space-y-4"
                 >
                   {items.map((item, index) => (
-                    <Draggable key={item.id} draggableId={item.id} index={index}>
+                    <Draggable
+                      key={item.id}
+                      draggableId={item.id}
+                      index={index}
+                    >
                       {(provided) => (
                         <DraggableListItem
                           item={item}
-                          index={index}
-                          provided={provided}
-                          removeItem={removeItem}
-                          handleKeyDown={handleKeyDown}
-                          updateItem={updateItem}
+                          dragHandleProps={provided.dragHandleProps}
+                          onUpdate={(updates: Partial<typeof item>) => updateItem(item.id, updates)}
+                          onRemove={() => removeItem(item.id)}
+                          disabled={isSubmitting}
                         />
                       )}
                     </Draggable>
@@ -386,65 +383,46 @@ export function ListFormContent({ initialData, mode = 'create' }: ListFormProps)
               )}
             </Droppable>
           </DragDropContext>
+        </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-14"
-            onClick={addItem}
-          >
-            Add Item
-          </Button>
-
-          <Button 
-            type="submit" 
-            disabled={isSubmitting}
-            className={cn(
-              "w-full h-14",
-              isSubmitting && "opacity-70 cursor-not-allowed"
-            )}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {mode === 'edit' ? 'Updating...' : 'Creating...'}
-              </>
-            ) : (
-              mode === 'edit' ? 'Update List' : 'Create List'
-            )}
-          </Button>
-
-          {mode === 'edit' && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="w-full h-14"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete List
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your list.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    className="bg-destructive hover:bg-destructive/90"
+        <div className="flex items-center justify-between pt-6">
+          <div className="flex items-center gap-4">
+            {mode === 'edit' && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isSubmitting}
                   >
+                    <Trash2 className="h-4 w-4 mr-2" />
                     Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete your
+                      list and remove it from our servers.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            {mode === 'create' ? 'Create List' : 'Save Changes'}
+          </Button>
         </div>
       </form>
     </Form>

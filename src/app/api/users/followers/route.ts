@@ -18,58 +18,70 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    logDatabaseAccess('User Following', true);
+    logDatabaseAccess('User Followers', true);
     const FollowModel = await getFollowModel();
     const UserModel = await getUserModel();
 
-    // Get following relationships
+    // Get follower relationships
     const follows = await FollowModel.find({
-      followerId: userId,
+      followingId: userId,
       status: 'accepted'
     })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .select('followingId followingInfo status createdAt')
+      .select('followerId followerInfo status createdAt')
       .lean();
 
     // Get total count for pagination
     const total = await FollowModel.countDocuments({
-      followerId: userId,
+      followingId: userId,
       status: 'accepted'
     });
 
-    // Get user details for each following
-    const followingUsers = await UserModel.find({
-      clerkId: { $in: follows.map(f => f.followingId) }
+    // Get user details for each follower
+    const followerUsers = await UserModel.find({
+      clerkId: { $in: follows.map(f => f.followerId) }
     })
       .select('clerkId username displayName')
       .lean();
 
     // Create a map for easy lookup
     const userMap = new Map(
-      followingUsers.map(user => [user.clerkId, user])
+      followerUsers.map(user => [user.clerkId, user])
     );
 
-    // Combine follow data with user details
-    const followingWithDetails = follows.map(follow => ({
-      followingId: follow.followingId,
+    // Check if current user follows back each follower
+    const followBackStatuses = await Promise.all(
+      follows.map(follow =>
+        FollowModel.findOne({
+          followerId: userId,
+          followingId: follow.followerId,
+          status: 'accepted'
+        }).lean()
+      )
+    );
+
+    // Combine follower data with user details and follow-back status
+    const followersWithDetails = follows.map((follow, index) => ({
+      followerId: follow.followerId,
       status: follow.status,
       createdAt: follow.createdAt,
-      followingInfo: follow.followingInfo,
-      user: userMap.get(follow.followingId) || null
+      followerInfo: follow.followerInfo,
+      user: userMap.get(follow.followerId) || null,
+      isFollowingBack: !!followBackStatuses[index]
     }));
 
     return NextResponse.json({
-      results: followingWithDetails,
+      results: followersWithDetails,
       total,
       page,
       pageSize: limit
     });
   } catch (error) {
-    console.error('Error fetching following:', error);
+    console.error('Error fetching followers:', error);
     return NextResponse.json(
-      { error: "Failed to fetch following" },
+      { error: "Failed to fetch followers" },
       { status: 500 }
     );
   }

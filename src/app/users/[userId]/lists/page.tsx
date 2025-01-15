@@ -1,78 +1,124 @@
 import { auth } from "@clerk/nextjs/server";
-import { ListModel } from "@/lib/db/models/list";
-import { FollowModel } from "@/lib/db/models/follow";
-import dbConnect from "@/lib/db/mongodb";
-import { SearchInput } from "@/components/search/search-input";
-import { ListCard } from "@/components/lists/list-card";
-import { serializeLists } from "@/lib/utils";
-import { UserProfileCard } from "@/components/users/user-profile-card";
-import type { ListDocument } from "@/types/list";
+import { notFound } from "next/navigation";
+import { SubLayout } from "@/components/layout/sub-layout";
+import { ListGrid } from "@/components/lists/list-grid";
+import { getListModel } from "@/lib/db/models-v2/list";
+import { getFollowModel } from "@/lib/db/models-v2/follow";
+import { getUserModel } from "@/lib/db/models-v2/user";
+import { connectToMongoDB } from "@/lib/db/client";
+import { MongoListDocument, MongoUserDocument } from "@/types/mongo";
 
 interface SearchParams {
   q?: string;
+  category?: string;
+  sort?: string;
 }
 
-export default async function UserListsPage({
-  params,
-  searchParams,
-}: {
-  params: { userId: string };
+interface PageProps {
+  params: {
+    userId: string;
+  };
   searchParams: SearchParams;
-}) {
-  const { userId: currentUserId } = await auth();
+}
 
-  await dbConnect();
+export default async function UserListsPage({ params, searchParams }: PageProps) {
+  await connectToMongoDB();
+  const ListModel = await getListModel();
+  const FollowModel = await getFollowModel();
+  const UserModel = await getUserModel();
 
-  // Get user's public lists
-  const [lists, followStatus] = await Promise.all([
-    ListModel.find({ 
-      ownerId: params.userId,
-      privacy: 'public',
-    })
-      .sort({ createdAt: -1 })
-      .lean() as unknown as ListDocument[],
-    currentUserId ? FollowModel.findOne({ 
-      followerId: currentUserId,
-      followingId: params.userId 
-    }) : null
-  ]);
+  // Get user
+  const user = await UserModel.findOne({ clerkId: params.userId }).lean() as unknown as MongoUserDocument;
+  if (!user) {
+    notFound();
+  }
 
-  const serializedLists = serializeLists(lists);
+  // Get current user
+  const { userId } = auth();
+
+  // Get follow status
+  const isFollowing = userId ? !!(await FollowModel.findOne({
+    followerId: userId,
+    followingId: user.clerkId,
+    status: 'accepted'
+  })) : false;
+
+  // Build base query
+  const baseQuery = {
+    'owner.clerkId': user.clerkId,
+    privacy: 'public'
+  };
+
+  // Add search filter if query exists
+  const searchFilter = searchParams.q ? {
+    $or: [
+      { title: { $regex: searchParams.q, $options: 'i' } },
+      { description: { $regex: searchParams.q, $options: 'i' } }
+    ]
+  } : {};
+
+  // Add category filter if specified
+  const categoryFilter = searchParams.category ? {
+    category: searchParams.category
+  } : {};
+
+  // Combine all filters
+  const filter = {
+    ...baseQuery,
+    ...searchFilter,
+    ...categoryFilter
+  };
+
+  // Get lists
+  const lists = await ListModel.find(filter).lean() as unknown as MongoListDocument[];
+
+  // Serialize lists
+  const serializedLists = lists.map(list => ({
+    id: list._id.toString(),
+    title: list.title,
+    description: list.description || '',
+    category: list.category,
+    privacy: list.privacy,
+    owner: {
+      id: list.owner.id,
+      username: list.owner.username
+    },
+    stats: {
+      viewCount: list.stats?.viewCount || 0,
+      pinCount: list.stats?.pinCount || 0,
+      copyCount: list.stats?.copyCount || 0
+    },
+    createdAt: list.createdAt,
+    updatedAt: list.updatedAt
+  }));
+
+  // Sort lists
+  const sortedLists = [...serializedLists].sort((a, b) => {
+    switch (searchParams.sort) {
+      case 'views':
+        return (b.stats.viewCount || 0) - (a.stats.viewCount || 0);
+      case 'pins':
+        return (b.stats.pinCount || 0) - (a.stats.pinCount || 0);
+      case 'copies':
+        return (b.stats.copyCount || 0) - (a.stats.copyCount || 0);
+      case 'oldest':
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      default: // newest
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+  });
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-8 pb-20 sm:pb-8">
-      <div className="mb-8">
-        <UserProfileCard 
-          userId={params.userId}
-          isFollowing={!!followStatus}
-          hideFollow={currentUserId === params.userId}
-          listCount={lists.length}
-        />
-      </div>
-
-      <div className="mb-8">
-        <div className="max-w-md">
-          <SearchInput 
-            placeholder="Search lists..." 
-            defaultValue={searchParams.q}
+    <SubLayout title={`${user.username}'s Lists`}>
+      <div className="px-0 md:px-6 lg:px-8 pb-8">
+        <div className="max-w-7xl mx-auto">
+          <ListGrid 
+            lists={sortedLists}
+            searchParams={searchParams}
+            isFollowing={isFollowing}
           />
         </div>
       </div>
-
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {serializedLists
-          .filter(list => 
-            !searchParams.q || 
-            list.title.toLowerCase().includes(searchParams.q.toLowerCase())
-          )
-          .map((list) => (
-            <ListCard 
-              key={list.id} 
-              list={list}
-              showPrivacyBadge
-            />
-          ))}
-      </div>
-    </div>
+    </SubLayout>
   );
 } 

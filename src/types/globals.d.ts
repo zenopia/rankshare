@@ -3,10 +3,14 @@ import { Connection } from 'mongoose';
 declare global {
   namespace NodeJS {
     interface ProcessEnv {
-      MONGODB_URI: string;
       NODE_ENV: 'development' | 'production' | 'test';
-      PORT?: string;
-      NEXT_PUBLIC_APP_URL: string;
+      MONGODB_URI_V2: string;
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: string;
+      CLERK_SECRET_KEY: string;
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: string;
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: string;
+      NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: string;
+      NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: string;
     }
   }
 

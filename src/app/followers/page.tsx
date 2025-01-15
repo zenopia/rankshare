@@ -1,77 +1,52 @@
-import { auth } from '@clerk/nextjs/server';
-import { FollowModel } from "@/lib/db/models/follow";
-import dbConnect from "@/lib/db/mongodb";
-import { SearchInput } from "@/components/search/search-input";
-import { UserCard } from "@/components/users/user-card";
-import type { FollowDocument } from "@/types/mongodb";
-import { UserTabs } from "@/components/users/user-tabs";
+import { auth } from "@clerk/nextjs/server";
 import { MainLayout } from "@/components/layout/main-layout";
+import { PeopleTabs } from "@/components/users/people-tabs";
+import { UserList } from "@/components/users/user-list";
+import { getFollowModel } from "@/lib/db/models-v2/follow";
+import { getUserModel } from "@/lib/db/models-v2/user";
+import { connectToMongoDB } from "@/lib/db/client";
 
-interface SearchParams {
-  q?: string;
-}
+export default async function FollowersPage() {
+  const { userId } = auth();
+  if (!userId) {
+    return null;
+  }
 
-export default async function FollowersPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const { userId } = await auth();
-  if (!userId) return null;
+  await connectToMongoDB();
+  const FollowModel = await getFollowModel();
+  const UserModel = await getUserModel();
 
-  await dbConnect();
+  // Get all followers
+  const follows = await FollowModel.find({
+    followingId: userId,
+    status: 'accepted'
+  }).lean();
 
-  // Get users following the current user
-  const follows = await FollowModel.find({ followingId: userId }).lean() as FollowDocument[];
-  const followerIds = follows.map(follow => follow.followerId);
-
-  // Check if current user follows back each follower
-  const followBackStatuses = await Promise.all(
-    followerIds.map(followerId => 
-      FollowModel.findOne({
-        followerId: userId,
-        followingId: followerId
-      }).lean()
-    )
+  // Get user details for each follower
+  const users = await Promise.all(
+    follows.map(async (follow) => {
+      const user = await UserModel.findOne({
+        clerkId: follow.followerId
+      }).lean();
+      return user;
+    })
   );
 
-  // Combine follower IDs with their follow-back status
-  const followers = followerIds.map((followerId, index) => ({
-    id: followerId,
-    isFollowing: !!followBackStatuses[index]
+  // Filter out any null values and serialize
+  const validUsers = users.filter((user): user is NonNullable<typeof user> => Boolean(user)).map(user => ({
+    id: user._id.toString(),
+    username: user.username,
+    displayName: user.displayName,
+    isFollowing: true // They are following the current user
   }));
 
   return (
     <MainLayout>
       <div className="relative">
-        <UserTabs />
+        <PeopleTabs />
         <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
-          <div className="space-y-8">
-            <div className="max-w-md">
-              <SearchInput 
-                placeholder="Search followers..." 
-                defaultValue={searchParams.q}
-              />
-            </div>
-
-            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {followers.length > 0 ? (
-                followers.map((follower) => (
-                  <UserCard 
-                    key={follower.id}
-                    userId={follower.id}
-                    isFollowing={follower.isFollowing}
-                    hideFollow={false}
-                  />
-                ))
-              ) : (
-                <div className="col-span-full text-center">
-                  <p className="text-muted-foreground">
-                    You don&apos;t have any followers yet. Share your lists to get noticed!
-                  </p>
-                </div>
-              )}
-            </div>
+          <div className="max-w-2xl mx-auto">
+            <UserList users={validUsers} />
           </div>
         </div>
       </div>

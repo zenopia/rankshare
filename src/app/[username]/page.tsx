@@ -3,14 +3,14 @@ import { UserProfile } from "@/components/users/user-profile";
 import { ListSearchControls } from "@/components/lists/list-search-controls";
 import { ListCard } from "@/components/lists/list-card";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { ListModel } from "@/lib/db/models/list";
-import { FollowModel } from "@/lib/db/models/follow";
-import dbConnect from "@/lib/db/mongodb";
+import { getListModel } from "@/lib/db/models-v2/list";
+import { getFollowModel } from "@/lib/db/models-v2/follow";
+import { connectToMongoDB } from "@/lib/db/client";
 import { serializeLists, serializeUser } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import type { ListCategory } from "@/types/list";
 import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/types/mongodb";
-import { UserModel } from "@/lib/db/models/user";
+import { getUserModel } from "@/lib/db/models-v2/user";
 
 interface PageProps {
   params: {
@@ -25,7 +25,12 @@ interface PageProps {
 
 export default async function UserPage({ params, searchParams }: PageProps) {
   const { userId } = await auth();
-  await dbConnect();
+  await connectToMongoDB();
+
+  // Get model instances
+  const UserModel = await getUserModel();
+  const ListModel = await getListModel();
+  const FollowModel = await getFollowModel();
 
   // Remove @ if present in the username parameter
   const username = params.username.replace(/^@/, '');
@@ -55,11 +60,11 @@ export default async function UserPage({ params, searchParams }: PageProps) {
     notFound();
   }
 
-  const serializedUser = serializeUser(mongoUser);
+  const serializedUser = serializeUser(mongoUser as any);
 
   // Build filter for lists
   const filter: MongoListFilter = { 
-    ownerId: profileUser.id,
+    'owner.clerkId': profileUser.id,
     privacy: 'public',
   };
 
@@ -74,7 +79,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       sort.createdAt = 1;
       break;
     case 'most-viewed':
-      sort.viewCount = -1;
+      sort['stats.viewCount'] = -1;
       break;
     case 'newest':
     default:
@@ -84,7 +89,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
   // Get user's filtered public lists
   const lists = await ListModel.find(filter)
     .sort(sort)
-    .lean() as MongoListDocument[];
+    .lean() as unknown as MongoListDocument[];
 
   const serializedLists = serializeLists(lists);
 

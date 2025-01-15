@@ -1,47 +1,57 @@
-import { NextRequest, NextResponse } from "next/server";
-import { clerkClient } from "@clerk/nextjs/server";
-import type { User } from "@clerk/backend";
+import { NextResponse } from "next/server";
+import { getUserModel } from "@/lib/db/models-v2/user";
+import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
+import { logDatabaseAccess } from "@/lib/db/migration-utils";
 
-interface UserProfile {
-  id: string;
-  username: string;
-  firstName: string | null;
-  lastName: string | null;
-  imageUrl: string;
-}
-
-// Mark the route as dynamic
-export const dynamic = 'force-dynamic';
-
-export async function GET(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const ids = searchParams.get('ids');
+    const { userIds } = await request.json();
 
-    if (!ids) {
-      return NextResponse.json({ error: "User IDs are required" }, { status: 400 });
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return NextResponse.json(
+        { error: "User IDs array is required" },
+        { status: 400 }
+      );
     }
 
-    const userIds = ids.split(',');
-    const users = await clerkClient.users.getUserList({ userId: userIds });
+    logDatabaseAccess('User Batch Fetch', true);
+    const UserModel = await getUserModel();
+    const UserProfileModel = await getUserProfileModel();
 
-    // Convert array to object with userId as key
-    const userProfiles = users.reduce((acc: Record<string, UserProfile>, user: User) => {
-      acc[user.id] = {
-        id: user.id,
-        username: user.username || '',
-        firstName: user.firstName,
-        lastName: user.lastName,
-        imageUrl: user.imageUrl,
-      };
-      return acc;
-    }, {});
+    // Fetch users and their profiles in parallel
+    const users = await UserModel.find({ 
+      clerkId: { $in: userIds } 
+    })
+      .select('clerkId username displayName followersCount followingCount listCount')
+      .lean();
 
-    return NextResponse.json(userProfiles);
+    // Create a map of users by clerkId for easy lookup
+    const userMap = new Map(users.map(user => [user.clerkId, user]));
+
+    // Get user IDs that exist in our database
+    const existingUserIds = users.map(user => user._id);
+
+    // Fetch profiles for existing users
+    const profiles = await UserProfileModel.find({ 
+      userId: { $in: existingUserIds }
+    })
+      .select('userId bio location dateOfBirth gender livingStatus privacySettings')
+      .lean();
+
+    // Create a map of profiles by userId for easy lookup
+    const profileMap = new Map(profiles.map(profile => [profile.userId.toString(), profile]));
+
+    // Combine user data with their profiles
+    const usersWithProfiles = users.map(user => ({
+      ...user,
+      profile: profileMap.get(user._id.toString()) || null
+    }));
+
+    return NextResponse.json(usersWithProfiles);
   } catch (error) {
-    console.error('Error fetching user profiles:', error);
+    console.error('Error fetching users:', error);
     return NextResponse.json(
-      { error: "Failed to fetch user profiles" },
+      { error: "Failed to fetch users" },
       { status: 500 }
     );
   }

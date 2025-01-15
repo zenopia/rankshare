@@ -3,21 +3,19 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { UserCard } from "@/components/users/user-card";
-import type { User } from "@/types/user";
 
-interface SearchResponse {
-  data: {
-    results: User[];
-    total: number;
-    page: number;
-    pageSize: number;
-  };
-  status: number;
+interface SearchUser {
+  _id: string;
+  clerkId: string;
+  username: string;
+  displayName: string;
+  bio?: string;
+  isFollowing?: boolean;
 }
 
 export function PeopleResults() {
   const searchParams = useSearchParams();
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<SearchUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,12 +36,12 @@ export function PeopleResults() {
           throw new Error('Failed to fetch results');
         }
 
-        const data: SearchResponse = await response.json();
+        const data = await response.json();
         
         if (!isMounted) return;
         
-        if (Array.isArray(data.data.results)) {
-          setUsers(data.data.results);
+        if (Array.isArray(data)) {
+          setUsers(data);
         } else {
           setUsers([]);
           console.error('Expected results to be an array:', data);
@@ -88,7 +86,7 @@ export function PeopleResults() {
   if (!Array.isArray(users) || users.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">No users found matching your search</p>
+        <p className="text-muted-foreground">No users found</p>
       </div>
     );
   }
@@ -99,8 +97,9 @@ export function PeopleResults() {
         <UserCard
           key={user.clerkId}
           userId={user.clerkId}
+          displayName={user.displayName}
+          bio={user.bio}
           isFollowing={user.isFollowing ?? false}
-          hideFollow={false}
         />
       ))}
     </div>

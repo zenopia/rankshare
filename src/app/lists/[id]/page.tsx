@@ -1,99 +1,110 @@
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
-import { ListModel } from "@/lib/db/models/list";
-import { PinModel } from "@/lib/db/models/pin";
-import { FollowModel } from "@/lib/db/models/follow";
-import dbConnect from "@/lib/db/mongodb";
-import type { Pin } from "@/types/pin";
-import { serializeList } from "@/lib/utils";
-import { ensureUserExists } from "@/lib/actions/user";
-import { ListView } from "@/components/lists/list-view";
-import { MongoListDocument } from "@/types/mongodb";
 import { SubLayout } from "@/components/layout/sub-layout";
+import { ListView } from "@/components/lists/list-view";
+import { getListModel } from "@/lib/db/models-v2/list";
+import { getPinModel } from "@/lib/db/models-v2/pin";
+import { getFollowModel } from "@/lib/db/models-v2/follow";
+import { connectToMongoDB } from "@/lib/db/client";
+import { MongoListDocument } from "@/types/mongo";
 
-interface ListPageProps {
+interface PageProps {
   params: {
     id: string;
   };
 }
 
-export default async function ListPage({ params }: ListPageProps) {
-  try {
-    if (!params.id) {
-      notFound();
-    }
+export default async function ListPage({ params }: PageProps) {
+  const { userId } = auth();
 
-    await dbConnect();
-    const { userId } = await auth();
+  await connectToMongoDB();
+  const ListModel = await getListModel();
+  const PinModel = await getPinModel();
+  const FollowModel = await getFollowModel();
 
-    const list = await ListModel.findById(params.id)
-      .lean()
-      .exec() as unknown as MongoListDocument;
-    
-    if (!list) {
-      notFound();
-    }
-
-    // Update view count
-    await ListModel.findByIdAndUpdate(
-      params.id, 
-      { $inc: { viewCount: 1 } },
-      { timestamps: false }
-    );
-
-    // Get pin if user is logged in
-    let pin = null;
-    let hasUpdate = false;
-    if (userId) {
-      pin = await PinModel.findOne({ 
-        userId, 
-        listId: params.id 
-      }).lean() as Pin | null;
-
-      // Check if list has been updated since last view
-      hasUpdate = pin ? new Date(list.updatedAt) > new Date(pin.lastViewedAt) : false;
-    }
-
-    // Get the owner's Clerk user data
-    const owner = list.ownerId ? await clerkClient.users.getUser(list.ownerId) : null;
-
-    // Get counts and following status
-    const [followStatus] = await Promise.all([
-      userId ? FollowModel.findOne({ 
-        followerId: userId,
-        followingId: list.ownerId 
-      }) : null
-    ]);
-
-    // Serialize the list data
-    const serializedList = {
-      ...serializeList(list),
-      isOwner: userId === list.ownerId,
-      isPinned: !!pin,
-      ownerImageUrl: owner?.imageUrl,
-      pinCount: list.totalPins,
-      totalCopies: list.totalCopies,
-      hasUpdate,
-    };
-
-    // Add to list view page when user is logged in
-    if (userId) {
-      await ensureUserExists();
-    }
-
-    return (
-      <SubLayout title="List">
-        <ListView 
-          list={serializedList}
-          isOwner={userId === serializedList.ownerId}
-          isPinned={serializedList.isPinned}
-          isFollowing={!!followStatus}
-          isAuthenticated={!!userId}
-          currentUserId={userId}
-        />
-      </SubLayout>
-    );
-  } catch (error) {
+  // Get list
+  const list = await ListModel.findById(params.id).lean() as unknown as MongoListDocument;
+  if (!list) {
     notFound();
   }
+
+  // Check if list is public or user has access
+  if (list.privacy !== 'public') {
+    if (!userId) {
+      notFound();
+    }
+
+    const isOwner = list.owner.clerkId === userId;
+    const isCollaborator = list.collaborators?.some(c => c.clerkId === userId && c.status === 'accepted');
+
+    if (!isOwner && !isCollaborator) {
+      notFound();
+    }
+  }
+
+  // Get pin status
+  const isPinned = userId ? !!(await PinModel.findOne({ 
+    userId,
+    listId: list._id
+  })) : false;
+
+  // Get follow status
+  const isFollowing = userId ? !!(await FollowModel.findOne({
+    followerId: userId,
+    followingId: list.owner.clerkId,
+    status: 'accepted'
+  })) : false;
+
+  // Serialize list
+  const serializedList = {
+    id: list._id.toString(),
+    title: list.title,
+    description: list.description || '',
+    category: list.category,
+    privacy: list.privacy,
+    owner: {
+      id: list.owner.id,
+      username: list.owner.username
+    },
+    items: list.items.map(item => ({
+      id: item._id.toString(),
+      title: item.title,
+      description: item.description || '',
+      properties: item.properties || []
+    })),
+    collaborators: list.collaborators?.map(collab => ({
+      id: collab.id,
+      username: collab.username,
+      role: collab.role,
+      status: collab.status
+    })) || [],
+    stats: {
+      viewCount: list.stats?.viewCount || 0,
+      pinCount: list.stats?.pinCount || 0,
+      copyCount: list.stats?.copyCount || 0
+    },
+    createdAt: list.createdAt,
+    updatedAt: list.updatedAt
+  };
+
+  // Update view count
+  await ListModel.updateOne(
+    { _id: list._id },
+    { $inc: { 'stats.viewCount': 1 } }
+  );
+
+  return (
+    <SubLayout title={list.title}>
+      <div className="px-0 md:px-6 lg:px-8 pb-8">
+        <div className="max-w-4xl mx-auto">
+          <ListView 
+            list={serializedList}
+            isOwner={userId === list.owner.clerkId}
+            isPinned={isPinned}
+            isFollowing={isFollowing}
+          />
+        </div>
+      </div>
+    </SubLayout>
+  );
 } 

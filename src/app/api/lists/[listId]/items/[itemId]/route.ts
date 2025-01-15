@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { ListModel } from "@/lib/db/models/list";
-import dbConnect from "@/lib/db/mongodb";
+import { getListModel } from "@/lib/db/models-v2/list";
+import { connectToMongoDB } from "@/lib/db/client";
 
 export async function PATCH(
   req: Request,
@@ -13,13 +13,14 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    await dbConnect();
+    await connectToMongoDB();
+    const ListModel = await getListModel();
     const updates = await req.json();
 
     const list = await ListModel.findOneAndUpdate(
       { 
         _id: params.listId,
-        ownerId: userId,
+        'owner.clerkId': userId,
         "items.rank": parseInt(params.itemId)
       },
       { 

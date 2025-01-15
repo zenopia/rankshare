@@ -1,85 +1,118 @@
-import { auth } from '@clerk/nextjs/server';
-import { NextResponse } from "next/server";
-import { ListModel } from "@/lib/db/models/list";
-import dbConnect from "@/lib/db/mongodb";
-import type { ListDocument, ListCategory } from "@/types/list";
-import type { MongoListFilter, MongoSortOptions } from "@/types/mongodb";
+import { FilterQuery } from "mongoose";
+import { auth } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
+import { connectToMongoDB } from "@/lib/db/client";
+import { getListModel } from "@/lib/db/models-v2/list";
+import { MongoListDocument } from "@/types/mongo";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    const { searchParams } = new URL(request.url);
+    const { userId } = auth();
+    const searchParams = req.nextUrl.searchParams;
     
-    await dbConnect();
+    const q = searchParams.get('q') || '';
+    const category = searchParams.get('category');
+    const privacy = searchParams.get('privacy');
+    const owner = searchParams.get('owner');
+    const sort = searchParams.get('sort') || 'recent';
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
 
-    // Build query
-    const filter: MongoListFilter = { privacy: "public" };
-    
-    if (searchParams.get("q")) {
-      const searchQuery = searchParams.get("q") || '';
-      
-      // Add text search at the top level of the query
-      filter.$text = { $search: searchQuery };
-      
-      // Add regex search for partial matches
-      filter.$or = [
-        { title: { $regex: searchQuery, $options: "i" } },
-        { description: { $regex: searchQuery, $options: "i" } },
-        { ownerName: { $regex: searchQuery, $options: "i" } }
+    await connectToMongoDB();
+    const ListModel = await getListModel();
+
+    // Build base query
+    const baseQuery: FilterQuery<MongoListDocument> = {};
+
+    // Add search conditions
+    if (q) {
+      baseQuery.$or = [
+        { title: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } },
+        { 'items.title': { $regex: q, $options: 'i' } },
+        { 'items.properties.value': { $regex: q, $options: 'i' } }
       ];
     }
 
-    if (searchParams.get("category")) {
-      filter.category = searchParams.get("category") as ListCategory;
+    // Add category filter
+    if (category) {
+      baseQuery.category = category;
     }
 
-    // Build sort
-    const sort: MongoSortOptions = {};
-    
-    if (searchParams.get("q")) {
-      // If there's a search query, sort by text score first
-      sort.score = { $meta: "textScore" };
+    // Add privacy filter
+    if (privacy === 'public') {
+      baseQuery.privacy = 'public';
+    } else if (privacy === 'private' && userId) {
+      baseQuery.$or = [
+        { 'owner.clerkId': userId },
+        { 'collaborators.clerkId': userId, 'collaborators.status': 'accepted' }
+      ];
     }
-    
-    // Then apply other sort criteria
-    switch (searchParams.get("sort")) {
-      case "most-viewed":
-        sort.viewCount = -1;
+
+    // Add owner filter
+    if (owner === 'owned' && userId) {
+      baseQuery['owner.clerkId'] = userId;
+    } else if (owner === 'collaborated' && userId) {
+      baseQuery['collaborators.clerkId'] = userId;
+      baseQuery['collaborators.status'] = 'accepted';
+    }
+
+    // Build sort options
+    const sortOptions: Record<string, 1 | -1> = {};
+    switch (sort) {
+      case 'views':
+        sortOptions['stats.viewCount'] = -1;
         break;
-      case "newest":
+      case 'pins':
+        sortOptions['stats.pinCount'] = -1;
+        break;
+      case 'copies':
+        sortOptions['stats.copyCount'] = -1;
+        break;
       default:
-        sort.createdAt = -1;
+        sortOptions.createdAt = -1;
     }
 
-    const lists = await ListModel
-      .find(filter)
-      .sort(sort)
-      .limit(20)
-      .lean() as ListDocument[];
+    const skip = (page - 1) * limit;
+    const lists = await ListModel.find(baseQuery)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit)
+      .lean() as unknown as MongoListDocument[];
 
-    // Transform and return results
-    const transformedLists = lists.map(list => ({
+    const total = await ListModel.countDocuments(baseQuery);
+
+    // Convert MongoDB documents to List type
+    const serializedLists = lists.map(list => ({
       id: list._id.toString(),
-      ownerId: list.ownerId,
-      ownerName: list.ownerName,
       title: list.title,
-      category: list.category,
       description: list.description,
-      items: list.items || [],
+      category: list.category,
       privacy: list.privacy,
-      viewCount: list.viewCount,
+      owner: list.owner,
+      items: list.items,
+      stats: list.stats,
+      collaborators: list.collaborators,
+      lastEditedAt: list.lastEditedAt,
       createdAt: list.createdAt,
-      updatedAt: list.updatedAt,
-      hasUpdate: userId ? false : undefined,
+      updatedAt: list.updatedAt
     }));
 
-    return NextResponse.json({ lists: transformedLists });
+    return NextResponse.json({
+      lists: serializedLists,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
-    console.error('Search error:', error);
+    console.error("Error searching lists:", error);
     return NextResponse.json(
-      { error: 'Failed to search lists' },
+      { error: "Failed to search lists" },
       { status: 500 }
     );
   }

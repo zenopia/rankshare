@@ -12,7 +12,9 @@
     "deploy": "npm run build && pm2 reload curate.fileopia.com",
     "deploy:dev": "npm run build && pm2 reload curate-dev.fileopia.com",
     "deploy:logs": "pm2 logs",
-    "deploy:monitor": "pm2 monit"
+    "deploy:monitor": "pm2 monit",
+    "db:create-indexes": "tsx src/scripts/create-indexes.ts",
+    "migrate:v2": "tsx src/scripts/migrate-to-v2.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^4.29.7",
@@ -64,6 +66,7 @@
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "autoprefixer": "^10.4.20",
+    "dotenv": "^16.4.7",
     "eslint": "^8",
     "eslint-config-next": "15.0.2",
     "postcss": "^8.4.47",
@@ -71,6 +74,8 @@
     "prettier-plugin-tailwindcss": "^0.6.8",
     "tailwindcss": "^3.4.14",
     "tailwindcss-animate": "^1.0.7",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.2",
     "typescript": "5.3.3"
   }
 }

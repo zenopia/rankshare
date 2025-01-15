@@ -1,9 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { ListDocument, List, ItemProperty, ListCollaborator } from "@/types/list";
-import type { MongoListDocument } from "@/types/mongodb";
-import type { User } from "@/types/user";
-import type { FlattenMaps } from "mongoose";
+import type { List } from "@/types/list";
+import type { MongoListDocument } from "@/types/mongo";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -14,42 +12,48 @@ export function isValidEmail(email: string) {
   return emailRegex.test(email);
 }
 
-export function serializeList(list: ListDocument): List {
-  const plainList = JSON.parse(JSON.stringify(list));
-
+export function serializeList(list: MongoListDocument): List {
   return {
-    id: plainList._id.toString(),
-    ownerId: plainList.ownerId,
-    ownerName: plainList.ownerName,
-    ownerImageUrl: plainList.ownerImageUrl,
-    title: plainList.title,
-    category: plainList.category,
-    description: plainList.description,
-    privacy: plainList.privacy,
-    viewCount: plainList.viewCount,
-    pinCount: plainList.totalPins,
-    totalCopies: plainList.totalCopies,
-    createdAt: new Date(plainList.createdAt),
-    updatedAt: new Date(plainList.updatedAt),
-    lastEditedAt: plainList.lastEditedAt ? new Date(plainList.lastEditedAt) : undefined,
-    collaborators: plainList.collaborators?.map((collaborator: ListCollaborator) => ({
-      ...collaborator,
-      _id: collaborator._id.toString(),
-      invitedAt: new Date(collaborator.invitedAt),
-      acceptedAt: collaborator.acceptedAt ? new Date(collaborator.acceptedAt) : undefined
-    })),
-    items: plainList.items.map((item: MongoListDocument['items'][0]) => ({
-      id: item._id?.toString() || crypto.randomUUID(),
+    id: list._id.toString(),
+    title: list.title,
+    description: list.description || '',
+    category: list.category,
+    privacy: list.privacy,
+    owner: {
+      id: list.owner.userId.toString(),
+      clerkId: list.owner.clerkId,
+      username: list.owner.username,
+      joinedAt: list.owner.joinedAt
+    },
+    items: list.items.map(item => ({
+      id: crypto.randomUUID(),
       title: item.title,
       comment: item.comment,
-      properties: item.properties?.map((prop: ItemProperty) => ({
-        id: prop.id,
-        type: prop.type,
+      properties: item.properties?.map(prop => ({
+        type: prop.type || 'text',
         label: prop.label,
         value: prop.value
       })) || [],
       rank: item.rank
-    }))
+    })),
+    stats: {
+      viewCount: list.stats?.viewCount || 0,
+      pinCount: list.stats?.pinCount || 0,
+      copyCount: list.stats?.copyCount || 0
+    },
+    collaborators: list.collaborators?.filter(collab => collab.userId).map(collab => ({
+      id: collab.userId!.toString(),
+      clerkId: collab.clerkId!,
+      username: collab.username!,
+      email: collab.email,
+      role: collab.role,
+      status: collab.status,
+      invitedAt: collab.invitedAt,
+      acceptedAt: collab.acceptedAt
+    })) || [],
+    lastEditedAt: list.lastEditedAt,
+    createdAt: list.createdAt,
+    updatedAt: list.updatedAt
   };
 }
 
@@ -61,26 +65,27 @@ export function formatDate(date: Date) {
   }).format(date);
 }
 
-export function serializeLists(docs: ListDocument[]): List[] {
-  return docs.map(doc => serializeList(doc));
+export function serializeLists(lists: MongoListDocument[]) {
+  return lists.map(list => serializeList(list));
 }
 
-export function serializeUser(user: FlattenMaps<Record<string, unknown>> | FlattenMaps<Record<string, unknown>>[] | null): Partial<User> | undefined {
-  if (!user || Array.isArray(user)) return undefined;
-  
+export function serializeUser(user: any) {
+  if (!user) return null;
+
   return {
-    _id: (user._id as unknown)?.toString(),
-    clerkId: user.clerkId as string,
-    username: user.username as string,
-    email: user.email as string,
-    bio: user.bio as string | undefined,
-    location: user.location as string | undefined,
-    dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth as Date) : undefined,
-    gender: user.gender as User['gender'],
-    livingStatus: user.livingStatus as User['livingStatus'],
-    isProfileComplete: user.isProfileComplete as boolean,
-    privacySettings: user.privacySettings as User['privacySettings'],
-    createdAt: new Date(user.createdAt as Date),
-    updatedAt: new Date(user.updatedAt as Date)
+    id: user._id.toString(),
+    username: user.username,
+    displayName: user.displayName,
+    bio: user.bio,
+    location: user.location,
+    dateOfBirth: user.dateOfBirth,
+    gender: user.gender,
+    livingStatus: user.livingStatus,
+    privacySettings: user.privacySettings,
+    followersCount: user.followersCount,
+    followingCount: user.followingCount,
+    listCount: user.listCount,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt
   };
 } 

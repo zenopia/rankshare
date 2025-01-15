@@ -1,87 +1,129 @@
 import { auth } from "@clerk/nextjs/server";
-import { ListModel } from "@/lib/db/models/list";
-import dbConnect from "@/lib/db/mongodb";
-import { listCreateSchema, type CreateListInput } from "@/lib/validations/api";
-import { handleApiError, apiResponse, validateRequest } from "@/lib/api-utils";
-import { rateLimit } from "@/lib/rate-limit";
-import type { SortOrder } from "mongoose";
+import { NextResponse } from "next/server";
+import { getListModel } from "@/lib/db/models-v2/list";
+import { getUserModel } from "@/lib/db/models-v2/user";
+import { logDatabaseAccess } from "@/lib/db/migration-utils";
 
 export async function POST(request: Request) {
   try {
-    // Rate limit check
-    await rateLimit('create-list', { limit: 5, window: 60 });
-
-    const { userId } = await auth();
+    const { userId } = auth();
     if (!userId) {
-      throw new Error('Unauthorized');
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
+    const data = await request.json();
+    const { title, description, category, privacy = 'private' } = data;
 
-    // Validate request data
-    const data = await validateRequest<CreateListInput>(request, listCreateSchema);
-    
-    // Ensure ownerId is set to the authenticated user's ID
+    if (!title || !category) {
+      return NextResponse.json(
+        { error: "Title and category are required" },
+        { status: 400 }
+      );
+    }
+
+    logDatabaseAccess('List Creation', true);
+    const ListModel = await getListModel();
+    const UserModel = await getUserModel();
+
+    // Get user info for owner details
+    const user = await UserModel.findOne({ clerkId: userId })
+      .select('username displayName')
+      .lean();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Create new list with owner info
     const list = await ListModel.create({
-      ...data,
-      ownerId: userId
+      title,
+      description,
+      category,
+      privacy,
+      owner: {
+        userId: user._id,
+        clerkId: userId,
+        username: user.username,
+        joinedAt: new Date()
+      },
+      collaborators: [],
+      items: [],
+      stats: {
+        viewCount: 0,
+        pinCount: 0,
+        copyCount: 0
+      }
     });
 
-    return apiResponse(list);
+    // Increment user's list count
+    await UserModel.updateOne(
+      { clerkId: userId },
+      { $inc: { listCount: 1 } }
+    );
+
+    return NextResponse.json(list, { status: 201 });
   } catch (error) {
-    return handleApiError(error);
+    console.error('Error creating list:', error);
+    return NextResponse.json(
+      { error: "Failed to create list" },
+      { status: 500 }
+    );
   }
 }
 
 export async function GET(request: Request) {
   try {
-    // Rate limit check
-    await rateLimit('list-search', { limit: 20, window: 60 });
-
+    const { userId } = auth();
     const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get('limit') || '20');
     const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '20');
-    const sort = searchParams.get('sort') || 'newest';
-    const category = searchParams.get('category');
+    const skip = (page - 1) * limit;
 
-    await dbConnect();
+    logDatabaseAccess('List Fetch', true);
+    const ListModel = await getListModel();
 
-    // Build query
-    const filter = { privacy: "public" };
-    if (category) {
-      Object.assign(filter, { category });
-    }
+    // Build query based on authentication
+    const query = userId
+      ? {
+          $or: [
+            { 'owner.clerkId': userId },
+            { privacy: 'public' },
+            {
+              'collaborators': {
+                $elemMatch: {
+                  clerkId: userId,
+                  status: 'accepted'
+                }
+              }
+            }
+          ]
+        }
+      : { privacy: 'public' };
 
-    // Build sort
-    const sortOptions: { [key: string]: SortOrder } = {};
-    switch (sort) {
-      case 'most-viewed':
-        sortOptions.viewCount = -1;
-        break;
-      case 'oldest':
-        sortOptions.createdAt = 1;
-        break;
-      case 'newest':
-      default:
-        sortOptions.createdAt = -1;
-    }
-
+    // Get lists with pagination
     const [lists, total] = await Promise.all([
-      ListModel.find(filter)
-        .sort(sortOptions)
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
+      ListModel.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
         .lean(),
-      ListModel.countDocuments(filter)
+      ListModel.countDocuments(query)
     ]);
 
-    return apiResponse({
+    return NextResponse.json({
       results: lists,
       total,
       page,
-      pageSize
+      pageSize: limit
     });
   } catch (error) {
-    return handleApiError(error);
+    console.error('Error fetching lists:', error);
+    return NextResponse.json(
+      { error: "Failed to fetch lists" },
+      { status: 500 }
+    );
   }
 } 

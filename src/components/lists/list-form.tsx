@@ -1,7 +1,29 @@
 "use client";
 
 import dynamic from 'next/dynamic';
-import type { ListFormProps } from './list-form-content';
+import type { ListCategory } from '@/types/list';
+
+export interface ListFormProps {
+  mode?: 'create' | 'edit';
+  defaultValues?: {
+    id: string;
+    title: string;
+    description?: string;
+    category: ListCategory;
+    privacy: 'public' | 'private';
+    items: Array<{
+      id: string;
+      title: string;
+      comment?: string;
+      rank: number;
+      properties?: Array<{
+        type?: 'text' | 'link';
+        label: string;
+        value: string;
+      }>;
+    }>;
+  };
+}
 
 const LoadingForm = () => (
   <div className="space-y-6 animate-pulse">
@@ -24,6 +46,4 @@ export const ListForm = dynamic<ListFormProps>(
     ssr: false,
     loading: () => <LoadingForm />
   }
-);
-
-export type { ListFormProps }; 
+); 

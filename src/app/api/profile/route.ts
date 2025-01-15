@@ -1,75 +1,104 @@
 import { auth } from "@clerk/nextjs/server";
-import { UserModel } from "@/lib/db/models/user";
-import dbConnect from "@/lib/db/mongodb";
-import { profileUpdateSchema, type ProfileUpdateInput } from "@/lib/validations/api";
-import { handleApiError, apiResponse, validateRequest } from "@/lib/api-utils";
-import { rateLimit } from "@/lib/rate-limit";
-
-export const dynamic = 'force-dynamic';
+import { NextResponse } from "next/server";
+import { getUserModel } from "@/lib/db/models-v2/user";
+import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
+import { logDatabaseAccess } from "@/lib/db/migration-utils";
 
 export async function GET() {
   try {
-    await rateLimit('get-profile', { limit: 30, window: 60 });
-
     const { userId } = auth();
+
     if (!userId) {
       throw new Error('Unauthorized');
     }
 
-    await dbConnect();
+    logDatabaseAccess('Profile GET', true);
+    const UserModel = await getUserModel();
+    const UserProfileModel = await getUserProfileModel();
+
     const user = await UserModel.findOne({ clerkId: userId });
     
     if (!user) {
-      throw new Error('User not found');
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return apiResponse(user);
+    const profile = await UserProfileModel.findOne({ userId: user._id });
+
+    return NextResponse.json({ user, profile });
   } catch (error) {
-    return handleApiError(error);
+    console.error('Error fetching profile:', error);
+    return NextResponse.json(
+      { error: "Failed to fetch profile" },
+      { status: 500 }
+    );
   }
 }
 
-export async function PUT(request: Request) {
+export async function POST(request: Request) {
   try {
-    await rateLimit('update-profile', { limit: 10, window: 60 });
-
     const { userId } = auth();
+
     if (!userId) {
       throw new Error('Unauthorized');
     }
 
-    // Validate request data
-    const data = await validateRequest<ProfileUpdateInput>(request, profileUpdateSchema);
-    await dbConnect();
+    const data = await request.json();
+    logDatabaseAccess('Profile POST', true);
+    
+    const UserModel = await getUserModel();
+    const UserProfileModel = await getUserProfileModel();
 
-    let user = await UserModel.findOne({ clerkId: userId });
-    if (!user) {
-      throw new Error('User not found');
-    }
+    // Create or update user
+    const userUpdate = {
+      clerkId: userId,
+      username: data.username,
+      displayName: data.displayName || data.username,
+    };
 
-    user = await UserModel.findOneAndUpdate(
+    const user = await UserModel.findOneAndUpdate(
       { clerkId: userId },
-      { ...data },
-      { new: true, runValidators: true }
+      userUpdate,
+      { 
+        new: true,
+        upsert: true // Create if doesn't exist
+      }
     );
 
-    const isComplete = Boolean(
-      user.location &&
-      user.dateOfBirth &&
-      user.gender &&
-      user.livingStatus
-    );
-
-    if (user.isProfileComplete !== isComplete) {
-      user = await UserModel.findOneAndUpdate(
-        { clerkId: userId },
-        { isProfileComplete: isComplete },
-        { new: true }
+    if (!user) {
+      return NextResponse.json(
+        { error: "Failed to create/update user" },
+        { status: 500 }
       );
     }
 
-    return apiResponse(user);
+    // Create or update profile
+    const profileUpdate = {
+      userId: user._id,
+      ...data.profile,
+      privacySettings: data.privacySettings || {
+        showBio: true,
+        showLocation: true,
+        showDateOfBirth: false,
+        showGender: true,
+        showLivingStatus: true
+      }
+    };
+
+    const profile = await UserProfileModel.findOneAndUpdate(
+      { userId: user._id },
+      profileUpdate,
+      { 
+        new: true,
+        upsert: true // Create if doesn't exist
+      }
+    );
+
+    return NextResponse.json({ user, profile });
   } catch (error) {
-    return handleApiError(error);
+    console.error('Error updating profile:', error);
+    return NextResponse.json(
+      { error: "Failed to update profile" },
+      { status: 500 }
+    );
   }
 } 

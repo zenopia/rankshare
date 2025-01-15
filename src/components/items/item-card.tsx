@@ -1,48 +1,53 @@
 'use client';
 
-import Link from "next/link";
-import type { ItemProperty } from "@/types/list";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { ExternalLink } from "lucide-react";
 
 interface ItemCardProps {
-  listId: string;
-  item: {
-    rank: number;
-    title: string;
-    comment?: string;
-    properties?: ItemProperty[];
-  };
-  clickable?: boolean;
+  title: string;
+  comment?: string;
+  properties?: Array<{
+    type?: 'text' | 'link';
+    label: string;
+    value: string;
+  }>;
+  position: number;
 }
 
-export function ItemCard({ listId, item, clickable = true }: ItemCardProps) {
-  const content = (
-    <div className="flex items-start gap-4">
-      <span className="text-2xl font-bold text-muted-foreground">
-        {item.rank}
-      </span>
-      <div>
-        <h3 className="font-semibold">{item.title}</h3>
-        {item.comment && (
-          <p className="mt-1 text-sm text-muted-foreground">{item.comment}</p>
-        )}
-      </div>
-    </div>
-  );
-
-  if (clickable) {
-    return (
-      <Link 
-        href={`/lists/${listId}/items/${item.rank}`}
-        className="block p-4 bg-card rounded-lg border hover:border-primary transition-colors"
-      >
-        {content}
-      </Link>
-    );
-  }
-
+export function ItemCard({ title, comment, properties, position }: ItemCardProps) {
   return (
-    <div className="p-4 bg-card rounded-lg border">
-      {content}
-    </div>
+    <Card>
+      <CardContent className="p-4 space-y-2">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">#{position}</span>
+              <h3 className="font-medium">{title}</h3>
+            </div>
+            {comment && (
+              <p className="text-sm text-muted-foreground">{comment}</p>
+            )}
+          </div>
+        </div>
+
+        {properties && properties.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {properties.map((prop, index) => (
+              <Badge
+                key={index}
+                variant="secondary"
+                className="flex items-center gap-1"
+              >
+                {prop.label}: {prop.value}
+                {prop.type === 'link' && (
+                  <ExternalLink className="h-3 w-3" />
+                )}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 } 

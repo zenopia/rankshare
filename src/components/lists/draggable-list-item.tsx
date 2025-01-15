@@ -1,87 +1,94 @@
 "use client";
 
 import { useState } from "react";
-import { DraggableProvided } from "@hello-pangea/dnd";
+import { DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
 import { GripVertical, ArrowUpDown, X, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ItemDetailsOverlay } from "./item-details-overlay";
-import type { ItemDetails, ItemProperty } from "@/types/list";
+import { ItemDetailsOverlay } from "@/components/items/item-details-overlay";
+import { ItemDetails } from "@/types/list";
 
 interface DraggableListItemProps {
   item: {
     id: string;
     title: string;
     comment?: string;
-    properties?: ItemProperty[];
+    rank: number;
+    properties?: Array<{
+      id: string;
+      type?: 'text' | 'link';
+      label: string;
+      value: string;
+    }>;
   };
-  index: number;
-  provided: DraggableProvided;
-  removeItem: (id: string) => void;
-  handleKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, index: number) => void;
-  updateItem: (
-    index: number, 
-    field: 'title' | 'comment' | 'properties', 
-    value: string | ItemProperty[] | undefined
-  ) => void;
+  dragHandleProps?: DraggableProvidedDragHandleProps | null;
+  onUpdate: (updates: Partial<{
+    title: string;
+    comment?: string;
+    rank: number;
+    properties?: Array<{
+      id: string;
+      type?: 'text' | 'link';
+      label: string;
+      value: string;
+    }>;
+  }>) => void;
+  onRemove: () => void;
+  disabled?: boolean;
 }
 
 export function DraggableListItem({
   item,
-  index,
-  provided,
-  removeItem,
-  handleKeyDown,
-  updateItem
+  dragHandleProps,
+  onUpdate,
+  onRemove,
+  disabled
 }: DraggableListItemProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
   const handleDetailsUpdate = (details: ItemDetails) => {
-    const updatedItem = {
-      ...item,
+    onUpdate({
       title: details.title,
       comment: details.comment,
-      properties: details.properties || []
-    };
-    
-    updateItem(index, 'title', updatedItem.title);
-    updateItem(index, 'comment', updatedItem.comment);
-    updateItem(index, 'properties', updatedItem.properties);
-    
+      properties: details.properties?.map(prop => ({
+        id: prop.id || crypto.randomUUID(),
+        type: prop.type,
+        label: prop.label,
+        value: prop.value
+      }))
+    });
     setShowDetails(false);
   };
 
   return (
     <>
       <div
-        ref={provided.innerRef}
-        {...provided.draggableProps}
         className={`
           relative flex items-stretch rounded-lg border bg-card
           ${isDragging ? 'ring-2 ring-primary' : ''}
         `}
       >
         <div
-          {...provided.dragHandleProps}
+          {...dragHandleProps}
           className="flex flex-col items-center justify-center sm:hidden bg-muted px-3 rounded-l-lg touch-none"
           onTouchStart={() => setIsDragging(true)}
           onTouchEnd={() => setIsDragging(false)}
         >
-          <span className="text-sm text-muted-foreground">{index + 1}</span>
+          <span className="text-sm text-muted-foreground">{item.rank}</span>
           <ArrowUpDown className="h-4 w-4 text-muted-foreground mt-1" />
         </div>
-        
+
         <div className="hidden sm:flex items-center gap-4 p-4">
           <div
-            {...provided.dragHandleProps}
+            {...dragHandleProps}
             className="touch-none cursor-grab active:cursor-grabbing"
             onMouseDown={() => setIsDragging(true)}
             onMouseUp={() => setIsDragging(false)}
           >
             <GripVertical className="h-6 w-6 text-muted-foreground" />
           </div>
-          <span className="text-sm text-muted-foreground w-6">{index + 1}</span>
+          <span className="text-sm text-muted-foreground w-6">{item.rank}</span>
         </div>
         
         <div className="flex-1 p-4">
@@ -89,8 +96,8 @@ export function DraggableListItem({
             className="h-12 sm:h-10 transition-colors focus:bg-accent"
             placeholder="Item title"
             value={item.title}
-            onChange={(e) => updateItem(index, 'title', e.target.value)}
-            onKeyDown={(e) => handleKeyDown(e, index)}
+            onChange={(e) => onUpdate({ title: e.target.value })}
+            disabled={disabled}
           />
           
           {item.comment && (
@@ -105,6 +112,7 @@ export function DraggableListItem({
             size="sm"
             className="mt-2 text-primary hover:text-primary/90"
             onClick={() => setShowDetails(true)}
+            disabled={disabled}
           >
             <Plus className="h-4 w-4 mr-1" />
             add details
@@ -116,7 +124,8 @@ export function DraggableListItem({
           variant="ghost"
           size="icon"
           className="h-12 w-12 sm:h-10 sm:w-10 rounded-none rounded-r-lg hover:bg-destructive/10 hover:text-destructive"
-          onClick={() => removeItem(item.id)}
+          onClick={onRemove}
+          disabled={disabled}
         >
           <X className="h-4 w-4" />
           <span className="sr-only">Remove item</span>

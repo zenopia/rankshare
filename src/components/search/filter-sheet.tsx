@@ -7,23 +7,34 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { LIST_CATEGORIES, PRIVACY_OPTIONS, OWNER_FILTER_OPTIONS } from "@/types/list";
-import type { ListPrivacy, ListPrivacyFilter, OwnerFilter } from "@/types/list";
+import { LIST_CATEGORIES } from "@/types/list";
+import type { ListCategory } from "@/types/list";
 
 interface FilterSheetProps {
-  defaultCategory?: string;
+  defaultCategory?: ListCategory;
   defaultSort?: string;
-  defaultPrivacy?: ListPrivacyFilter;
-  defaultOwner?: OwnerFilter;
+  defaultPrivacy?: 'public' | 'private' | 'all';
+  defaultOwner?: 'all' | 'owned' | 'collaborated';
   showPrivacyFilter?: boolean;
   showOwnerFilter?: boolean;
 }
+
+const PRIVACY_OPTIONS = [
+  { value: 'all', label: 'All Lists' },
+  { value: 'public', label: 'Public Lists' },
+  { value: 'private', label: 'Private Lists' }
+] as const;
+
+const OWNER_FILTER_OPTIONS = [
+  { value: 'all', label: 'All Lists' },
+  { value: 'owned', label: 'My Lists' },
+  { value: 'collaborated', label: 'Collaborated Lists' }
+] as const;
 
 export function FilterSheet({ 
   defaultCategory, 
   defaultSort,
   defaultPrivacy,
-  defaultOwner,
   showPrivacyFilter = false,
   showOwnerFilter = false
 }: FilterSheetProps) {
@@ -132,14 +143,18 @@ export function FilterSheet({
                 onValueChange={handleCategoryChange}
                 className="space-y-3"
               >
-                <div className="flex items-center space-x-2">
+                <div key="all" className="flex items-center space-x-2">
                   <RadioGroupItem value="all" id="all" />
                   <Label htmlFor="all" className="text-sm">All Categories</Label>
                 </div>
                 {LIST_CATEGORIES.map((category) => (
-                  <div key={category.value} className="flex items-center space-x-2">
-                    <RadioGroupItem value={category.value} id={category.value} />
-                    <Label htmlFor={category.value} className="text-sm">{category.label}</Label>
+                  <div key={category} className="flex items-center space-x-2">
+                    <RadioGroupItem value={category} id={category} />
+                    <Label htmlFor={category} className="text-sm">
+                      {category === 'tv-shows' ? 'TV Shows' : 
+                       category === 'things-to-do' ? 'Things to do' :
+                       category.charAt(0).toUpperCase() + category.slice(1)}
+                    </Label>
                   </div>
                 ))}
               </RadioGroup>
@@ -188,19 +203,19 @@ export function FilterSheet({
                 onValueChange={handleSortChange}
                 className="space-y-3"
               >
-                <div className="flex items-center space-x-2">
+                <div key="newest" className="flex items-center space-x-2">
                   <RadioGroupItem value="newest" id="newest" />
                   <Label htmlFor="newest" className="text-sm">Newest First</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div key="oldest" className="flex items-center space-x-2">
                   <RadioGroupItem value="oldest" id="oldest" />
                   <Label htmlFor="oldest" className="text-sm">Oldest First</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div key="most-viewed" className="flex items-center space-x-2">
                   <RadioGroupItem value="most-viewed" id="most-viewed" />
                   <Label htmlFor="most-viewed" className="text-sm">Most Viewed</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div key="least-viewed" className="flex items-center space-x-2">
                   <RadioGroupItem value="least-viewed" id="least-viewed" />
                   <Label htmlFor="least-viewed" className="text-sm">Least Viewed</Label>
                 </div>

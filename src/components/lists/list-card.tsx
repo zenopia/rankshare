@@ -1,96 +1,55 @@
 "use client";
 
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
 import { Eye, Lock } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { List } from "@/types/list";
-import { CategoryBadge } from "@/components/lists/category-badge";
-import useSWR from "swr";
-
-interface UserProfile {
-  firstName: string | null;
-  lastName: string | null;
-  username: string;
-}
 
 interface ListCardProps {
   list: List;
   showPrivacyBadge?: boolean;
-  showUpdateBadge?: boolean;
+  isFollowing?: boolean;
 }
 
-export function ListCard({ list, showPrivacyBadge = false, showUpdateBadge = false }: ListCardProps) {
-  const { data: user } = useSWR<UserProfile>(`/api/users/${list.ownerId}`);
-  
-  const displayName = user 
-    ? [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username
-    : list.ownerName;
-
-  const dateString = list.lastEditedAt && 
-    new Date(list.lastEditedAt).getTime() !== new Date(list.createdAt).getTime()
-    ? `Edited: ${formatDistanceToNow(new Date(list.lastEditedAt), { addSuffix: true })}`
-    : `Created: ${formatDistanceToNow(new Date(list.createdAt), { addSuffix: true })}`;
-
+export function ListCard({
+  list,
+  showPrivacyBadge = true,
+  isFollowing = false
+}: ListCardProps) {
   return (
-    <Link
-      href={`/lists/${list.id}`}
-      className="block h-full overflow-hidden rounded-lg border bg-card hover:border-primary transition-colors"
-    >
-      <div className="p-6 flex flex-col h-full">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <div>
-                <h3 className="font-semibold leading-none tracking-tight truncate">
-                  {list.title}
-                </h3>
-                {displayName && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {displayName}
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <CategoryBadge 
-                  category={list.category}
-                  className="pointer-events-none"
-                />
-                {showPrivacyBadge && list.privacy === 'private' && (
-                  <Lock className="h-4 w-4 text-muted-foreground" />
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {showUpdateBadge && list.hasUpdate && (
-                <Badge variant="success" className="text-xs pointer-events-none">Updated</Badge>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {list.description && (
-          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground hidden sm:block">
-            {list.description}
-          </p>
+    <Link href={`/lists/${list.id}`}>
+      <Card className="group relative overflow-hidden transition-colors hover:bg-accent">
+        {showPrivacyBadge && list.privacy === 'private' && (
+          <Badge variant="outline" className="absolute right-4 top-4">
+            <Lock className="h-3 w-3 mr-1" />
+            Private
+          </Badge>
         )}
 
-        <div className="mt-2 sm:mt-4">
-          <p className="text-sm text-muted-foreground line-clamp-1 sm:line-clamp-2">
-            Top {list.items.length > 0 ? '3' : '0'}: {list.items.slice(0, 3).map(item => item.title).join(", ")}
-          </p>
-        </div>
+        <div className="p-6">
+          <h3 className="font-semibold leading-none tracking-tight">
+            {list.title}
+          </h3>
 
-        <div className="mt-auto pt-4 border-t flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Eye className="h-4 w-4" />
-            <span className="tabular-nums">{list.viewCount}</span>
+          {list.description && (
+            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+              {list.description}
+            </p>
+          )}
+
+          <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">
+            <span>{list.owner.username}</span>
+            <span>•</span>
+            <span>{list.items?.length || 0} items</span>
           </div>
-          <span className="truncate ml-2">
-            {dateString}
-          </span>
+          <div className="flex items-center gap-4">
+            <span>{list.stats.viewCount} views</span>
+            <span>•</span>
+            <span>{list.stats.pinCount} pins</span>
+          </div>
         </div>
-      </div>
+      </Card>
     </Link>
   );
 } 
