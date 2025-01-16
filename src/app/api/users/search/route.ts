@@ -1,8 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 import { NextResponse } from "next/server";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { logDatabaseAccess } from "@/lib/db/migration-utils";
+import type { User as ClerkUser } from "@clerk/clerk-sdk-node";
+import type { MongoUserDocument } from "@/types/mongo";
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +32,17 @@ export async function GET(request: Request) {
     )
       .sort(query ? { score: { $meta: "textScore" } } : { createdAt: -1 }) // Sort by relevance or newest first
       .limit(limit)
-      .lean();
+      .lean() as unknown as MongoUserDocument[];
+
+    // Get Clerk user data for avatars
+    const clerkUsers = await clerkClient.users.getUserList({
+      userId: users.map(user => user.clerkId),
+    });
+
+    // Create a map of Clerk user data
+    const clerkUserMap = new Map<string, ClerkUser>(
+      clerkUsers.map(user => [user.id, user])
+    );
 
     // If authenticated, get follow status for each user
     if (userId) {
@@ -43,16 +56,31 @@ export async function GET(request: Request) {
         )
       );
 
-      // Combine user data with follow status
-      const usersWithFollowStatus = users.map((user, index) => ({
-        ...user,
-        isFollowing: !!followStatuses[index]
-      }));
+      // Combine user data with follow status and Clerk data
+      const usersWithDetails = users.map((user, index) => {
+        const clerkUser = clerkUserMap.get(user.clerkId);
+        return {
+          ...user,
+          imageUrl: clerkUser?.imageUrl ?? null,
+          avatarUrl: clerkUser?.imageUrl ?? null,
+          isFollowing: !!followStatuses[index]
+        };
+      });
 
-      return NextResponse.json(usersWithFollowStatus);
+      return NextResponse.json(usersWithDetails);
     }
 
-    return NextResponse.json(users);
+    // Combine user data with Clerk data
+    const usersWithDetails = users.map(user => {
+      const clerkUser = clerkUserMap.get(user.clerkId);
+      return {
+        ...user,
+        imageUrl: clerkUser?.imageUrl ?? null,
+        avatarUrl: clerkUser?.imageUrl ?? null
+      };
+    });
+
+    return NextResponse.json(usersWithDetails);
   } catch (error) {
     console.error('Error searching users:', error);
     return NextResponse.json(

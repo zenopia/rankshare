@@ -2,18 +2,26 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Search, Globe, Lock } from "lucide-react";
+import { X, Globe, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { isValidEmail } from "@/lib/utils";
 import { toast } from "sonner";
 import { CollaboratorCard } from "@/components/users/collaborator-card";
+import { UserCombobox } from "@/components/users/user-combobox";
 
 interface Collaborator {
   userId: string;
   username: string;
   role: 'owner' | 'editor' | 'viewer';
+}
+
+interface FollowingResult {
+  followingId: string;
+  user: {
+    username: string;
+    displayName: string;
+    imageUrl?: string;
+  };
 }
 
 interface CollaboratorManagementProps {
@@ -29,17 +37,36 @@ export function CollaboratorManagement({
   privacy,
   onClose 
 }: CollaboratorManagementProps) {
-  const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [isLoadingCollaborators, setIsLoadingCollaborators] = useState(true);
+  const [followingIds, setFollowingIds] = useState<string[]>([]);
+  const [isLoadingFollowing, setIsLoadingFollowing] = useState(true);
 
   useEffect(() => {
     // Trigger open animation after mount
     requestAnimationFrame(() => {
       setIsOpen(true);
     });
+  }, []);
+
+  useEffect(() => {
+    const fetchFollowing = async () => {
+      try {
+        const response = await fetch('/api/users/following');
+        if (!response.ok) throw new Error();
+        const data = await response.json();
+        setFollowingIds(data.results.map((result: FollowingResult) => result.followingId));
+      } catch (error) {
+        console.error('Failed to fetch following:', error);
+        toast.error("Failed to load following users");
+      } finally {
+        setIsLoadingFollowing(false);
+      }
+    };
+
+    fetchFollowing();
   }, []);
 
   useEffect(() => {
@@ -65,12 +92,7 @@ export function CollaboratorManagement({
     setTimeout(onClose, 300); // Wait for animation to complete
   };
 
-  const handleInvite = async () => {
-    if (!isValidEmail(searchTerm)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-
+  const handleInvite = async (value: { type: 'user', userId: string, username: string } | { type: 'email', email: string }) => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/lists/${listId}/collaborators`, {
@@ -79,7 +101,8 @@ export function CollaboratorManagement({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: searchTerm,
+          email: value.type === 'email' ? value.email : undefined,
+          userId: value.type === 'user' ? value.userId : undefined,
           role: "viewer",
         }),
       });
@@ -96,7 +119,6 @@ export function CollaboratorManagement({
       }
 
       toast.success("Invitation sent!");
-      setSearchTerm("");
     } catch (error) {
       toast.error("Failed to send invitation");
     } finally {
@@ -108,7 +130,7 @@ export function CollaboratorManagement({
     setIsLoading(true);
     try {
       const response = await fetch(`/api/lists/${listId}`, {
-        method: "PATCH",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
@@ -122,6 +144,8 @@ export function CollaboratorManagement({
       }
 
       toast.success("Privacy updated!");
+      // Refresh the page to reflect the new privacy setting
+      window.location.reload();
     } catch (error) {
       toast.error("Failed to update privacy");
     } finally {
@@ -199,22 +223,12 @@ export function CollaboratorManagement({
                   </div>
 
                   <div className="space-y-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Enter email to invite"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9"
-                      />
-                    </div>
-                    <Button
-                      className="w-full"
-                      disabled={!searchTerm || isLoading}
-                      onClick={handleInvite}
-                    >
-                      Send Invitation
-                    </Button>
+                    <UserCombobox
+                      placeholder="Add people..."
+                      onSelect={handleInvite}
+                      disabled={isLoading || isLoadingFollowing}
+                      userIds={followingIds}
+                    />
                   </div>
                 </div>
 

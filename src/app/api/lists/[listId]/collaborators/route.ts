@@ -70,15 +70,19 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { email, role } = await req.json();
+    const { email, userId: targetUserId, role } = await req.json();
 
-    // Find user by email in Clerk
-    const [clerkUser] = await clerkClient.users.getUserList({
-      emailAddress: [email],
-    });
+    // Find user by email in Clerk if email is provided
+    let clerkUserId = targetUserId;
+    if (email && !targetUserId) {
+      const [clerkUser] = await clerkClient.users.getUserList({
+        emailAddress: [email],
+      });
 
-    if (!clerkUser) {
-      return new NextResponse("User not found", { status: 404 });
+      if (!clerkUser) {
+        return new NextResponse("User not found", { status: 404 });
+      }
+      clerkUserId = clerkUser.id;
     }
 
     await connectToMongoDB();
@@ -96,7 +100,7 @@ export async function POST(
     }
 
     // Find user in our database
-    const collaborator = (await UserModel.findOne({ clerkId: clerkUser.id }).lean()) as unknown as MongoUserDocument;
+    const collaborator = (await UserModel.findOne({ clerkId: clerkUserId }).lean()) as unknown as MongoUserDocument;
     if (!collaborator) {
       return new NextResponse("User not found in our database", { status: 404 });
     }

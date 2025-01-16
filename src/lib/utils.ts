@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { List } from "@/types/list";
-import type { MongoListDocument } from "@/types/mongo";
+import type { MongoListDocument, MongoUserDocument } from "@/types/mongo";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -16,41 +16,42 @@ export function serializeList(list: MongoListDocument): List {
   return {
     id: list._id.toString(),
     title: list.title,
-    description: list.description || '',
+    description: list.description,
     category: list.category,
     privacy: list.privacy,
     owner: {
-      id: list.owner.userId.toString(),
+      id: list.owner.id,
       clerkId: list.owner.clerkId,
       username: list.owner.username,
       joinedAt: list.owner.joinedAt
     },
     items: list.items.map(item => ({
-      id: crypto.randomUUID(),
+      id: item.id || crypto.randomUUID(),
       title: item.title,
       comment: item.comment,
+      rank: item.rank,
       properties: item.properties?.map(prop => ({
+        id: prop.id || crypto.randomUUID(),
         type: prop.type || 'text',
         label: prop.label,
         value: prop.value
-      })) || [],
-      rank: item.rank
+      }))
     })),
     stats: {
-      viewCount: list.stats?.viewCount || 0,
-      pinCount: list.stats?.pinCount || 0,
-      copyCount: list.stats?.copyCount || 0
+      viewCount: list.stats.viewCount,
+      pinCount: list.stats.pinCount,
+      copyCount: list.stats.copyCount
     },
-    collaborators: list.collaborators?.filter(collab => collab.userId).map(collab => ({
-      id: collab.userId!.toString(),
-      clerkId: collab.clerkId!,
-      username: collab.username!,
+    collaborators: list.collaborators?.map(collab => ({
+      id: collab.id,
+      clerkId: collab.clerkId,
+      username: collab.username,
       email: collab.email,
       role: collab.role,
       status: collab.status,
       invitedAt: collab.invitedAt,
       acceptedAt: collab.acceptedAt
-    })) || [],
+    })),
     lastEditedAt: list.lastEditedAt,
     createdAt: list.createdAt,
     updatedAt: list.updatedAt
@@ -65,11 +66,11 @@ export function formatDate(date: Date) {
   }).format(date);
 }
 
-export function serializeLists(lists: MongoListDocument[]) {
-  return lists.map(list => serializeList(list));
+export function serializeLists(lists: MongoListDocument[]): List[] {
+  return lists.map(serializeList);
 }
 
-export function serializeUser(user: any) {
+export function serializeUser(user: MongoUserDocument | null) {
   if (!user) return null;
 
   return {

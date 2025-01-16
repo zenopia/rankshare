@@ -1,8 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 import { NextResponse } from "next/server";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { logDatabaseAccess } from "@/lib/db/migration-utils";
+import type { User as ClerkUser } from "@clerk/clerk-sdk-node";
+import type { MongoUserDocument } from "@/types/mongo";
 
 export const dynamic = 'force-dynamic';
 
@@ -44,21 +47,37 @@ export async function GET(request: Request) {
       clerkId: { $in: follows.map(f => f.followingId) }
     })
       .select('clerkId username displayName')
-      .lean();
+      .lean() as unknown as MongoUserDocument[];
 
-    // Create a map for easy lookup
+    // Get Clerk user data for avatars
+    const clerkUsers = await clerkClient.users.getUserList({
+      userId: followingUsers.map(user => user.clerkId),
+    });
+
+    // Create maps for easy lookup
     const userMap = new Map(
       followingUsers.map(user => [user.clerkId, user])
     );
+    const clerkUserMap = new Map<string, ClerkUser>(
+      clerkUsers.map(user => [user.id, user])
+    );
 
-    // Combine follow data with user details
-    const followingWithDetails = follows.map(follow => ({
-      followingId: follow.followingId,
-      status: follow.status,
-      createdAt: follow.createdAt,
-      followingInfo: follow.followingInfo,
-      user: userMap.get(follow.followingId) || null
-    }));
+    // Combine follow data with user details and Clerk data
+    const followingWithDetails = follows.map(follow => {
+      const user = userMap.get(follow.followingId);
+      const clerkUser = clerkUserMap.get(follow.followingId);
+      return {
+        followingId: follow.followingId,
+        status: follow.status,
+        createdAt: follow.createdAt,
+        followingInfo: follow.followingInfo,
+        user: user ? {
+          ...user,
+          imageUrl: clerkUser?.imageUrl ?? null,
+          avatarUrl: clerkUser?.imageUrl ?? null
+        } : null
+      };
+    });
 
     return NextResponse.json({
       results: followingWithDetails,
