@@ -1,80 +1,127 @@
-import { auth } from "@clerk/nextjs/server";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { getUserModel } from "@/lib/db/models-v2/user";
-import { MongoListDocument } from "@/types/mongo";
+import { MongoListDocument, MongoUserDocument } from "@/types/mongo";
 
-export async function POST(
-  req: NextRequest,
+export async function GET(
+  req: Request,
   { params }: { params: { listId: string } }
 ) {
   try {
     const { userId } = auth();
     if (!userId) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
-    }
-
-    const { email } = await req.json();
-    if (!email) {
-      return NextResponse.json(
-        { error: "Email is required" },
-        { status: 400 }
-      );
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
     await connectToMongoDB();
     const ListModel = await getListModel();
     const UserModel = await getUserModel();
 
-    const list = await ListModel.findById(params.listId).lean() as unknown as MongoListDocument;
+    const list = (await ListModel.findById(params.listId).lean()) as unknown as MongoListDocument;
     if (!list) {
-      return NextResponse.json(
-        { error: "List not found" },
-        { status: 404 }
-      );
+      return new NextResponse("List not found", { status: 404 });
     }
 
-    if (list.owner.clerkId !== userId) {
-      return NextResponse.json(
-        { error: "Not authorized" },
-        { status: 403 }
-      );
+    // Check if user has access to the list
+    if (list.privacy === "private" && !list.collaborators?.some((c: { clerkId: string }) => c.clerkId === userId) && list.owner.clerkId !== userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const collaborators = list.collaborators || [];
-    if (collaborators.some(c => c.email === email)) {
-      return NextResponse.json(
-        { error: "User is already a collaborator" },
-        { status: 400 }
-      );
-    }
+    // Get all collaborators including the owner
+    const collaborators = [
+      { userId: list.owner.clerkId, role: "owner" as const },
+      ...(list.collaborators?.map((c: { clerkId: string; role: string }) => ({
+        userId: c.clerkId,
+        role: c.role
+      })) || [])
+    ];
 
-    const user = await UserModel.findOne({ email }).lean();
-    const collaborator = {
-      id: user?._id.toString() || crypto.randomUUID(),
-      clerkId: user?.clerkId || '',
-      username: user?.username || '',
-      email,
-      role: 'editor',
-      status: 'pending',
-      invitedAt: new Date()
-    };
+    // Get user details for all collaborators
+    const users = (await UserModel.find({
+      clerkId: { $in: collaborators.map(c => c.userId) }
+    }).lean()) as unknown as MongoUserDocument[];
 
-    await ListModel.findByIdAndUpdate(
-      params.listId,
-      { $push: { collaborators: collaborator } }
-    );
+    // Combine user details with roles
+    const collaboratorDetails = collaborators.map(collab => {
+      const user = users.find((u: MongoUserDocument) => u.clerkId === collab.userId);
+      return {
+        userId: collab.userId,
+        username: user?.username || "",
+        role: collab.role
+      };
+    });
 
-    return NextResponse.json(collaborator);
+    return NextResponse.json(collaboratorDetails);
   } catch (error) {
-    console.error("Error inviting collaborator:", error);
-    return NextResponse.json(
-      { error: "Failed to invite collaborator" },
-      { status: 500 }
-    );
+    console.error("[LISTS_COLLABORATORS_GET]", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}
+
+export async function POST(
+  req: Request,
+  { params }: { params: { listId: string } }
+) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const { email, role } = await req.json();
+
+    // Find user by email in Clerk
+    const [clerkUser] = await clerkClient.users.getUserList({
+      emailAddress: [email],
+    });
+
+    if (!clerkUser) {
+      return new NextResponse("User not found", { status: 404 });
+    }
+
+    await connectToMongoDB();
+    const ListModel = await getListModel();
+    const UserModel = await getUserModel();
+
+    const list = (await ListModel.findById(params.listId).lean()) as unknown as MongoListDocument;
+    if (!list) {
+      return new NextResponse("List not found", { status: 404 });
+    }
+
+    // Only owner can add collaborators
+    if (list.owner.clerkId !== userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    // Find user in our database
+    const collaborator = (await UserModel.findOne({ clerkId: clerkUser.id }).lean()) as unknown as MongoUserDocument;
+    if (!collaborator) {
+      return new NextResponse("User not found in our database", { status: 404 });
+    }
+
+    // Check if user is already a collaborator
+    if (list.collaborators?.some((c: { clerkId: string }) => c.clerkId === collaborator.clerkId)) {
+      return new NextResponse("User is already a collaborator", { status: 400 });
+    }
+
+    // Add collaborator
+    await ListModel.findByIdAndUpdate(params.listId, {
+      $push: {
+        collaborators: {
+          clerkId: collaborator.clerkId,
+          username: collaborator.username,
+          role: role as "editor" | "viewer",
+          status: "pending",
+          invitedAt: new Date()
+        }
+      }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[LISTS_COLLABORATORS_POST]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 } 

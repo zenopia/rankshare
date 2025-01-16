@@ -8,6 +8,13 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { isValidEmail } from "@/lib/utils";
 import { toast } from "sonner";
+import { CollaboratorCard } from "@/components/users/collaborator-card";
+
+interface Collaborator {
+  userId: string;
+  username: string;
+  role: 'owner' | 'editor' | 'viewer';
+}
 
 interface CollaboratorManagementProps {
   listId: string;
@@ -25,6 +32,8 @@ export function CollaboratorManagement({
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [isLoadingCollaborators, setIsLoadingCollaborators] = useState(true);
 
   useEffect(() => {
     // Trigger open animation after mount
@@ -32,6 +41,24 @@ export function CollaboratorManagement({
       setIsOpen(true);
     });
   }, []);
+
+  useEffect(() => {
+    const fetchCollaborators = async () => {
+      setIsLoadingCollaborators(true);
+      try {
+        const response = await fetch(`/api/lists/${listId}/collaborators`);
+        if (!response.ok) throw new Error();
+        const data = await response.json();
+        setCollaborators(data);
+      } catch (error) {
+        toast.error("Failed to load collaborators");
+      } finally {
+        setIsLoadingCollaborators(false);
+      }
+    };
+
+    fetchCollaborators();
+  }, [listId]);
 
   const handleClose = () => {
     setIsOpen(false);
@@ -59,6 +86,13 @@ export function CollaboratorManagement({
 
       if (!response.ok) {
         throw new Error();
+      }
+
+      // Refresh collaborators list
+      const updatedResponse = await fetch(`/api/lists/${listId}/collaborators`);
+      if (updatedResponse.ok) {
+        const data = await updatedResponse.json();
+        setCollaborators(data);
       }
 
       toast.success("Invitation sent!");
@@ -190,7 +224,29 @@ export function CollaboratorManagement({
 
             <ScrollArea className="flex-1 -mx-6 px-6">
               <div className="space-y-4">
-                {/* TODO: Render collaborators list */}
+                {isLoadingCollaborators ? (
+                  // Show loading skeletons
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <CollaboratorCard
+                        userId="loading"
+                        username="loading"
+                        role="viewer"
+                        linkToProfile={false}
+                      />
+                    </div>
+                  ))
+                ) : (
+                  collaborators.map((collaborator) => (
+                    <CollaboratorCard
+                      key={collaborator.userId}
+                      userId={collaborator.userId}
+                      username={collaborator.username}
+                      role={collaborator.role}
+                      linkToProfile={true}
+                    />
+                  ))
+                )}
               </div>
             </ScrollArea>
           </div>
