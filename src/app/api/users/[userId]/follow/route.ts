@@ -1,8 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getUserModel } from "@/lib/db/models-v2/user";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
-import { logDatabaseAccess } from "@/lib/db/migration-utils";
+import { getUserModel } from "@/lib/db/models-v2/user";
 
 export async function POST(
   req: Request,
@@ -14,7 +13,6 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    logDatabaseAccess('Follow User', true);
     const UserModel = await getUserModel();
     const FollowModel = await getFollowModel();
 
@@ -89,7 +87,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    logDatabaseAccess('Unfollow User', true);
     const FollowModel = await getFollowModel();
 
     const follow = await FollowModel.findOne({

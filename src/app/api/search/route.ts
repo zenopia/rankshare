@@ -2,7 +2,6 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { getUserModel } from "@/lib/db/models-v2/user";
-import { logDatabaseAccess } from "@/lib/db/migration-utils";
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +22,6 @@ export async function GET(request: Request) {
       });
     }
 
-    logDatabaseAccess('Search', true);
     const [ListModel, UserModel] = await Promise.all([
       getListModel(),
       getUserModel()

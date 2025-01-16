@@ -13,8 +13,7 @@
     "deploy:dev": "npm run build && pm2 reload curate-dev.fileopia.com",
     "deploy:logs": "pm2 logs",
     "deploy:monitor": "pm2 monit",
-    "db:create-indexes": "tsx src/scripts/create-indexes.ts",
-    "migrate:v2": "tsx src/scripts/migrate-to-v2.ts"
+    "db:create-indexes": "tsx src/scripts/create-indexes.ts"
   },
   "dependencies": {
     "@clerk/backend": "^1.23.0",
@@ -44,13 +43,10 @@
     "clsx": "^2.0.0",
     "cmdk": "^1.0.4",
     "date-fns": "^4.1.0",
-    "express-rate-limit": "^7.1.5",
-    "helmet": "^7.1.0",
     "isomorphic-dompurify": "^2.20.0",
     "lucide-react": "^0.454.0",
     "mongoose": "^8.0.3",
     "next": "^14.1.0",
-    "next-pwa": "^5.x",
     "next-themes": "^0.4.4",
     "pm2": "^5.3.1",
     "react": "18.2.0",
@@ -63,8 +59,6 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@shadcn/ui": "^0.0.4",
-    "@types/lodash": "^4.17.14",
     "@types/node": "^22.10.5",
     "@types/react": "^18",
     "@types/react-dom": "^18",

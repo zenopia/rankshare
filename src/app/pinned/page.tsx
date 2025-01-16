@@ -49,6 +49,7 @@ export default async function PinnedPage({ searchParams }: PageProps) {
       username: list.owner.username,
       joinedAt: list.owner.joinedAt
     },
+    items: list.items || [],
     stats: {
       viewCount: list.stats?.viewCount || 0,
       pinCount: list.stats?.pinCount || 0,

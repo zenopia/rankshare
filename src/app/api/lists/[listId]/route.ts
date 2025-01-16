@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getListModel, ListDocument, ListCollaborator } from "@/lib/db/models-v2/list";
-import { logDatabaseAccess } from "@/lib/db/migration-utils";
 
 // Helper function to check if user has access to the list
 async function hasListAccess(list: ListDocument, userId: string | null) {
@@ -38,7 +37,6 @@ export async function GET(
     const { userId } = auth();
     const { listId } = params;
 
-    logDatabaseAccess('List Detail', true);
     const ListModel = await getListModel();
 
     const list = await ListModel.findById(listId).lean();
@@ -90,7 +88,6 @@ export async function PUT(
     const data = await request.json();
     const { title, description, category, privacy, items } = data;
 
-    logDatabaseAccess('List Update', true);
     const ListModel = await getListModel();
 
     const list = await ListModel.findById(listId).lean();
@@ -147,7 +144,6 @@ export async function DELETE(
 
     const { listId } = params;
 
-    logDatabaseAccess('List Delete', true);
     const ListModel = await getListModel();
 
     const list = await ListModel.findById(listId).lean();

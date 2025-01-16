@@ -3,7 +3,6 @@ import { clerkClient } from "@clerk/clerk-sdk-node";
 import { NextResponse } from "next/server";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
-import { logDatabaseAccess } from "@/lib/db/migration-utils";
 import type { User as ClerkUser } from "@clerk/clerk-sdk-node";
 import type { MongoUserDocument } from "@/types/mongo";
 
@@ -15,8 +14,6 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q') || '';
     const limit = parseInt(searchParams.get('limit') || '10');
-
-    await logDatabaseAccess('users.search', true);
 
     const UserModel = await getUserModel();
     const FollowModel = await getFollowModel();

@@ -2,7 +2,6 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
-import { logDatabaseAccess } from "@/lib/db/migration-utils";
 
 export async function GET() {
   try {
@@ -12,7 +11,6 @@ export async function GET() {
       throw new Error('Unauthorized');
     }
 
-    logDatabaseAccess('Profile GET', true);
     const UserModel = await getUserModel();
     const UserProfileModel = await getUserProfileModel();
 
@@ -43,7 +41,6 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json();
-    logDatabaseAccess('Profile POST', true);
     
     const UserModel = await getUserModel();
     const UserProfileModel = await getUserProfileModel();

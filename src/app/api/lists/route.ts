@@ -2,7 +2,6 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { getUserModel } from "@/lib/db/models-v2/user";
-import { logDatabaseAccess } from "@/lib/db/migration-utils";
 
 export async function POST(request: Request) {
   try {
@@ -21,7 +20,6 @@ export async function POST(request: Request) {
       );
     }
 
-    logDatabaseAccess('List Creation', true);
     const ListModel = await getListModel();
     const UserModel = await getUserModel();
 
@@ -82,7 +80,6 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get('page') || '1');
     const skip = (page - 1) * limit;
 
-    logDatabaseAccess('List Fetch', true);
     const ListModel = await getListModel();
 
     // Build query based on authentication

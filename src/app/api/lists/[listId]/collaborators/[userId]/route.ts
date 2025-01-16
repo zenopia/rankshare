@@ -3,7 +3,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getListModel, ListCollaborator } from "@/lib/db/models-v2/list";
-import { logDatabaseAccess } from "@/lib/db/migration-utils";
 import { getUserModel, UserDocument } from "@/lib/db/models-v2/user";
 import { Types } from "mongoose";
 
@@ -55,7 +54,6 @@ export async function PUT(
       );
     }
 
-    logDatabaseAccess('List Collaborator Update', true);
     const ListModel = await getListModel();
     const UserModel = await getUserModel();
     const list = await ListModel.findById(listId);
@@ -154,7 +152,6 @@ export async function DELETE(
       );
     }
 
-    logDatabaseAccess('List Collaborator Delete', true);
     const ListModel = await getListModel();
     const list = await ListModel.findById(listId);
 

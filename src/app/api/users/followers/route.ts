@@ -1,8 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getUserModel } from "@/lib/db/models-v2/user";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
-import { logDatabaseAccess } from "@/lib/db/migration-utils";
+import { getUserModel } from "@/lib/db/models-v2/user";
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +17,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    logDatabaseAccess('User Followers', true);
     const FollowModel = await getFollowModel();
     const UserModel = await getUserModel();
 
