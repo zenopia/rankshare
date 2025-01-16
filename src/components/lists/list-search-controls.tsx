@@ -19,8 +19,8 @@ interface ListSearchControlsProps {
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest' },
   { value: 'oldest', label: 'Oldest' },
-  { value: 'most-viewed', label: 'Most Viewed' },
-  { value: 'most-pinned', label: 'Most Pinned' },
+  { value: 'views', label: 'Most Views' },
+  { value: 'pins', label: 'Most Pins' },
 ];
 
 export function ListSearchControls({ defaultCategory, defaultSort }: ListSearchControlsProps) {

@@ -35,6 +35,7 @@ export default async function FollowingPage() {
   // Filter out any null values and serialize
   const validUsers = users.filter((user): user is NonNullable<typeof user> => Boolean(user)).map(user => ({
     id: user._id.toString(),
+    clerkId: user.clerkId,
     username: user.username,
     displayName: user.displayName,
     isFollowing: true // Current user is following them

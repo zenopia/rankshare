@@ -4,6 +4,7 @@ import { ListTabs } from "@/components/lists/list-tabs";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { connectToMongoDB } from "@/lib/db/client";
 import { MongoListDocument } from "@/types/mongo";
+import { serializeLists } from "@/lib/utils";
 
 interface SearchParams {
   q?: string;
@@ -48,26 +49,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   const lists = await ListModel.find(filter).lean() as unknown as MongoListDocument[];
 
   // Serialize lists
-  const serializedLists = lists.map(list => ({
-    id: list._id.toString(),
-    title: list.title,
-    description: list.description || '',
-    category: list.category,
-    privacy: list.privacy,
-    owner: {
-      id: list.owner.id,
-      clerkId: list.owner.clerkId,
-      username: list.owner.username,
-      joinedAt: list.owner.joinedAt
-    },
-    stats: {
-      viewCount: list.stats?.viewCount || 0,
-      pinCount: list.stats?.pinCount || 0,
-      copyCount: list.stats?.copyCount || 0
-    },
-    createdAt: list.createdAt,
-    updatedAt: list.updatedAt
-  }));
+  const serializedLists = serializeLists(lists);
 
   // Sort lists
   const sortedLists = [...serializedLists].sort((a, b) => {

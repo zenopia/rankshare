@@ -95,7 +95,7 @@ export function UserProfileBase({
         variant === "compact" && "h-8 w-8"
       )}>
         <AvatarImage src={imageUrl || undefined} alt={displayName} />
-        <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
+        <AvatarFallback>{displayName && displayName[0]?.toUpperCase()}</AvatarFallback>
       </Avatar>
 
       <div className={cn(

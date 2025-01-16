@@ -21,6 +21,7 @@ if (!V1_URI || !V2_URI) {
 
 // Import models
 import { getUserModel } from '@/lib/db/models-v2/user';
+import { getUserProfileModel } from '@/lib/db/models-v2/user-profile';
 import { getListModel } from '@/lib/db/models-v2/list';
 import { getFollowModel } from '@/lib/db/models-v2/follow';
 import { getPinModel } from '@/lib/db/models-v2/pin';
@@ -88,16 +89,22 @@ interface V1Pin {
 
 // Connect to both databases
 async function connectToDatabases() {
-  const v1Connection = await mongoose.createConnection(V1_URI).asPromise();
-  const v2Connection = await connectToDatabase(V2_URI);
-  return { v1Connection, v2Connection };
+  try {
+    const v1Connection = await mongoose.createConnection(V1_URI).asPromise();
+    const v2Connection = await connectToDatabase(V2_URI);
+    console.log('Successfully connected to both databases');
+    return { v1Connection, v2Connection };
+  } catch (error) {
+    console.error('Failed to connect to databases:', error);
+    throw error;
+  }
 }
 
 async function migrateUsers(v1Connection: mongoose.Connection) {
   console.log('Starting user migration...');
   const V1UserModel = v1Connection.model<V1User>('User', new mongoose.Schema({}, { strict: false }));
   const V2UserModel = await getUserModel();
-  const V2UserProfileModel = v1Connection.model('UserProfile', new mongoose.Schema({}, { strict: false }));
+  const V2UserProfileModel = await getUserProfileModel();
 
   const users = await V1UserModel.find({});
   console.log(`Found ${users.length} users to migrate`);
@@ -341,7 +348,7 @@ async function migratePins(v1Connection: mongoose.Connection, listIdMap: Map<str
       }
 
       await V2PinModel.create({
-        userId: user._id,
+        clerkId: user.clerkId,
         listId: list._id,
         listInfo: {
           title: list.title,
@@ -350,15 +357,9 @@ async function migratePins(v1Connection: mongoose.Connection, listIdMap: Map<str
         }
       });
 
-      // Update list's pin count
-      await V2ListModel.updateOne(
-        { _id: list._id },
-        { $inc: { 'stats.pinCount': 1 } }
-      );
-
       console.log(`Migrated pin for list: ${list.title}`);
     } catch (error) {
-      console.error('Failed to migrate pin', error);
+      console.warn('Failed to migrate pin', error);
     }
   }
 }

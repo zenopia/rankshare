@@ -29,8 +29,14 @@ export default async function CollabPage({ searchParams }: PageProps) {
 
   // Build filter
   const filter: FilterQuery<MongoListDocument> = {
-    'collaborators.clerkId': userId,
-    'collaborators.status': 'accepted'
+    collaborators: { $not: { $size: 0 } },
+    $or: [
+      { 'owner.clerkId': userId },
+      {
+        'collaborators.clerkId': userId,
+        'collaborators.status': 'accepted'
+      }
+    ]
   };
 
   if (searchParams.category) {
@@ -43,12 +49,18 @@ export default async function CollabPage({ searchParams }: PageProps) {
     case 'oldest':
       sort.createdAt = 1;
       break;
-    case 'most-viewed':
+    case 'views':
       sort['stats.viewCount'] = -1;
       break;
+    case 'pins':
+      sort['stats.pinCount'] = -1;
+      break;
     case 'newest':
-    default:
       sort.createdAt = -1;
+      break;
+    default:
+      sort.lastEditedAt = -1;
+      sort.createdAt = -1; // fallback for items without lastEditedAt
   }
 
   const lists = (await ListModel.find(filter)

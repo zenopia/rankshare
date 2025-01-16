@@ -7,6 +7,7 @@ import { getPinModel } from "@/lib/db/models-v2/pin";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { connectToMongoDB } from "@/lib/db/client";
 import { MongoListDocument } from "@/types/mongo";
+import { serializeLists } from "@/lib/utils";
 
 interface PageProps {
   params: {
@@ -56,36 +57,7 @@ export default async function ListPage({ params }: PageProps) {
   })) : false;
 
   // Serialize list
-  const serializedList = {
-    id: list._id.toString(),
-    title: list.title,
-    description: list.description || '',
-    category: list.category,
-    privacy: list.privacy,
-    owner: {
-      id: list.owner.id,
-      username: list.owner.username
-    },
-    items: list.items.map(item => ({
-      id: item._id.toString(),
-      title: item.title,
-      description: item.description || '',
-      properties: item.properties || []
-    })),
-    collaborators: list.collaborators?.map(collab => ({
-      id: collab.id,
-      username: collab.username,
-      role: collab.role,
-      status: collab.status
-    })) || [],
-    stats: {
-      viewCount: list.stats?.viewCount || 0,
-      pinCount: list.stats?.pinCount || 0,
-      copyCount: list.stats?.copyCount || 0
-    },
-    createdAt: list.createdAt,
-    updatedAt: list.updatedAt
-  };
+  const [serializedList] = serializeLists([list]);
 
   // Update view count
   await ListModel.updateOne(

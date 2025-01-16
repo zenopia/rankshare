@@ -4,6 +4,7 @@ import { UserCard } from "@/components/users/user-card";
 
 interface User {
   id: string;
+  clerkId: string;
   username: string;
   displayName: string;
   bio?: string;
@@ -24,13 +25,12 @@ export function UserList({ users }: UserListProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
       {users.map((user) => (
         <UserCard
           key={user.id}
-          userId={user.id}
-          displayName={user.displayName}
-          bio={user.bio}
+          userId={user.clerkId}
+          username={user.username}
           isFollowing={user.isFollowing}
         />
       ))}

@@ -67,10 +67,11 @@ export function PeopleResults() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="h-32 bg-muted animate-pulse rounded-lg" />
-        <div className="h-32 bg-muted animate-pulse rounded-lg" />
-        <div className="h-32 bg-muted animate-pulse rounded-lg" />
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+        <div className="h-24 bg-muted animate-pulse rounded-lg" />
+        <div className="h-24 bg-muted animate-pulse rounded-lg" />
+        <div className="h-24 bg-muted animate-pulse rounded-lg" />
+        <div className="h-24 bg-muted animate-pulse rounded-lg" />
       </div>
     );
   }
@@ -92,13 +93,12 @@ export function PeopleResults() {
   }
 
   return (
-    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
       {users.map((user) => (
         <UserCard
           key={user.clerkId}
           userId={user.clerkId}
-          displayName={user.displayName}
-          bio={user.bio}
+          username={user.username}
           isFollowing={user.isFollowing ?? false}
         />
       ))}
