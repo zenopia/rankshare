@@ -28,9 +28,16 @@ interface UserComboboxProps {
   placeholder?: string;
   disabled?: boolean;
   userIds?: string[];
+  excludeUserIds?: string[];
 }
 
-export function UserCombobox({ onSelect, placeholder = "Search users...", disabled, userIds }: UserComboboxProps) {
+export function UserCombobox({ 
+  onSelect, 
+  placeholder = "Search users...", 
+  disabled,
+  userIds,
+  excludeUserIds = []
+}: UserComboboxProps) {
   const [searchValue, setSearchValue] = React.useState("");
   const [users, setUsers] = React.useState<User[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -41,14 +48,17 @@ export function UserCombobox({ onSelect, placeholder = "Search users...", disabl
   // Set initial users from the useUsers hook
   React.useEffect(() => {
     if (initialUsers && !searchValue) {
-      setUsers(initialUsers.map(user => ({
-        id: user.id,
-        username: user.username,
-        displayName: user.displayName,
-        imageUrl: user.imageUrl || undefined
-      })));
+      setUsers(initialUsers
+        .filter(user => !excludeUserIds.includes(user.id))
+        .map(user => ({
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName,
+          imageUrl: user.imageUrl || undefined
+        }))
+      );
     }
-  }, [initialUsers, searchValue]);
+  }, [initialUsers, searchValue, excludeUserIds]);
 
   // Search users as you type
   React.useEffect(() => {
@@ -56,28 +66,58 @@ export function UserCombobox({ onSelect, placeholder = "Search users...", disabl
       if (!searchValue) {
         // Reset to initial users when search is cleared
         if (initialUsers) {
-          setUsers(initialUsers.map(user => ({
+          setUsers(initialUsers
+            .filter(user => !excludeUserIds.includes(user.id))
+            .map(user => ({
+              id: user.id,
+              username: user.username,
+              displayName: user.displayName,
+              imageUrl: user.imageUrl || undefined
+            }))
+          );
+        }
+        return;
+      }
+
+      // First, search through initial users
+      if (initialUsers) {
+        const localMatches = initialUsers
+          .filter(user => 
+            !excludeUserIds.includes(user.id) &&
+            (user.username.toLowerCase().includes(searchValue.toLowerCase()) ||
+             user.displayName.toLowerCase().includes(searchValue.toLowerCase()))
+          )
+          .map(user => ({
             id: user.id,
             username: user.username,
             displayName: user.displayName,
             imageUrl: user.imageUrl || undefined
-          })));
+          }));
+
+        setUsers(localMatches);
+
+        // If we have local matches, don't make an API call
+        if (localMatches.length > 0) {
+          return;
         }
-        return;
       }
       
+      // Only make API call if no local matches found
       try {
         setIsLoading(true);
         const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchValue)}`);
         if (!response.ok) throw new Error();
         const data = await response.json();
-        setUsers(data.map((user: ApiUser) => ({
-          id: user.clerkId,
-          username: user.username,
-          displayName: user.displayName,
-          imageUrl: user.imageUrl,
-          avatarUrl: user.avatarUrl
-        })));
+        setUsers(data
+          .filter((user: ApiUser) => !excludeUserIds.includes(user.clerkId))
+          .map((user: ApiUser) => ({
+            id: user.clerkId,
+            username: user.username,
+            displayName: user.displayName,
+            imageUrl: user.imageUrl,
+            avatarUrl: user.avatarUrl
+          }))
+        );
       } catch (error) {
         console.error('Failed to search users:', error);
       } finally {
@@ -87,7 +127,7 @@ export function UserCombobox({ onSelect, placeholder = "Search users...", disabl
 
     const debounce = setTimeout(searchUsers, 300);
     return () => clearTimeout(debounce);
-  }, [searchValue, initialUsers]);
+  }, [searchValue, initialUsers, excludeUserIds]);
 
   const handleSelect = (user: User) => {
     onSelect({ type: 'user', userId: user.id, username: user.username });

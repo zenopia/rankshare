@@ -83,6 +83,11 @@ const listSchema = new Schema<ListDocument>({
   timestamps: true
 });
 
+// Create indexes
+listSchema.index({ title: 'text', description: 'text' }); // Text search index
+listSchema.index({ privacy: 1, 'owner.clerkId': 1 }); // Privacy + owner lookup
+listSchema.index({ privacy: 1, 'collaborators.clerkId': 1, 'collaborators.status': 1 }); // Privacy + collaborator lookup
+
 // Initialize model
 let ListModel: mongoose.Model<ListDocument> | null = null;
 

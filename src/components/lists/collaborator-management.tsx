@@ -12,7 +12,7 @@ import { UserCombobox } from "@/components/users/user-combobox";
 interface Collaborator {
   userId: string;
   username: string;
-  role: 'owner' | 'editor' | 'viewer';
+  role: 'owner' | 'admin' | 'editor' | 'viewer';
 }
 
 interface FollowingResult {
@@ -29,13 +29,15 @@ interface CollaboratorManagementProps {
   isOwner: boolean;
   privacy: 'public' | 'private';
   onClose: () => void;
+  onPrivacyChange?: (privacy: 'public' | 'private') => void;
 }
 
 export function CollaboratorManagement({ 
   listId, 
   isOwner, 
-  privacy,
-  onClose 
+  privacy: initialPrivacy,
+  onClose,
+  onPrivacyChange
 }: CollaboratorManagementProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -43,6 +45,7 @@ export function CollaboratorManagement({
   const [isLoadingCollaborators, setIsLoadingCollaborators] = useState(true);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [isLoadingFollowing, setIsLoadingFollowing] = useState(true);
+  const [privacy, setPrivacy] = useState(initialPrivacy);
 
   useEffect(() => {
     // Trigger open animation after mount
@@ -127,6 +130,7 @@ export function CollaboratorManagement({
   };
 
   const togglePrivacy = async () => {
+    const newPrivacy = privacy === "public" ? "private" : "public";
     setIsLoading(true);
     try {
       const response = await fetch(`/api/lists/${listId}`, {
@@ -135,7 +139,7 @@ export function CollaboratorManagement({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          privacy: privacy === "public" ? "private" : "public",
+          privacy: newPrivacy,
         }),
       });
 
@@ -143,11 +147,70 @@ export function CollaboratorManagement({
         throw new Error();
       }
 
+      const updatedList = await response.json();
+      setPrivacy(updatedList.privacy);
+      onPrivacyChange?.(updatedList.privacy);
       toast.success("Privacy updated!");
-      // Refresh the page to reflect the new privacy setting
-      window.location.reload();
     } catch (error) {
       toast.error("Failed to update privacy");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/lists/${listId}/collaborators/${userId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          role: newRole,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error();
+      }
+
+      // Refresh collaborators list
+      const updatedResponse = await fetch(`/api/lists/${listId}/collaborators`);
+      if (updatedResponse.ok) {
+        const data = await updatedResponse.json();
+        setCollaborators(data);
+      }
+
+      toast.success("Role updated!");
+    } catch (error) {
+      toast.error("Failed to update role");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemoveCollaborator = async (userId: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/lists/${listId}/collaborators/${userId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error();
+      }
+
+      // Refresh collaborators list
+      const updatedResponse = await fetch(`/api/lists/${listId}/collaborators`);
+      if (updatedResponse.ok) {
+        const data = await updatedResponse.json();
+        setCollaborators(data);
+      }
+
+      toast.success("Collaborator removed!");
+    } catch (error) {
+      toast.error("Failed to remove collaborator");
     } finally {
       setIsLoading(false);
     }
@@ -191,47 +254,51 @@ export function CollaboratorManagement({
           </div>
 
           <div className="space-y-6">
-            {isOwner && (
-              <>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        {privacy === "public" ? (
-                          <Globe className="h-4 w-4" />
-                        ) : (
-                          <Lock className="h-4 w-4" />
-                        )}
-                        <h3 className="font-medium">
-                          {privacy === "public" ? "Public" : "Private"} List
-                        </h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {privacy === "public"
-                          ? "Anyone can view this list"
-                          : "Only collaborators can view this list"}
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={togglePrivacy}
-                      disabled={isLoading}
-                    >
-                      Make {privacy === "public" ? "Private" : "Public"}
-                    </Button>
+            {/* Privacy section - visible to all, toggle only for owners and admins */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    {privacy === "public" ? (
+                      <Globe className="h-4 w-4" />
+                    ) : (
+                      <Lock className="h-4 w-4" />
+                    )}
+                    <h3 className="font-medium">
+                      {privacy === "public" ? "Public" : "Private"} List
+                    </h3>
                   </div>
-
-                  <div className="space-y-2">
-                    <UserCombobox
-                      placeholder="Add people..."
-                      onSelect={handleInvite}
-                      disabled={isLoading || isLoadingFollowing}
-                      userIds={followingIds}
-                    />
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {privacy === "public"
+                      ? "Anyone can view this list"
+                      : "Only collaborators can view this list"}
+                  </p>
                 </div>
+                {(isOwner || collaborators.some(c => c.role === 'admin')) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={togglePrivacy}
+                    disabled={isLoading}
+                  >
+                    Make {privacy === "public" ? "Private" : "Public"}
+                  </Button>
+                )}
+              </div>
+            </div>
 
+            {/* Invite section - for owners and admins */}
+            {(isOwner || collaborators.some(c => c.role === 'admin')) && (
+              <>
+                <div className="space-y-2">
+                  <UserCombobox
+                    placeholder="Add people..."
+                    onSelect={handleInvite}
+                    disabled={isLoading || isLoadingFollowing}
+                    userIds={followingIds}
+                    excludeUserIds={collaborators.map(c => c.userId)}
+                  />
+                </div>
                 <div className="h-[1px] bg-border" />
               </>
             )}
@@ -258,6 +325,10 @@ export function CollaboratorManagement({
                       username={collaborator.username}
                       role={collaborator.role}
                       linkToProfile={true}
+                      canManageRoles={isOwner || collaborator.role === 'admin'}
+                      isOwner={isOwner}
+                      onRoleChange={(newRole) => handleRoleChange(collaborator.userId, newRole)}
+                      onRemove={() => handleRemoveCollaborator(collaborator.userId)}
                     />
                   ))
                 )}
