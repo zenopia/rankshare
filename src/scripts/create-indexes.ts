@@ -1,100 +1,97 @@
 import { config } from 'dotenv';
 import { resolve } from 'path';
+import { MongoClient } from 'mongodb';
 
+// Load environment variables from .env.local
 const envPath = resolve(process.cwd(), '.env.local');
-console.log('Loading env from:', envPath);
-const result = config({ path: envPath });
+config({ path: envPath });
 
 if (!process.env.MONGODB_URI_V2) {
   console.error('MONGODB_URI_V2 is not defined in .env.local');
   process.exit(1);
 }
 
-console.log('Environment variables loaded successfully');
-console.log('MONGODB_URI_V2:', process.env.MONGODB_URI_V2);
-
-import { getUserModel } from '../lib/db/models-v2/user';
-import { getUserProfileModel } from '../lib/db/models-v2/user-profile';
-import { getListModel } from '../lib/db/models-v2/list';
-import { getFollowModel } from '../lib/db/models-v2/follow';
-import { getPinModel } from '../lib/db/models-v2/pin';
-import { connectToMongoDB } from '../lib/db/client';
-
 async function createIndexes() {
-  let connection;
+  let client: MongoClient | null = null;
+
   try {
-    console.log('Connecting to MongoDB...');
-    connection = await connectToMongoDB();
+    console.log('Starting index creation process...');
+    client = new MongoClient(process.env.MONGODB_URI_V2);
+    await client.connect();
     console.log('Connected to MongoDB');
 
-    console.log('Creating indexes...');
-
-    // Get all models
-    const [UserModel, UserProfileModel, ListModel, FollowModel, PinModel] = await Promise.all([
-      getUserModel(),
-      getUserProfileModel(),
-      getListModel(),
-      getFollowModel(),
-      getPinModel()
-    ]);
+    const db = client.db();
+    const listsCollection = db.collection('lists');
+    const usersCollection = db.collection('users');
 
     // Drop existing indexes
-    console.log('Dropping existing indexes...');
+    console.log('\nDropping existing indexes...');
     await Promise.all([
-      UserModel?.collection.dropIndexes(),
-      UserProfileModel?.collection.dropIndexes(),
-      ListModel?.collection.dropIndexes(),
-      FollowModel?.collection.dropIndexes(),
-      PinModel?.collection.dropIndexes()
-    ]);
+      listsCollection.dropIndexes(),
+      usersCollection.dropIndexes()
+    ]).catch(() => {
+      console.log('Note: Some collections may not have existing indexes');
+    });
 
-    console.log('Creating new indexes...');
-    // Create indexes in parallel
-    await Promise.all([
-      // User indexes
-      UserModel?.collection.createIndex({ searchIndex: 'text' }),
-      UserModel?.collection.createIndex({ username: 1 }, { unique: true }),
-      UserModel?.collection.createIndex({ clerkId: 1 }, { unique: true }),
+    // Create list indexes
+    console.log('\nCreating list indexes...');
+    await listsCollection.createIndex(
+      { title: 'text', description: 'text', 'items.title': 'text' },
+      {
+        weights: {
+          title: 10,
+          'items.title': 5,
+          description: 1
+        },
+        name: 'list_text_search'
+      }
+    );
 
-      // UserProfile indexes
-      UserProfileModel?.collection.createIndex({ userId: 1 }, { unique: true }),
+    await listsCollection.createIndex(
+      { 'owner.userId': 1 },
+      { name: 'owner_lookup' }
+    );
 
-      // List indexes
-      ListModel?.collection.createIndex({ 'owner.userId': 1, privacy: 1 }),
-      ListModel?.collection.createIndex({ 'collaborators.userId': 1, 'collaborators.status': 1 }),
-      ListModel?.collection.createIndex({ category: 1 }),
-      ListModel?.collection.createIndex({ title: 'text', description: 'text' }),
+    await listsCollection.createIndex(
+      { privacy: 1, 'owner.clerkId': 1, 'collaborators.clerkId': 1 },
+      { name: 'privacy_access_lookup' }
+    );
 
-      // Follow indexes
-      FollowModel?.collection.createIndex({ followerId: 1, status: 1 }),
-      FollowModel?.collection.createIndex({ followingId: 1, status: 1 }),
-      FollowModel?.collection.createIndex({ followerId: 1, followingId: 1 }, { unique: true }),
+    // Create user indexes
+    console.log('\nCreating user indexes...');
+    await usersCollection.createIndex(
+      { username: 'text', displayName: 'text' },
+      {
+        weights: {
+          username: 10,
+          displayName: 8
+        },
+        name: 'user_text_search',
+        default_language: 'none'
+      }
+    );
 
-      // Pin indexes
-      PinModel?.collection.createIndex({ clerkId: 1, createdAt: -1 }),
-      PinModel?.collection.createIndex({ listId: 1 }),
-      PinModel?.collection.createIndex({ clerkId: 1, listId: 1 }, { unique: true })
-    ]);
+    await usersCollection.createIndex(
+      { clerkId: 1 },
+      { unique: true, name: 'clerk_id_lookup' }
+    );
 
-    console.log('All indexes created successfully!');
+    await usersCollection.createIndex(
+      { username: 1 },
+      { unique: true, name: 'username_lookup' }
+    );
+
+    console.log('\nSuccessfully created all indexes!');
   } catch (error) {
     console.error('Error creating indexes:', error);
-    throw error;
+    process.exit(1);
   } finally {
-    if (connection) {
-      try {
-        await connection.close();
-        console.log('Database connection closed');
-      } catch (error) {
-        console.error('Error closing database connection:', error);
-      }
+    if (client) {
+      await client.close();
+      console.log('Disconnected from MongoDB');
     }
-    process.exit();
+    process.exit(0);
   }
 }
 
-// Run the script
-createIndexes().catch(error => {
-  console.error('Failed to create indexes:', error);
-  process.exit(1);
-}); 
+createIndexes(); 

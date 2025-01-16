@@ -84,9 +84,26 @@ const listSchema = new Schema<ListDocument>({
 });
 
 // Create indexes
-listSchema.index({ title: 'text', description: 'text' }); // Text search index
-listSchema.index({ privacy: 1, 'owner.clerkId': 1 }); // Privacy + owner lookup
-listSchema.index({ privacy: 1, 'collaborators.clerkId': 1, 'collaborators.status': 1 }); // Privacy + collaborator lookup
+// Compound text index for list content with weights
+listSchema.index({
+  title: 'text',
+  description: 'text',
+  'items.title': 'text'
+}, {
+  weights: {
+    title: 10,        // Highest priority
+    'items.title': 5, // Medium priority
+    description: 1    // Lower priority
+  }
+});
+
+// Access control index
+listSchema.index({ 
+  privacy: 1,
+  'owner.clerkId': 1,
+  'collaborators.clerkId': 1,
+  'collaborators.status': 1
+});
 
 // Initialize model
 let ListModel: mongoose.Model<ListDocument> | null = null;

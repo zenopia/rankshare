@@ -23,7 +23,6 @@ const securityHeaders = {
     'camera=(), microphone=(), geolocation=()'
 };
 
-// Export the auth middleware with updated config
 export default authMiddleware({
   publicRoutes: [
     "/",

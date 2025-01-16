@@ -13,28 +13,50 @@ export async function GET(request: Request) {
   try {
     const { userId } = auth();
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q');
+    const query = searchParams.get('q') || '';
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    logDatabaseAccess('User Search', true);
+    await logDatabaseAccess('users.search', true);
+
     const UserModel = await getUserModel();
     const FollowModel = await getFollowModel();
 
-    // Search users, either by query or get all users if no query
-    const users = await UserModel.find(
-      query ? {
-        $text: { $search: query },
-        clerkId: { $ne: userId } // Exclude the current user
+    // Build search query
+    const searchQuery = query ? {
+      $and: [
+        { clerkId: { $ne: userId } },
+        {
+          $or: [
+            { username: { $regex: query, $options: 'i' } },
+            { displayName: { $regex: query, $options: 'i' } }
+          ]
+        }
+      ]
+    } : {
+      clerkId: { $ne: userId }
+    };
+
+    // Execute search with appropriate sorting
+    const users = await UserModel.find(searchQuery)
+      .select({
+        clerkId: 1,
+        username: 1,
+        displayName: 1,
+        followersCount: 1,
+        followingCount: 1,
+        listCount: 1,
+        privacySettings: 1
+      })
+      .sort(query ? {
+        followersCount: -1,
+        username: 1
       } : {
-        clerkId: { $ne: userId } // Exclude the current user
-      },
-      query ? { score: { $meta: "textScore" } } : undefined
-    )
-      .sort(query ? { score: { $meta: "textScore" } } : { createdAt: -1 }) // Sort by relevance or newest first
+        createdAt: -1
+      })
       .limit(limit)
       .lean() as unknown as MongoUserDocument[];
 
-    // Get Clerk user data for avatars
+    // Get Clerk data for avatars
     const clerkUsers = await clerkClient.users.getUserList({
       userId: users.map(user => user.clerkId),
     });
@@ -82,9 +104,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json(usersWithDetails);
   } catch (error) {
-    console.error('Error searching users:', error);
+    console.error('Error in user search:', error);
     return NextResponse.json(
-      { error: "Failed to search users" },
+      { error: 'Failed to search users' },
       { status: 500 }
     );
   }

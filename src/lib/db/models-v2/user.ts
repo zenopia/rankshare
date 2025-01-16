@@ -27,6 +27,15 @@ const userSchema = new Schema<UserDocument>({
 
 // Create indexes
 userSchema.index({ searchIndex: 'text' });
+userSchema.index({ 
+  username: 'text', 
+  displayName: 'text' 
+}, {
+  weights: {
+    username: 10,     // Higher priority
+    displayName: 5    // Lower priority
+  }
+});
 
 // Create searchIndex before saving
 userSchema.pre('save', function(next) {
