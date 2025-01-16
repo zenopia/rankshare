@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { List } from "@/types/list";
 import { CategoryBadge } from "@/components/lists/category-badge";
-import { ListActionBar } from "@/components/lists/list-action-bar";
-import { Eye, Pin, Copy } from "lucide-react";
+import ListActionBar from "@/components/lists/list-action-bar";
+import { Eye, Pin, Copy, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { EditListFAB } from "@/components/lists/edit-list-fab";
 import { ItemCard } from "@/components/items/item-card";
@@ -17,10 +17,21 @@ interface ListViewProps {
   isOwner: boolean;
   isPinned: boolean;
   isFollowing: boolean;
+  isCollaborator?: boolean;
 }
 
-export function ListView({ list, isOwner, isPinned, isFollowing }: ListViewProps) {
+export function ListView({ list, isOwner, isPinned: initialIsPinned, isFollowing, isCollaborator }: ListViewProps) {
   const [showCollaborators, setShowCollaborators] = useState(false);
+  const [isPinned, setIsPinned] = useState(initialIsPinned);
+  const [stats, setStats] = useState(list.stats);
+
+  const handlePinChange = (newIsPinned: boolean) => {
+    setIsPinned(newIsPinned);
+    setStats(prev => ({
+      ...prev,
+      pinCount: prev.pinCount + (newIsPinned ? 1 : -1)
+    }));
+  };
 
   return (
     <div className="space-y-8">
@@ -41,21 +52,26 @@ export function ListView({ list, isOwner, isPinned, isFollowing }: ListViewProps
               <p className="text-muted-foreground">{list.description}</p>
             )}
           </div>
-          <CategoryBadge category={list.category} />
+          <div className="flex items-center gap-2">
+            <CategoryBadge category={list.category} />
+            {list.privacy === 'private' && (
+              <Lock className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Eye className="h-4 w-4" />
-            <span>{list.stats.viewCount}</span>
+            <span>{stats.viewCount}</span>
           </div>
           <div className="flex items-center gap-1">
-            <Pin className="h-4 w-4" />
-            <span>{list.stats.pinCount}</span>
+            <Pin className={`h-4 w-4 ${isPinned ? "fill-current" : ""}`} />
+            <span>{stats.pinCount}</span>
           </div>
           <div className="flex items-center gap-1">
             <Copy className="h-4 w-4" />
-            <span>{list.stats.copyCount}</span>
+            <span>{stats.copyCount}</span>
           </div>
           <span>•</span>
           <span>
@@ -67,8 +83,9 @@ export function ListView({ list, isOwner, isPinned, isFollowing }: ListViewProps
 
         <ListActionBar
           listId={list.id}
-          canEdit={isOwner}
           isPinned={isPinned}
+          onPinChange={handlePinChange}
+          canManageCollaborators={isOwner || isCollaborator}
           onCollaboratorsClick={() => setShowCollaborators(true)}
         />
       </div>

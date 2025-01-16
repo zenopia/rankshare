@@ -4,17 +4,9 @@ import { UserProfileBase } from "@/components/users/user-profile-base";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import Link from "next/link";
-import useSWR from "swr";
 import { useState } from "react";
 import { toast } from "sonner";
-
-interface UserResponse {
-  id: string;
-  username: string;
-  firstName: string | null;
-  lastName: string | null;
-  imageUrl: string;
-}
+import { useUsers } from "@/hooks/use-users";
 
 export interface UserCardProps {
   userId: string;
@@ -25,9 +17,8 @@ export interface UserCardProps {
 }
 
 export function UserCard({ userId, username, isFollowing: initialIsFollowing, isOwner = false, linkToProfile = true }: UserCardProps) {
-  const { data: userData, isLoading } = useSWR<UserResponse>(
-    userId ? `/api/users/${userId}` : null
-  );
+  const { data: users, isLoading } = useUsers([userId]);
+  const userData = users?.[0];
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isLoadingFollow, setIsLoadingFollow] = useState(false);
 
@@ -65,14 +56,16 @@ export function UserCard({ userId, username, isFollowing: initialIsFollowing, is
     );
   }
 
+  const [firstName, lastName] = userData?.displayName.split(' ') || [null, null];
+
   const content = (
     <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
       <div className="flex items-center gap-3 min-w-0">
         <UserProfileBase
           userId={userId}
-          username={username}
-          firstName={userData?.firstName}
-          lastName={userData?.lastName}
+          username={userData?.username || username}
+          firstName={firstName}
+          lastName={lastName}
           imageUrl={userData?.imageUrl}
           variant="compact"
           hideFollow={true}
@@ -98,9 +91,9 @@ export function UserCard({ userId, username, isFollowing: initialIsFollowing, is
     </div>
   );
 
-  return linkToProfile ? (
-    <Link href={`/@${username}`}>
-      {content}
-    </Link>
-  ) : content;
+  if (linkToProfile) {
+    return <Link href={`/@${userData?.username || username}`}>{content}</Link>;
+  }
+
+  return content;
 } 

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { getUserModel } from "@/lib/db/models-v2/user";
-import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
-import { logDatabaseAccess } from "@/lib/db/migration-utils";
+import { clerkClient, User } from "@clerk/clerk-sdk-node";
+import { getUserCacheModel, UserCacheDocument } from "@/lib/db/models-v2/user-cache";
+import { connectToMongoDB } from "@/lib/db/client";
+
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 export async function POST(request: Request) {
   try {
@@ -14,42 +16,78 @@ export async function POST(request: Request) {
       );
     }
 
-    logDatabaseAccess('User Batch Fetch', true);
-    const UserModel = await getUserModel();
-    const UserProfileModel = await getUserProfileModel();
+    await connectToMongoDB();
+    const UserCacheModel = await getUserCacheModel();
 
-    // Fetch users and their profiles in parallel
-    const users = await UserModel.find({ 
-      clerkId: { $in: userIds } 
-    })
-      .select('clerkId username displayName followersCount followingCount listCount')
-      .lean();
+    // Get cached users that are not expired
+    const cachedUsers = await UserCacheModel.find({
+      clerkId: { $in: userIds },
+      lastSynced: { $gt: new Date(Date.now() - CACHE_TTL) }
+    }).lean();
 
-    // Create a map of users by clerkId for easy lookup
-    const userMap = new Map(users.map(user => [user.clerkId, user]));
+    // Find which users need to be fetched from Clerk
+    const cachedUserIds = new Set(cachedUsers.map(u => u.clerkId));
+    const missingUserIds = userIds.filter(id => !cachedUserIds.has(id));
 
-    // Get user IDs that exist in our database
-    const existingUserIds = users.map(user => user._id);
+    let clerkUsers: User[] = [];
+    if (missingUserIds.length > 0) {
+      // Fetch missing users from Clerk
+      clerkUsers = await clerkClient.users.getUserList({
+        userId: missingUserIds,
+      });
 
-    // Fetch profiles for existing users
-    const profiles = await UserProfileModel.find({ 
-      userId: { $in: existingUserIds }
-    })
-      .select('userId bio location dateOfBirth gender livingStatus privacySettings')
-      .lean();
+      // Prepare bulk write operations for cache updates
+      const bulkOps = clerkUsers.map(user => ({
+        updateOne: {
+          filter: { clerkId: user.id },
+          update: {
+            $set: {
+              clerkId: user.id,
+              username: user.username || '',
+              displayName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || '',
+              imageUrl: user.imageUrl,
+              lastSynced: new Date()
+            }
+          },
+          upsert: true
+        }
+      }));
 
-    // Create a map of profiles by userId for easy lookup
-    const profileMap = new Map(profiles.map(profile => [profile.userId.toString(), profile]));
+      // Update cache
+      if (bulkOps.length > 0) {
+        await UserCacheModel.bulkWrite(bulkOps);
+      }
+    }
 
-    // Combine user data with their profiles
-    const usersWithProfiles = users.map(user => ({
-      ...user,
-      profile: profileMap.get(user._id.toString()) || null
-    }));
+    // Combine cached and fresh data
+    const userMap = new Map();
+    
+    // Add cached users to map
+    cachedUsers.forEach((user: UserCacheDocument) => {
+      userMap.set(user.clerkId, {
+        id: user.clerkId,
+        username: user.username,
+        displayName: user.displayName,
+        imageUrl: user.imageUrl
+      });
+    });
 
-    return NextResponse.json(usersWithProfiles);
+    // Add fresh Clerk users to map
+    clerkUsers.forEach((user: User) => {
+      userMap.set(user.id, {
+        id: user.id,
+        username: user.username,
+        displayName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || '',
+        imageUrl: user.imageUrl
+      });
+    });
+
+    // Convert map to array in the same order as requested
+    const result = userIds.map(id => userMap.get(id)).filter(Boolean);
+
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Error fetching users:', error);
+    console.error("Error in batch user fetch:", error);
     return NextResponse.json(
       { error: "Failed to fetch users" },
       { status: 500 }

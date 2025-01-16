@@ -43,9 +43,12 @@ export default async function ListPage({ params }: PageProps) {
     }
   }
 
+  const isOwner = userId === list.owner.clerkId;
+  const isCollaborator = list.collaborators?.some(c => c.clerkId === userId && c.status === 'accepted');
+
   // Get pin status
   const isPinned = userId ? !!(await PinModel.findOne({ 
-    userId,
+    clerkId: userId,
     listId: list._id
   })) : false;
 
@@ -71,9 +74,10 @@ export default async function ListPage({ params }: PageProps) {
         <div className="max-w-4xl mx-auto">
           <ListView 
             list={serializedList}
-            isOwner={userId === list.owner.clerkId}
+            isOwner={isOwner}
             isPinned={isPinned}
             isFollowing={isFollowing}
+            isCollaborator={isCollaborator}
           />
         </div>
       </div>

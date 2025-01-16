@@ -5,7 +5,7 @@ import { TabNavigation } from "@/components/ui/tab-navigation";
 export function ListTabs() {
   const tabs = [
     {
-      label: "Discovery",
+      label: "Discover",
       href: "/",
       value: "latest",
     },
@@ -20,7 +20,7 @@ export function ListTabs() {
       value: "my-lists",
     },
     {
-      label: "Collaborations",
+      label: "Collab",
       href: "/collab",
       value: "collab",
     },

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from "react";
-import { Search, Globe, Lock } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { X, Search, Globe, Lock } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { isValidEmail } from "@/lib/utils";
 import { toast } from "sonner";
@@ -15,9 +16,27 @@ interface CollaboratorManagementProps {
   onClose: () => void;
 }
 
-export function CollaboratorManagement({ listId, isOwner, privacy, onClose }: CollaboratorManagementProps) {
+export function CollaboratorManagement({ 
+  listId, 
+  isOwner, 
+  privacy,
+  onClose 
+}: CollaboratorManagementProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    // Trigger open animation after mount
+    requestAnimationFrame(() => {
+      setIsOpen(true);
+    });
+  }, []);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setTimeout(onClose, 300); // Wait for animation to complete
+  };
 
   const handleInvite = async () => {
     if (!isValidEmail(searchTerm)) {
@@ -77,75 +96,104 @@ export function CollaboratorManagement({ listId, isOwner, privacy, onClose }: Co
   };
 
   return (
-    <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50">
-      <div className="fixed inset-x-4 top-8 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:max-w-lg w-full bg-background rounded-lg border shadow-lg">
-        <div className="p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Manage Access</h2>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              ✕
+    <div className="fixed inset-0 z-50">
+      {/* Backdrop */}
+      <div 
+        className={cn(
+          "fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity duration-300",
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+        onClick={handleClose}
+      />
+
+      {/* Collaborator Sheet */}
+      <div 
+        className={cn(
+          "fixed inset-y-0 right-0 w-[400px] bg-background p-6 shadow-lg",
+          "border-l transition-transform duration-300 ease-in-out",
+          isOpen ? "translate-x-0" : "translate-x-full"
+        )}
+      >
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-semibold">Manage Access</h2>
+              <p className="text-sm text-muted-foreground">
+                Control who can access this list.
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClose}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
             </Button>
           </div>
 
-          {isOwner && (
-            <>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      {privacy === "public" ? (
-                        <Globe className="h-4 w-4" />
-                      ) : (
-                        <Lock className="h-4 w-4" />
-                      )}
-                      <h3 className="font-medium">
-                        {privacy === "public" ? "Public" : "Private"} List
-                      </h3>
+          <div className="space-y-6">
+            {isOwner && (
+              <>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        {privacy === "public" ? (
+                          <Globe className="h-4 w-4" />
+                        ) : (
+                          <Lock className="h-4 w-4" />
+                        )}
+                        <h3 className="font-medium">
+                          {privacy === "public" ? "Public" : "Private"} List
+                        </h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {privacy === "public"
+                          ? "Anyone can view this list"
+                          : "Only collaborators can view this list"}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {privacy === "public"
-                        ? "Anyone can view this list"
-                        : "Only collaborators can view this list"}
-                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={togglePrivacy}
+                      disabled={isLoading}
+                    >
+                      Make {privacy === "public" ? "Private" : "Public"}
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={togglePrivacy}
-                    disabled={isLoading}
-                  >
-                    Make {privacy === "public" ? "Private" : "Public"}
-                  </Button>
+
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Enter email to invite"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                    <Button
+                      className="w-full"
+                      disabled={!searchTerm || isLoading}
+                      onClick={handleInvite}
+                    >
+                      Send Invitation
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Enter email to invite"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
+                <div className="h-[1px] bg-border" />
+              </>
+            )}
 
-                <Button
-                  className="w-full"
-                  disabled={!searchTerm || isLoading}
-                  onClick={handleInvite}
-                >
-                  Send Invitation
-                </Button>
+            <ScrollArea className="flex-1 -mx-6 px-6">
+              <div className="space-y-4">
+                {/* TODO: Render collaborators list */}
               </div>
-
-              <div className="h-[1px] bg-border" />
-            </>
-          )}
-
-          <ScrollArea className="h-[300px] pr-4">
-            <div className="space-y-4">
-              {/* TODO: Render collaborators list */}
-            </div>
-          </ScrollArea>
+            </ScrollArea>
+          </div>
         </div>
       </div>
     </div>

@@ -9,8 +9,10 @@ import { connectToMongoDB } from "@/lib/db/client";
 import { serializeLists, serializeUser } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import type { ListCategory } from "@/types/list";
-import type { MongoListDocument, MongoListFilter, MongoSortOptions } from "@/types/mongodb";
+import type { MongoListDocument } from "@/types/mongo";
 import { getUserModel } from "@/lib/db/models-v2/user";
+import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
+import { SortOrder, Document } from "mongoose";
 
 interface PageProps {
   params: {
@@ -29,6 +31,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
 
   // Get model instances
   const UserModel = await getUserModel();
+  const UserProfileModel = await getUserProfileModel();
   const ListModel = await getListModel();
   const FollowModel = await getFollowModel();
 
@@ -46,8 +49,17 @@ export default async function UserPage({ params, searchParams }: PageProps) {
   }
 
   // Get user data from MongoDB and other counts
-  const [mongoUser, followStatus, followerCount, followingCount] = await Promise.all([
-    UserModel.findOne({ clerkId: profileUser.id }).lean(),
+  const mongoUser = await UserModel.findOne({ 
+    clerkId: profileUser.id 
+  }).lean();
+
+  if (!mongoUser) {
+    notFound();
+  }
+
+  // Get remaining data after we have mongoUser
+  const [userProfile, followStatus, followerCount, followingCount] = await Promise.all([
+    UserProfileModel.findOne({ userId: mongoUser._id }).lean(),
     userId ? FollowModel.findOne({ 
       followerId: userId,
       followingId: profileUser.id 
@@ -56,24 +68,32 @@ export default async function UserPage({ params, searchParams }: PageProps) {
     FollowModel.countDocuments({ followerId: profileUser.id }),
   ]);
 
-  if (!mongoUser) {
-    notFound();
-  }
-
-  const serializedUser = serializeUser(mongoUser as any);
-
-  // Build filter for lists
-  const filter: MongoListFilter = { 
-    'owner.clerkId': profileUser.id,
-    privacy: 'public',
+  const baseUser = serializeUser(mongoUser as Document);
+  const serializedUser = {
+    ...baseUser,
+    bio: userProfile?.bio,
+    location: userProfile?.location,
+    dateOfBirth: userProfile?.dateOfBirth,
+    gender: userProfile?.gender,
+    livingStatus: userProfile?.livingStatus,
+    privacySettings: userProfile?.privacySettings || {
+      showBio: true,
+      showLocation: true,
+      showDateOfBirth: false,
+      showGender: true,
+      showLivingStatus: true
+    }
   };
 
-  if (searchParams.category) {
-    filter.category = searchParams.category;
-  }
+  // Build filter for lists
+  const filter = { 
+    'owner.clerkId': profileUser.id,
+    privacy: 'public',
+    ...(searchParams.category ? { category: searchParams.category } : {})
+  };
 
   // Build sort
-  const sort: MongoSortOptions = {};
+  const sort: Record<string, SortOrder> = {};
   switch (searchParams.sort) {
     case 'oldest':
       sort.createdAt = 1;
@@ -116,7 +136,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
             <ListSearchControls 
               defaultCategory={searchParams.category as ListCategory}
               defaultSort={searchParams.sort}
-              hideSearch
             />
 
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">

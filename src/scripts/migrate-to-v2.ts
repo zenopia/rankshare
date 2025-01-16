@@ -347,13 +347,19 @@ async function migratePins(v1Connection: mongoose.Connection, listIdMap: Map<str
         continue;
       }
 
+      const owner = await V2UserModel.findOne({ clerkId: list.owner.clerkId });
+      if (!owner) {
+        console.error(`Could not find owner for list: ${list.title}`);
+        continue;
+      }
+
       await V2PinModel.create({
         clerkId: user.clerkId,
         listId: list._id,
         listInfo: {
           title: list.title,
           category: list.category,
-          ownerUsername: list.owner.username
+          ownerUsername: owner.username
         }
       });
 

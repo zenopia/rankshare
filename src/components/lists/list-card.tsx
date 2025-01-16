@@ -7,19 +7,11 @@ import { CategoryBadge } from "@/components/lists/category-badge";
 import { formatDistanceToNow } from "date-fns";
 import type { List } from "@/types/list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import useSWR from "swr";
+import { useUsers } from "@/hooks/use-users";
 
 interface ListCardProps {
   list: List;
   showPrivacyBadge?: boolean;
-}
-
-interface UserResponse {
-  id: string;
-  username: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  imageUrl: string | null;
 }
 
 export function ListCard({
@@ -28,7 +20,8 @@ export function ListCard({
 }: ListCardProps) {
   const isEdited = !!list.lastEditedAt;
   const timeAgo = formatDistanceToNow(new Date(list.lastEditedAt || list.createdAt), { addSuffix: true });
-  const { data: userData } = useSWR<UserResponse>(`/api/users/${list.owner.clerkId}`);
+  const { data: userData } = useUsers([list.owner.clerkId]);
+  const ownerData = userData?.[0];
 
   return (
     <Link href={`/lists/${list.id}`}>
@@ -56,12 +49,12 @@ export function ListCard({
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Avatar className="h-6 w-6">
-              <AvatarImage src={userData?.imageUrl || undefined} alt={list.owner.username} />
-              <AvatarFallback>{list.owner.username[0]?.toUpperCase()}</AvatarFallback>
+              <AvatarImage src={ownerData?.imageUrl || undefined} alt={ownerData?.username || ''} />
+              <AvatarFallback>{ownerData?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
             </Avatar>
             <div className="flex items-center gap-1.5">
-              <span className="text-foreground">{userData?.firstName && userData?.lastName ? `${userData.firstName} ${userData.lastName}` : list.owner.username}</span>
-              <span className="text-muted-foreground">@{list.owner.username}</span>
+              <span className="text-foreground">{ownerData?.displayName || ownerData?.username || 'Unknown User'}</span>
+              <span className="text-muted-foreground">@{ownerData?.username || 'unknown'}</span>
             </div>
             <span>•</span>
             <span>{list.items?.length || 0} items</span>
