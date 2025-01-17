@@ -2,6 +2,16 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getListModel, ListDocument, ListCollaborator } from "@/lib/db/models-v2/list";
 
+interface ListItem {
+  title: string;
+  comment?: string;
+  properties?: Array<{
+    type?: string;
+    label: string;
+    value: string;
+  }>;
+}
+
 // Helper function to check if user has access to the list
 async function hasListAccess(list: ListDocument, userId: string | null) {
   if (!userId) return list.privacy === 'public';
@@ -107,22 +117,50 @@ export async function PUT(
       );
     }
 
+    // Process items to ensure they have valid structure
+    const processedItems = items.map((item: ListItem, index: number) => ({
+      title: item.title,
+      rank: index + 1,
+      comment: item.comment,
+      properties: (item.properties || []).map(prop => ({
+        type: prop.type || 'text',
+        label: prop.label || '',
+        value: prop.value || ''
+      }))
+    }));
+
     // Update list
     const updatedList = await ListModel.findByIdAndUpdate(
-      listId,
+      params.listId,
       {
-        $set: {
-          ...(title && { title }),
-          ...(description !== undefined && { description }),
-          ...(category && { category }),
-          ...(privacy && { privacy }),
-          ...(items && { items })
-        }
+        title,
+        description,
+        category,
+        privacy,
+        items: processedItems,
+        lastEditedAt: new Date()
       },
       { new: true }
     ).lean();
 
-    return NextResponse.json(updatedList);
+    if (!updatedList) {
+      return NextResponse.json(
+        { error: "List not found" },
+        { status: 404 }
+      );
+    }
+
+    // Convert _id to string for the response
+    const { _id, ...rest } = updatedList;
+    const responseList = {
+      ...rest,
+      id: _id.toString(),
+      lastEditedAt: updatedList.lastEditedAt?.toISOString(),
+      createdAt: updatedList.createdAt?.toISOString(),
+      updatedAt: updatedList.updatedAt?.toISOString()
+    };
+
+    return NextResponse.json(responseList);
   } catch (error) {
     console.error('Error updating list:', error);
     return NextResponse.json(

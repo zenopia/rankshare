@@ -3,24 +3,19 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DragDropContext, Droppable, Draggable, DropResult, DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { ListCategory } from "@/types/list";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import * as z from "zod";
-import { Loader2, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useUser } from "@clerk/nextjs";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Loader2, Plus } from "lucide-react";
 
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,8 +27,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { DraggableListItem } from "@/components/lists/draggable-list-item";
 import { Switch } from "@/components/ui/switch";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { DraggableListItem } from "@/components/lists/draggable-list-item";
+
+interface ListItem {
+  id: string;
+  title: string;
+  comment?: string;
+  rank: number;
+  properties?: Array<{
+    id: string;
+    type?: 'text' | 'link';
+    label: string;
+    value: string;
+  }>;
+}
 
 export interface ListFormProps {
   mode?: 'create' | 'edit';
@@ -43,17 +52,7 @@ export interface ListFormProps {
     description?: string;
     category: ListCategory;
     privacy: 'public' | 'private';
-    items: Array<{
-      id: string;
-      title: string;
-      comment?: string;
-      rank: number;
-      properties?: Array<{
-        type?: 'text' | 'link';
-        label: string;
-        value: string;
-      }>;
-    }>;
+    items: ListItem[];
   };
 }
 
@@ -78,51 +77,23 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-interface DraggableListItemProps {
-  item: {
-    id: string;
-    title: string;
-    comment?: string;
-    rank: number;
-    properties?: Array<{
-      id: string;
-      type?: 'text' | 'link';
-      label: string;
-      value: string;
-    }>;
-  };
-  dragHandleProps?: DraggableProvidedDragHandleProps | null;
-  onUpdate: (updates: Partial<{
-    title: string;
-    comment?: string;
-    rank: number;
-    properties?: Array<{
-      id: string;
-      type?: 'text' | 'link';
-      label: string;
-      value: string;
-    }>;
-  }>) => void;
-  onRemove: () => void;
-  disabled?: boolean;
-}
-
 export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProps) {
   const router = useRouter();
-  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [items, setItems] = useState<Array<{
-    id: string;
-    title: string;
-    comment?: string;
-    rank: number;
-    properties?: Array<{
-      type?: 'text' | 'link';
-      label: string;
-      value: string;
-    }>;
-  }>>(() => defaultValues?.items || []);
+  const [items, setItems] = useState<ListItem[]>(() => {
+    const existingItems = defaultValues?.items || [];
+    return existingItems.map((item, index) => ({
+      ...item,
+      rank: index + 1,
+      properties: (item.properties || []).map(prop => ({
+        ...prop,
+        id: prop.id || Math.random().toString(36).substr(2, 9)
+      }))
+    }));
+  });
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [quickAddText, setQuickAddText] = useState('');
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -142,7 +113,7 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
     return null;
   }
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
     if (items.length === 0) {
       toast.error("Please add at least one item to your list");
       return;
@@ -154,8 +125,14 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
       const payload = {
         ...data,
         items: items.map((item, index) => ({
-          ...item,
-          rank: index + 1
+          title: item.title,
+          rank: index + 1,
+          comment: item.comment,
+          properties: item.properties?.map(prop => ({
+            type: prop.type || 'text',
+            label: prop.label,
+            value: prop.value
+          }))
         }))
       };
 
@@ -172,11 +149,11 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
         }
       );
 
-      if (!response.ok) {
-        throw new Error('Failed to save list');
-      }
+      const responseData = await response.json();
 
-      const list = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.error || 'Failed to save list');
+      }
       
       toast.success(
         mode === 'create' 
@@ -184,14 +161,14 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
           : "List updated successfully!"
       );
 
-      router.push(`/lists/${list.id}`);
+      router.push(`/lists/${responseData.id}`);
       router.refresh();
     } catch (error) {
       console.error('Error saving list:', error);
       toast.error(
-        mode === 'create'
-          ? "Failed to create list"
-          : "Failed to update list"
+        error instanceof Error 
+          ? error.message 
+          : "Failed to save list"
       );
     } finally {
       setIsSubmitting(false);
@@ -205,50 +182,95 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
     const [removed] = reorderedItems.splice(result.source.index, 1);
     reorderedItems.splice(result.destination.index, 0, removed);
 
-    setItems(reorderedItems);
+    const oldRanks = items.reduce((acc, item) => {
+      acc[item.id] = item.rank;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const updatedItems = reorderedItems.map((item, index) => ({
+      ...item,
+      rank: index + 1
+    }));
+
+    const finalItems = updatedItems.map(item => {
+      if (oldRanks[item.id] !== item.rank) {
+        return { ...item };
+      }
+      return item;
+    });
+
+    setItems(finalItems);
   };
 
-  const addItem = () => {
-    const newItem = {
+  const addItem = (title: string = "") => {
+    const newItem: ListItem = {
       id: Math.random().toString(36).substr(2, 9),
-      title: "",
-      comment: "",
+      title,
       rank: items.length + 1,
-      properties: []
+      properties: [] as Array<{
+        id: string;
+        type?: 'text' | 'link';
+        label: string;
+        value: string;
+      }>
     };
 
     setItems([...items, newItem]);
   };
 
-  const updateItem = (id: string, updates: Partial<typeof items[0]>) => {
+  const quickAddItems = (text: string) => {
+    if (!text.trim()) return;
+    
+    const newItems: ListItem[] = text
+      .split('\n')
+      .filter(line => line.trim())
+      .map((line, index) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        title: line.trim(),
+        rank: items.length + index + 1,
+        properties: []
+      }));
+
+    setItems([...items, ...newItems]);
+    setQuickAddText('');
+    setQuickAddOpen(false);
+  };
+
+  const updateItem = (id: string, updates: Partial<ListItem>) => {
+    if (updates.properties) {
+      updates.properties = updates.properties.map(prop => ({
+        ...prop,
+        id: prop.id || Math.random().toString(36).substr(2, 9)
+      }));
+    }
+
     setItems(items.map(item => 
       item.id === id ? { ...item, ...updates } : item
     ));
   };
 
   const removeItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
-  };
+    const itemIndex = items.findIndex(item => item.id === id);
+    const oldRanks = items.reduce((acc, item) => {
+      acc[item.id] = item.rank;
+      return acc;
+    }, {} as Record<string, number>);
 
-  const handleDelete = async () => {
-    if (!defaultValues?.id) return;
+    const filteredItems = items
+      .filter(item => item.id !== id)
+      .map((item, index) => ({
+        ...item,
+        rank: index + 1
+      }));
 
-    try {
-      const response = await fetch(`/api/lists/${defaultValues.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete list');
+    const updatedItems = filteredItems.map(item => {
+      if (oldRanks[item.id] !== item.rank) {
+        return { ...item };
       }
+      return item;
+    });
 
-      toast.success("List deleted successfully!");
-      router.push('/my-lists');
-      router.refresh();
-    } catch (error) {
-      console.error('Error deleting list:', error);
-      toast.error("Failed to delete list");
-    }
+    setItems(updatedItems);
   };
 
   return (
@@ -260,52 +282,10 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
             name="title"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Title</FormLabel>
                 <FormControl>
-                  <Input placeholder="My Awesome List" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="category"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="movies">Movies</SelectItem>
-                    <SelectItem value="tv-shows">TV Shows</SelectItem>
-                    <SelectItem value="books">Books</SelectItem>
-                    <SelectItem value="restaurants">Restaurants</SelectItem>
-                    <SelectItem value="recipes">Recipes</SelectItem>
-                    <SelectItem value="things-to-do">Things to do</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="Tell us about your list..."
-                    className="resize-none"
+                  <Input
+                    placeholder="List title"
+                    className="text-lg font-medium h-12"
                     {...field}
                   />
                 </FormControl>
@@ -314,43 +294,107 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
             )}
           />
 
+          <div className="flex items-center justify-between gap-4">
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="movies">Movies</SelectItem>
+                      <SelectItem value="tv-shows">TV Shows</SelectItem>
+                      <SelectItem value="books">Books</SelectItem>
+                      <SelectItem value="restaurants">Restaurants</SelectItem>
+                      <SelectItem value="recipes">Recipes</SelectItem>
+                      <SelectItem value="things-to-do">Things to Do</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
           <FormField
             control={form.control}
-            name="privacy"
+            name="description"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-base">
-                    Private List
-                  </FormLabel>
-                  <FormDescription>
-                    Only you and collaborators can see this list
-                  </FormDescription>
-                </div>
+              <FormItem>
                 <FormControl>
-                  <Switch
-                    checked={field.value === "private"}
-                    onCheckedChange={(checked) =>
-                      field.onChange(checked ? "private" : "public")
-                    }
+                  <Textarea
+                    placeholder="Description (optional)"
+                    className="resize-none"
+                    {...field}
                   />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Items</h2>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addItem}
-              disabled={isSubmitting}
-            >
-              Add Item
-            </Button>
+            <h3 className="text-lg font-medium">Items</h3>
+            <div className="flex gap-2">
+              <Sheet open={quickAddOpen} onOpenChange={setQuickAddOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    Quick Add
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="h-[50vh]">
+                  <SheetHeader>
+                    <SheetTitle>Quick Add Items</SheetTitle>
+                    <SheetDescription>
+                      Enter one item per line
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="mt-4 space-y-4">
+                    <Textarea
+                      className="min-h-[200px]"
+                      placeholder={`Item 1
+Item 2
+Item 3`}
+                      value={quickAddText}
+                      onChange={(e) => setQuickAddText(e.target.value)}
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setQuickAddOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => quickAddItems(quickAddText)}
+                        disabled={!quickAddText.trim()}
+                      >
+                        Add Items
+                      </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addItem()}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Item
+              </Button>
+            </div>
           </div>
 
           <DragDropContext onDragEnd={onDragEnd}>
@@ -359,7 +403,7 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className="space-y-4"
+                  className="space-y-2"
                 >
                   {items.map((item, index) => (
                     <Draggable
@@ -367,14 +411,19 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
                       draggableId={item.id}
                       index={index}
                     >
-                      {(provided) => (
-                        <DraggableListItem
-                          item={item}
-                          dragHandleProps={provided.dragHandleProps}
-                          onUpdate={(updates: Partial<typeof item>) => updateItem(item.id, updates)}
-                          onRemove={() => removeItem(item.id)}
-                          disabled={isSubmitting}
-                        />
+                      {(provided, _snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                        >
+                          <DraggableListItem
+                            item={item}
+                            dragHandleProps={provided.dragHandleProps}
+                            onUpdate={(updates) => updateItem(item.id, updates)}
+                            onRemove={() => removeItem(item.id)}
+                            disabled={isSubmitting}
+                          />
+                        </div>
                       )}
                     </Draggable>
                   ))}
@@ -385,44 +434,80 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
           </DragDropContext>
         </div>
 
-        <div className="flex items-center justify-between pt-6">
-          <div className="flex items-center gap-4">
-            {mode === 'edit' && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={isSubmitting}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete your
-                      list and remove it from our servers.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete}>
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
+          <div className="flex items-center justify-between max-w-2xl mx-auto">
+            <div className="flex items-center gap-4">
+              <FormField
+                control={form.control}
+                name="privacy"
+                render={({ field }) => (
+                  <FormItem>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="public">Public</SelectItem>
+                        <SelectItem value="private">Private</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+
+              {mode === 'edit' && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={isSubmitting}
+                  onClick={async () => {
+                    if (!defaultValues?.id) return;
+                    if (!confirm('Are you sure you want to delete this list? This action cannot be undone.')) return;
+
+                    setIsSubmitting(true);
+                    try {
+                      const response = await fetch(`/api/lists/${defaultValues.id}`, {
+                        method: 'DELETE'
+                      });
+
+                      if (!response.ok) {
+                        throw new Error('Failed to delete list');
+                      }
+
+                      toast.success('List deleted successfully');
+                      router.push('/my-lists');
+                      router.refresh();
+                    } catch (error) {
+                      console.error('Error deleting list:', error);
+                      toast.error('Failed to delete list');
+                    } finally {
+                      setIsSubmitting(false);
+                    }
+                  }}
+                >
+                  Delete List
+                </Button>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isSubmitting || items.length === 0}
+              className="min-w-[120px]"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : mode === 'create' ? (
+                'Create List'
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
           </div>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            {mode === 'create' ? 'Create List' : 'Save Changes'}
-          </Button>
         </div>
       </form>
     </Form>

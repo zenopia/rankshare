@@ -67,10 +67,21 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "flash": {
+          "0%, 100%": { 
+            backgroundColor: "hsl(var(--muted))",
+            color: "hsl(var(--muted-foreground))"
+          },
+          "50%": { 
+            backgroundColor: "hsl(var(--primary))",
+            color: "hsl(var(--primary-foreground))"
+          }
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "flash": "flash 1s ease-in-out"
       },
     },
   },

@@ -78,7 +78,8 @@ const listSchema = new Schema<ListDocument>({
     viewCount: { type: Number, default: 0 },
     pinCount: { type: Number, default: 0 },
     copyCount: { type: Number, default: 0 }
-  }
+  },
+  lastEditedAt: { type: Date }
 }, {
   timestamps: true
 });
