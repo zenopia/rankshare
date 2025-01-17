@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Lock, Eye, Pin, PenLine, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { CategoryBadge } from "@/components/lists/category-badge";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import type { List } from "@/types/list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUsers } from "@/hooks/use-users";
@@ -18,8 +18,6 @@ export function ListCard({
   list,
   showPrivacyBadge = true
 }: ListCardProps) {
-  const isEdited = !!list.lastEditedAt;
-  const timeAgo = formatDistanceToNow(new Date(list.lastEditedAt || list.createdAt), { addSuffix: true });
   const { data: userData } = useUsers([list.owner.clerkId]);
   const ownerData = userData?.[0];
 
@@ -74,12 +72,19 @@ export function ListCard({
               </div>
             </div>
             <div className="flex items-center gap-1.5">
-              {isEdited ? (
-                <PenLine className="h-4 w-4" />
+              {list.editedAt && 
+                Math.floor(new Date(list.editedAt).getTime() / 60000) > 
+                Math.floor(new Date(list.createdAt).getTime() / 60000) ? (
+                <>
+                  <PenLine className="h-4 w-4" />
+                  <span>{formatDistanceToNow(new Date(list.editedAt), { addSuffix: true })}</span>
+                </>
               ) : (
-                <Plus className="h-4 w-4" />
+                <>
+                  <Plus className="h-4 w-4" />
+                  <span>{formatDistanceToNow(new Date(list.createdAt), { addSuffix: true })}</span>
+                </>
               )}
-              <span>{timeAgo}</span>
             </div>
           </div>
         </div>

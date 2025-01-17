@@ -1,12 +1,10 @@
 import { notFound } from "next/navigation";
 import mongoose from 'mongoose';
 import { auth } from "@clerk/nextjs/server";
-import { getListModel } from "@/lib/db/models-v2/list";
+import { ListCollaborator } from "@/lib/db/models-v2/list";
 import { getPinModel } from "@/lib/db/models-v2/pin";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
-import type { MongoListDocument } from "@/types/mongo";
 import { ListView } from "@/components/lists/list-view";
-import { serializeList } from "@/lib/utils";
 import { SubLayout } from "@/components/layout/sub-layout";
 
 interface ListPageProps {
@@ -18,7 +16,6 @@ interface ListPageProps {
 export default async function ListPage({ params }: ListPageProps) {
   try {
     const { userId } = auth();
-    const ListModel = await getListModel();
     const PinModel = await getPinModel();
     const FollowModel = await getFollowModel();
 
@@ -27,28 +24,34 @@ export default async function ListPage({ params }: ListPageProps) {
       notFound();
     }
 
-    // Get list
-    const list = await ListModel.findById(
-      new mongoose.Types.ObjectId(params.id)
-    ).lean() as unknown as MongoListDocument;
+    // Get list and increment view count
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/lists/${params.id}`, {
+      method: 'GET',
+      headers: {
+        'X-User-Id': userId || ''
+      },
+      cache: 'no-store'
+    });
 
-    if (!list) {
+    if (!response.ok) {
       notFound();
     }
 
+    const list = await response.json();
+
     // Get additional data
     const [isPinned, isFollowing] = await Promise.all([
-      userId ? PinModel.exists({ clerkId: userId, listId: list._id }) : false,
+      userId ? PinModel.exists({ clerkId: userId, listId: new mongoose.Types.ObjectId(list.id) }) : false,
       userId ? FollowModel.exists({ followerId: userId, followingId: list.owner.clerkId }) : false
     ]);
 
     const isOwner = userId === list.owner.clerkId;
-    const isCollaborator = list.collaborators?.some(c => c.clerkId === userId && c.status === 'accepted');
+    const isCollaborator = list.collaborators?.some((c: ListCollaborator) => c.clerkId === userId && c.status === 'accepted');
 
     return (
       <SubLayout title={list.title}>
         <ListView 
-          list={serializeList(list)}
+          list={list}
           isOwner={isOwner}
           isPinned={!!isPinned}
           isFollowing={!!isFollowing}

@@ -6,6 +6,7 @@ import { getListModel } from "@/lib/db/models-v2/list";
 import { getPinModel } from "@/lib/db/models-v2/pin";
 import { connectToMongoDB } from "@/lib/db/client";
 import { MongoListDocument } from "@/types/mongo";
+import { CreateListFAB } from "@/components/lists/create-list-fab";
 
 interface SearchParams {
   q?: string;
@@ -99,6 +100,7 @@ export default async function PinnedPage({ searchParams }: PageProps) {
             />
           </div>
         </div>
+        <CreateListFAB />
       </div>
     </MainLayout>
   );

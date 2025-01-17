@@ -1,5 +1,3 @@
-
-
 export type ListCategory = 
   | 'movies' 
   | 'tv-shows' 
@@ -77,9 +75,9 @@ export interface List {
   items?: ListItem[];
   stats: ListStats;
   collaborators?: ListCollaborator[];
-  lastEditedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  editedAt?: Date;
 }
 
 export interface ItemDetails {

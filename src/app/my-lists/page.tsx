@@ -8,6 +8,7 @@ import { connectToMongoDB } from "@/lib/db/client";
 import { serializeLists } from "@/lib/utils";
 import type { ListCategory } from "@/types/list";
 import type { MongoListDocument } from "@/types/mongo";
+import { CreateListFAB } from "@/components/lists/create-list-fab";
 
 interface SearchParams {
   q?: string;
@@ -71,6 +72,7 @@ export default async function MyListsPage({ searchParams }: PageProps) {
             />
           </div>
         </div>
+        <CreateListFAB />
       </div>
     </MainLayout>
   );

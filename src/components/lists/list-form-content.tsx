@@ -275,7 +275,7 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)}>
         <div className="space-y-4">
           <FormField
             control={form.control}
@@ -321,6 +321,28 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="privacy"
+              render={({ field }) => (
+                <FormItem>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="public">Public</SelectItem>
+                      <SelectItem value="private">Private</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <FormField
@@ -341,8 +363,8 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
           />
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-medium">Items</h3>
             <div className="flex gap-2">
               <Sheet open={quickAddOpen} onOpenChange={setQuickAddOpen}>
@@ -437,27 +459,6 @@ Item 3`}
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
           <div className="flex items-center justify-between max-w-2xl mx-auto">
             <div className="flex items-center gap-4">
-              <FormField
-                control={form.control}
-                name="privacy"
-                render={({ field }) => (
-                  <FormItem>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <SelectTrigger className="w-[140px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="public">Public</SelectItem>
-                        <SelectItem value="private">Private</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-
               {mode === 'edit' && (
                 <Button
                   type="button"

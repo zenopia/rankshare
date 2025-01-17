@@ -12,11 +12,9 @@ export default async function CreateListPage() {
 
   return (
     <SubLayout title="Create New List">
-      <div className="px-4 md:px-6 lg:px-8 py-8">
-        <ErrorBoundaryWrapper>
-          <ListFormContent mode="create" />
-        </ErrorBoundaryWrapper>
-      </div>
+      <ErrorBoundaryWrapper>
+        <ListFormContent mode="create" />
+      </ErrorBoundaryWrapper>
     </SubLayout>
   );
 } 

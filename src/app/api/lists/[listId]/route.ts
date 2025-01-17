@@ -46,9 +46,11 @@ export async function GET(
   try {
     const { userId } = auth();
     const { listId } = params;
+    const requestUserId = request.headers.get('X-User-Id');
 
     const ListModel = await getListModel();
-
+    
+    // First get the list without incrementing
     const list = await ListModel.findById(listId).lean();
 
     if (!list) {
@@ -66,15 +68,37 @@ export async function GET(
       );
     }
 
-    // Increment view count for non-owners
-    if (userId !== list.owner.clerkId) {
-      await ListModel.updateOne(
-        { _id: listId },
-        { $inc: { 'stats.viewCount': 1 } }
-      );
+    // Only increment view count if viewer is not the owner
+    let updatedList;
+    if (list.owner.clerkId !== requestUserId) {
+      const updated = await ListModel.findByIdAndUpdate(
+        listId,
+        { $inc: { 'stats.viewCount': 1 } },
+        { new: true }
+      ).lean();
+
+      if (!updated) {
+        return NextResponse.json(
+          { error: "Failed to update view count" },
+          { status: 500 }
+        );
+      }
+      updatedList = updated;
+    } else {
+      updatedList = list;
     }
 
-    return NextResponse.json(list);
+    // Convert _id to string for the response
+    const { _id, ...rest } = updatedList;
+    const responseList = {
+      ...rest,
+      id: _id.toString(),
+      createdAt: updatedList.createdAt?.toISOString(),
+      updatedAt: updatedList.updatedAt?.toISOString(),
+      editedAt: updatedList.editedAt?.toISOString()
+    };
+
+    return NextResponse.json(responseList);
   } catch (error) {
     console.error('Error fetching list:', error);
     return NextResponse.json(
@@ -138,9 +162,11 @@ export async function PUT(
         category,
         privacy,
         items: processedItems,
-        lastEditedAt: new Date()
+        editedAt: new Date()
       },
-      { new: true }
+      { 
+        new: true
+      }
     ).lean();
 
     if (!updatedList) {
@@ -155,9 +181,9 @@ export async function PUT(
     const responseList = {
       ...rest,
       id: _id.toString(),
-      lastEditedAt: updatedList.lastEditedAt?.toISOString(),
       createdAt: updatedList.createdAt?.toISOString(),
-      updatedAt: updatedList.updatedAt?.toISOString()
+      updatedAt: updatedList.updatedAt?.toISOString(),
+      editedAt: updatedList.editedAt?.toISOString()
     };
 
     return NextResponse.json(responseList);

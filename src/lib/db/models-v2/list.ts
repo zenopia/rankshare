@@ -43,7 +43,7 @@ export interface ListDocument extends Document {
   };
   createdAt: Date;
   updatedAt: Date;
-  lastEditedAt?: Date;
+  editedAt?: Date;
 }
 
 const listSchema = new Schema<ListDocument>({
@@ -79,7 +79,7 @@ const listSchema = new Schema<ListDocument>({
     pinCount: { type: Number, default: 0 },
     copyCount: { type: Number, default: 0 }
   },
-  lastEditedAt: { type: Date }
+  editedAt: { type: Date }
 }, {
   timestamps: true
 });

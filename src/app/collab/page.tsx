@@ -9,6 +9,7 @@ import { serializeLists } from "@/lib/utils";
 import type { ListCategory } from "@/types/list";
 import type { MongoListDocument } from "@/types/mongo";
 import { FilterQuery } from "mongoose";
+import { CreateListFAB } from "@/components/lists/create-list-fab";
 
 interface PageProps {
   searchParams: {
@@ -92,6 +93,7 @@ export default async function CollabPage({ searchParams }: PageProps) {
             </div>
           </div>
         </div>
+        <CreateListFAB />
       </div>
     </MainLayout>
   );
