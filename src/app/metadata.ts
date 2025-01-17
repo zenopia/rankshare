@@ -1,7 +1,7 @@
 import { Metadata, Viewport } from 'next';
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'Curate';
+const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'Favely';
 
 export const viewport: Viewport = {
   width: 'device-width',

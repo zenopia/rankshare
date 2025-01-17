@@ -1,6 +1,6 @@
 {
-  "name": "Curate",
-  "short_name": "Curate",
+  "name": "Favely",
+  "short_name": "Favely",
   "description": "Create and share ranked lists of your favorite things",
   "start_url": "/",
   "display": "standalone",

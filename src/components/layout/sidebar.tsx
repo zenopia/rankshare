@@ -6,79 +6,93 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   ChevronLeft,
-  LayoutDashboard,
+  CompassIcon,
   ListChecks,
   BookmarkIcon,
   Users2,
   UserPlus,
-  Home,
-  ListOrdered,
-  PlusCircle,
   Users,
+  PlusCircle,
+  ListIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarProfile } from "@/components/layout/sidebar-profile";
+import type { NavItem } from "@/types/nav";
 
-const menuItems = [
+const menuItems: NavItem[] = [
   {
-    title: "Home",
-    icon: Home,
+    title: "Lists",
     href: "/",
-    description: "Return to homepage",
+    public: true,
+    icon: ListIcon,
+    description: "All lists",
+    id: "lists"
   },
   {
-    title: "Latest",
-    icon: ListOrdered,
+    title: "Discover",
     href: "/",
-    description: "Latest lists",
+    public: true,
+    icon: CompassIcon,
+    description: "Discover lists",
     indent: true,
+    id: "discover"
   },
   {
     title: "Pinned Lists",
-    icon: BookmarkIcon,
     href: "/pinned",
-    description: "Lists you've pinned",
-    indent: true,
+    public: false,
+    icon: BookmarkIcon,
+    description: "View your pinned lists",
+    indent: true
   },
   {
     title: "My Lists",
-    icon: ListChecks,
     href: "/my-lists",
-    description: "Your created lists",
-    indent: true,
+    public: false,
+    icon: ListChecks,
+    description: "View your created lists",
+    indent: true
+  },
+  {
+    title: "Collab",
+    href: "/collab",
+    public: false,
+    icon: Users2,
+    description: "View collaborative lists",
+    indent: true
   },
   {
     title: "People",
-    icon: Users,
     href: "/following",
+    public: false,
+    icon: Users,
     description: "View people",
+    id: "people"
   },
   {
     title: "Following",
-    icon: Users2,
     href: "/following",
+    public: false,
+    icon: Users2,
     description: "Users you follow",
     indent: true,
+    id: "following"
   },
   {
     title: "Followers",
-    icon: UserPlus,
     href: "/followers",
+    public: false,
+    icon: UserPlus,
     description: "Users following you",
-    indent: true,
-  },
-  {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/dashboard",
-    description: "View your dashboard",
+    indent: true
   },
   {
     title: "Create List",
-    icon: PlusCircle,
     href: "/lists/create",
-    description: "Create a new list",
-  },
+    public: false,
+    icon: PlusCircle,
+    description: "Create a new list"
+  }
 ];
 
 interface SidebarProps {
@@ -98,63 +112,53 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
         className
       )}
       role="navigation"
-      aria-label="Main navigation"
     >
-      {!isMobile && (
-        <div className="flex h-14 items-center justify-between border-b px-3">
-          {!collapsed && <span className="text-lg font-semibold">Menu</span>}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto h-8 w-8 p-0 lg:flex"
-            onClick={() => setCollapsed(!collapsed)}
-            aria-label={collapsed ? "Expand menu" : "Collapse menu"}
-          >
-            <ChevronLeft
-              className={cn(
-                "h-4 w-4 transition-transform",
-                collapsed && "rotate-180"
-              )}
-            />
-          </Button>
-        </div>
-      )}
-
-      <SidebarProfile collapsed={collapsed} />
-
-      <nav className="flex-1 space-y-1 p-2" aria-label="Sidebar navigation">
-        {menuItems.map((item, _index) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
-
-          return (
-            <Link
-              key={item.title.toLowerCase()}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                (collapsed && !isMobile) && "justify-center",
-                (!collapsed && item.indent) && "ml-4"
-              )}
-              aria-current={isActive ? "page" : undefined}
-              role="menuitem"
+      <div className="flex flex-col h-full">
+        {!isMobile && (
+          <div className="flex h-14 items-center justify-between px-4 border-b">
+            {!collapsed && <span className="text-sm font-semibold">Menu</span>}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn("h-8 w-8", collapsed && "w-full")}
+              onClick={() => setCollapsed(!collapsed)}
             >
-              <Icon className="h-4 w-4" aria-hidden="true" />
-              {(!collapsed || isMobile) && (
-                <div className="flex flex-col">
-                  <span className="font-medium">{item.title}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {item.description}
-                  </span>
-                </div>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+              <ChevronLeft
+                className={cn(
+                  "h-4 w-4 transition-all",
+                  collapsed && "rotate-180"
+                )}
+              />
+            </Button>
+          </div>
+        )}
+
+        <div className="p-4 pb-6 border-b">
+          <SidebarProfile collapsed={collapsed} />
+        </div>
+
+        <div className="flex-1 space-y-1 p-2 overflow-y-auto">
+          {menuItems.map((item, index) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={index}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent hover:text-accent-foreground",
+                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+                  item.indent && !collapsed && "ml-4"
+                )}
+              >
+                <item.icon className="h-4 w-4" />
+                {!collapsed && (
+                  <span className="truncate">{item.title}</span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 } 

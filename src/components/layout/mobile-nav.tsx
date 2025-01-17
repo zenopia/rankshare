@@ -8,7 +8,7 @@ import {
   Search,
   PlusCircle,
   ListChecks,
-  ListOrdered,
+  CompassIcon,
   Bookmark,
   Users2,
   UserPlus,
@@ -49,13 +49,13 @@ const mobileOnlyNavItems: NavItem[] = [
 
 const navItems: NavItem[] = [
   {
-    title: "Latest",
+    title: "Discover",
     href: "/",
     public: true,
-    icon: ListOrdered,
-    description: "Latest lists",
+    icon: CompassIcon,
+    description: "Discover lists",
     indent: true,
-    id: "latest"
+    id: "discover"
   },
   {
     title: "Pinned Lists",

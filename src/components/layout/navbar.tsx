@@ -23,9 +23,9 @@ export function Navbar() {
       case '/':
       case '/pinned':
       case '/my-lists':
-        return 'Curate';
+        return 'Favely';
       default:
-        return 'Curate';
+        return 'Favely';
     }
   };
 
