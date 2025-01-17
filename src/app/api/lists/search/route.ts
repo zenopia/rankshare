@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel } from "@/lib/db/models-v2/list";
+import { getUserModel } from "@/lib/db/models-v2/user";
 import { MongoListDocument } from "@/types/mongo";
 
 export const dynamic = 'force-dynamic';
@@ -22,41 +23,51 @@ export async function GET(req: NextRequest) {
 
     await connectToMongoDB();
     const ListModel = await getListModel();
+    const UserModel = await getUserModel();
 
-    // Build base query
-    const baseQuery: FilterQuery<MongoListDocument> = {};
+    // Build match conditions for the aggregation pipeline
+    const matchConditions: any[] = [];
 
     // Add search conditions
     if (q) {
-      baseQuery.$or = [
-        { title: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { 'items.title': { $regex: q, $options: 'i' } },
-        { 'items.properties.value': { $regex: q, $options: 'i' } }
-      ];
+      matchConditions.push({
+        $or: [
+          { title: { $regex: q, $options: 'i' } },
+          { description: { $regex: q, $options: 'i' } },
+          { 'items.title': { $regex: q, $options: 'i' } },
+          { 'items.properties.value': { $regex: q, $options: 'i' } },
+          { 'ownerDetails.username': { $regex: q, $options: 'i' } },
+          { 'ownerDetails.displayName': { $regex: q, $options: 'i' } }
+        ]
+      });
     }
 
     // Add category filter
     if (category) {
-      baseQuery.category = category;
+      matchConditions.push({ category });
     }
 
-    // Add privacy filter
-    if (privacy === 'public') {
-      baseQuery.privacy = 'public';
-    } else if (privacy === 'private' && userId) {
-      baseQuery.$or = [
-        { 'owner.clerkId': userId },
-        { 'collaborators.clerkId': userId, 'collaborators.status': 'accepted' }
-      ];
+    // Add visibility filter
+    if (userId) {
+      matchConditions.push({
+        $or: [
+          { privacy: 'public' },
+          { privacy: 'private', 'owner.clerkId': userId },
+          { privacy: 'private', 'collaborators': { $elemMatch: { clerkId: userId, status: 'accepted' } } }
+        ]
+      });
+    } else {
+      matchConditions.push({ privacy: 'public' });
     }
 
     // Add owner filter
     if (owner === 'owned' && userId) {
-      baseQuery['owner.clerkId'] = userId;
+      matchConditions.push({ 'owner.clerkId': userId });
     } else if (owner === 'collaborated' && userId) {
-      baseQuery['collaborators.clerkId'] = userId;
-      baseQuery['collaborators.status'] = 'accepted';
+      matchConditions.push({
+        'collaborators.clerkId': userId,
+        'collaborators.status': 'accepted'
+      });
     }
 
     // Build sort options
@@ -76,22 +87,96 @@ export async function GET(req: NextRequest) {
     }
 
     const skip = (page - 1) * limit;
-    const lists = await ListModel.find(baseQuery)
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(limit)
-      .lean() as unknown as MongoListDocument[];
 
-    const total = await ListModel.countDocuments(baseQuery);
+    // Build aggregation pipeline
+    const pipeline = [
+      // Join with users collection to get owner details
+      {
+        $lookup: {
+          from: 'users',
+          let: { ownerClerkId: '$owner.clerkId' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$clerkId', '$$ownerClerkId'] }
+              }
+            },
+            {
+              $project: {
+                username: 1,
+                displayName: 1
+              }
+            }
+          ],
+          as: 'ownerDetails'
+        }
+      },
+      {
+        $unwind: '$ownerDetails'
+      },
+      // Match conditions
+      {
+        $match: matchConditions.length > 0 ? { $and: matchConditions } : {}
+      },
+      // Sort
+      { $sort: sortOptions },
+      // Pagination
+      { $skip: skip },
+      { $limit: limit }
+    ];
+
+    const countPipeline = [
+      // Join with users collection
+      {
+        $lookup: {
+          from: 'users',
+          let: { ownerClerkId: '$owner.clerkId' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$clerkId', '$$ownerClerkId'] }
+              }
+            },
+            {
+              $project: {
+                username: 1,
+                displayName: 1
+              }
+            }
+          ],
+          as: 'ownerDetails'
+        }
+      },
+      {
+        $unwind: '$ownerDetails'
+      },
+      // Match conditions
+      {
+        $match: matchConditions.length > 0 ? { $and: matchConditions } : {}
+      },
+      // Count
+      { $count: 'total' }
+    ];
+
+    const [lists, [countResult]] = await Promise.all([
+      ListModel.aggregate(pipeline),
+      ListModel.aggregate(countPipeline)
+    ]);
+
+    const total = countResult?.total || 0;
 
     // Convert MongoDB documents to List type
-    const serializedLists = lists.map(list => ({
+    const serializedLists = lists.map((list: any) => ({
       id: list._id.toString(),
       title: list.title,
       description: list.description,
       category: list.category,
       privacy: list.privacy,
-      owner: list.owner,
+      owner: {
+        ...list.owner,
+        username: list.ownerDetails.username,
+        displayName: list.ownerDetails.displayName
+      },
       items: list.items,
       stats: list.stats,
       collaborators: list.collaborators,
