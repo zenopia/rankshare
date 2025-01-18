@@ -4,6 +4,7 @@ import { SignIn } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import { SubLayout } from "@/components/layout/sub-layout";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -54,15 +55,17 @@ export default function SignInPage() {
   }, [isSignedIn, router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <SignIn 
-        appearance={{
-          elements: {
-            rootBox: "mx-auto",
-            card: "shadow-md"
-          }
-        }}
-      />
-    </div>
+    <SubLayout title="Sign In">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+        <SignIn 
+          appearance={{
+            elements: {
+              rootBox: "mx-auto",
+              card: "shadow-md"
+            }
+          }}
+        />
+      </div>
+    </SubLayout>
   );
 } 
