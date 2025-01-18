@@ -6,7 +6,8 @@ import { getListModel } from "@/lib/db/models-v2/list";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { connectToMongoDB } from "@/lib/db/client";
-import { MongoListDocument, MongoUserDocument } from "@/types/mongo";
+import type { MongoListDocument, MongoUserDocument } from "@/types/mongo";
+import { serializeLists } from "@/lib/utils";
 
 interface SearchParams {
   q?: string;
@@ -34,11 +35,11 @@ export default async function UserListsPage({ params, searchParams }: PageProps)
   }
 
   // Get current user
-  const { userId } = auth();
+  const { userId: currentUserId } = auth();
 
   // Get follow status
-  const isFollowing = userId ? !!(await FollowModel.findOne({
-    followerId: userId,
+  const isFollowing = currentUserId ? !!(await FollowModel.findOne({
+    followerId: currentUserId,
     followingId: user.clerkId,
     status: 'accepted'
   })) : false;
@@ -73,24 +74,7 @@ export default async function UserListsPage({ params, searchParams }: PageProps)
   const lists = await ListModel.find(filter).lean() as unknown as MongoListDocument[];
 
   // Serialize lists
-  const serializedLists = lists.map(list => ({
-    id: list._id.toString(),
-    title: list.title,
-    description: list.description || '',
-    category: list.category,
-    privacy: list.privacy,
-    owner: {
-      id: list.owner.id,
-      username: list.owner.username
-    },
-    stats: {
-      viewCount: list.stats?.viewCount || 0,
-      pinCount: list.stats?.pinCount || 0,
-      copyCount: list.stats?.copyCount || 0
-    },
-    createdAt: list.createdAt,
-    updatedAt: list.updatedAt
-  }));
+  const serializedLists = serializeLists(lists);
 
   // Sort lists
   const sortedLists = [...serializedLists].sort((a, b) => {

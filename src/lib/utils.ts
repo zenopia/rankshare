@@ -20,19 +20,19 @@ export function serializeList(list: MongoListDocument): List {
     category: list.category,
     privacy: list.privacy,
     owner: {
-      id: list.owner.id,
+      id: list.owner.userId.toString(),
       clerkId: list.owner.clerkId,
       username: list.owner.username,
-      joinedAt: list.owner.joinedAt
+      joinedAt: list.owner.joinedAt?.toISOString() || new Date().toISOString()
     },
     items: list.items.map(item => ({
-      id: item.id || crypto.randomUUID(),
+      id: crypto.randomUUID(),
       title: item.title,
       comment: item.comment,
       rank: item.rank,
       properties: item.properties?.map(prop => ({
-        id: prop.id || crypto.randomUUID(),
-        type: prop.type || 'text',
+        id: crypto.randomUUID(),
+        type: (prop.type || 'text') as 'text' | 'link',
         label: prop.label,
         value: prop.value
       }))
@@ -43,18 +43,18 @@ export function serializeList(list: MongoListDocument): List {
       copyCount: list.stats.copyCount
     },
     collaborators: list.collaborators?.map(collab => ({
-      id: collab.id,
+      id: collab.userId.toString(),
       clerkId: collab.clerkId,
       username: collab.username,
-      email: collab.email,
       role: collab.role,
       status: collab.status,
-      invitedAt: collab.invitedAt,
-      acceptedAt: collab.acceptedAt
+      invitedAt: collab.invitedAt.toISOString(),
+      acceptedAt: collab.acceptedAt?.toISOString()
     })),
-    lastEditedAt: list.lastEditedAt,
-    createdAt: list.createdAt,
-    updatedAt: list.updatedAt
+    lastEditedAt: list.lastEditedAt?.toISOString(),
+    createdAt: list.createdAt?.toISOString(),
+    updatedAt: list.updatedAt?.toISOString(),
+    editedAt: list.editedAt?.toISOString()
   };
 }
 

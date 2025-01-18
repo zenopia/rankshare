@@ -45,7 +45,7 @@ export interface ListOwner {
   id: string;
   clerkId: string;
   username: string;
-  joinedAt: Date;
+  joinedAt: string;
 }
 
 export interface ListCollaborator {
@@ -55,8 +55,8 @@ export interface ListCollaborator {
   email?: string;
   role: string;
   status: string;
-  invitedAt: Date;
-  acceptedAt?: Date;
+  invitedAt: string;
+  acceptedAt?: string;
 }
 
 export interface ListStats {
@@ -75,9 +75,10 @@ export interface List {
   items?: ListItem[];
   stats: ListStats;
   collaborators?: ListCollaborator[];
-  createdAt: Date;
-  updatedAt: Date;
-  editedAt?: Date;
+  lastEditedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  editedAt?: string;
 }
 
 export interface ItemDetails {

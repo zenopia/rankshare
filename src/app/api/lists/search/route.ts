@@ -1,9 +1,8 @@
-import { FilterQuery } from "mongoose";
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel } from "@/lib/db/models-v2/list";
-import { getUserModel } from "@/lib/db/models-v2/user";
+import { FilterQuery } from "mongoose";
 import { MongoListDocument } from "@/types/mongo";
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +14,6 @@ export async function GET(req: NextRequest) {
     
     const q = searchParams.get('q') || '';
     const category = searchParams.get('category');
-    const privacy = searchParams.get('privacy');
     const owner = searchParams.get('owner');
     const sort = searchParams.get('sort') || 'recent';
     const page = parseInt(searchParams.get('page') || '1');
@@ -23,10 +21,9 @@ export async function GET(req: NextRequest) {
 
     await connectToMongoDB();
     const ListModel = await getListModel();
-    const UserModel = await getUserModel();
 
     // Build match conditions for the aggregation pipeline
-    const matchConditions: any[] = [];
+    const matchConditions: FilterQuery<MongoListDocument>[] = [];
 
     // Add search conditions
     if (q) {
@@ -166,7 +163,7 @@ export async function GET(req: NextRequest) {
     const total = countResult?.total || 0;
 
     // Convert MongoDB documents to List type
-    const serializedLists = lists.map((list: any) => ({
+    const serializedLists = lists.map((list: MongoListDocument & { ownerDetails: { username: string; displayName: string } }) => ({
       id: list._id.toString(),
       title: list.title,
       description: list.description,
@@ -182,7 +179,8 @@ export async function GET(req: NextRequest) {
       collaborators: list.collaborators,
       lastEditedAt: list.lastEditedAt,
       createdAt: list.createdAt,
-      updatedAt: list.updatedAt
+      updatedAt: list.updatedAt,
+      editedAt: list.editedAt
     }));
 
     return NextResponse.json({

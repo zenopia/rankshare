@@ -4,8 +4,8 @@ import { useState } from "react";
 import { List } from "@/types/list";
 import { CategoryBadge } from "@/components/lists/category-badge";
 import ListActionBar from "@/components/lists/list-action-bar";
-import { Eye, Pin, Copy, Lock } from "lucide-react";
-import { format } from "date-fns";
+import { Eye, Pin, Copy, Lock, Pen, Plus } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { EditListFAB } from "@/components/lists/edit-list-fab";
 import { UserCard } from "@/components/users/user-card";
 import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
@@ -22,14 +22,9 @@ interface ListViewProps {
 export function ListView({ list, isOwner, isPinned: initialIsPinned, isFollowing, isCollaborator }: ListViewProps) {
   const [showCollaborators, setShowCollaborators] = useState(false);
   const [isPinned, setIsPinned] = useState(initialIsPinned);
-  const [stats, setStats] = useState(list.stats);
 
   const handlePinChange = (newIsPinned: boolean) => {
     setIsPinned(newIsPinned);
-    setStats(prev => ({
-      ...prev,
-      pinCount: prev.pinCount + (newIsPinned ? 1 : -1)
-    }));
   };
 
   return (
@@ -101,27 +96,40 @@ export function ListView({ list, isOwner, isPinned: initialIsPinned, isFollowing
       </div>
 
       <div key="stats-section" className="space-y-4 border-t pt-4">
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <div key="views" className="flex items-center gap-1">
-            <Eye className="h-4 w-4" />
-            <span>{stats.viewCount}</span>
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              {list.stats.viewCount}
+            </div>
+            <div className="flex items-center gap-1">
+              <Pin className="h-3 w-3" />
+              {list.stats.pinCount}
+            </div>
+            <div className="flex items-center gap-1">
+              <Copy className="h-3 w-3" />
+              {list.stats.copyCount}
+            </div>
           </div>
-          <div key="pins" className="flex items-center gap-1">
-            <Pin className={`h-4 w-4 ${isPinned ? "fill-current" : ""}`} />
-            <span>{stats.pinCount}</span>
-          </div>
-          <div key="copies" className="flex items-center gap-1">
-            <Copy className="h-4 w-4" />
-            <span>{stats.copyCount}</span>
-          </div>
-          <div key="spacer" className="flex-1" />
-          <div key="dates" className="text-right">
+          <div className="flex flex-col gap-1 text-right">
             {list.editedAt && 
               Math.floor(new Date(list.editedAt).getTime() / 60000) > 
               Math.floor(new Date(list.createdAt).getTime() / 60000) ? (
-              <div>Edited: {format(new Date(list.editedAt), 'yyyy-MM-dd HH:mm')}</div>
+              <>
+                <div className="flex items-center gap-1">
+                  <Pen className="h-4 w-4" />
+                  <span>{formatDistanceToNow(new Date(list.editedAt), { addSuffix: true })}</span>
+                </div>
+                <div className="flex items-center gap-1 justify-end">
+                  <Plus className="h-4 w-4" />
+                  <span>{formatDistanceToNow(new Date(list.createdAt), { addSuffix: true })}</span>
+                </div>
+              </>
             ) : (
-              <div>Created: {format(new Date(list.createdAt), 'yyyy-MM-dd HH:mm')}</div>
+              <div className="flex items-center gap-1">
+                <Plus className="h-4 w-4" />
+                <span>{formatDistanceToNow(new Date(list.createdAt), { addSuffix: true })}</span>
+              </div>
             )}
           </div>
         </div>

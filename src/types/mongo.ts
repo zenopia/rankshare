@@ -8,19 +8,26 @@ export interface MongoListDocument {
   category: ListCategory;
   privacy: 'public' | 'private';
   owner: {
-    id: string;
+    userId: Types.ObjectId;
     clerkId: string;
     username: string;
     joinedAt: Date;
   };
+  collaborators: Array<{
+    userId: Types.ObjectId;
+    clerkId: string;
+    username: string;
+    role: 'viewer' | 'editor' | 'admin';
+    status: 'pending' | 'accepted' | 'rejected';
+    invitedAt: Date;
+    acceptedAt?: Date;
+  }>;
   items: Array<{
-    id: string;
     title: string;
-    comment?: string;
     rank: number;
+    comment?: string;
     properties?: Array<{
-      id: string;
-      type?: 'text' | 'link';
+      type?: string;
       label: string;
       value: string;
     }>;
@@ -30,17 +37,8 @@ export interface MongoListDocument {
     pinCount: number;
     copyCount: number;
   };
-  collaborators?: Array<{
-    id: string;
-    clerkId: string;
-    username: string;
-    email?: string;
-    role: string;
-    status: string;
-    invitedAt: Date;
-    acceptedAt?: Date;
-  }>;
   lastEditedAt?: Date;
+  editedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
