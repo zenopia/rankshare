@@ -4,20 +4,20 @@ import { auth } from "@clerk/nextjs/server";
 import { ListCollaborator } from "@/lib/db/models-v2/list";
 import { getPinModel } from "@/lib/db/models-v2/pin";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
-import { ListView } from "@/components/lists/list-view";
-import { SubLayout } from "@/components/layout/sub-layout";
+import { ListPageContent } from "./list-page-content";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
-import Link from "next/link";
 
 interface ListPageProps {
   params: {
     id: string;
   };
+  searchParams: {
+    from?: string;
+  };
 }
 
-export default async function ListPage({ params }: ListPageProps) {
+export default async function ListPage({ params, searchParams }: ListPageProps) {
   try {
     const { userId } = auth();
     const PinModel = await getPinModel();
@@ -48,13 +48,6 @@ export default async function ListPage({ params }: ListPageProps) {
             <p className="text-muted-foreground">
               This list is private. You need to be the owner or a collaborator to view it.
             </p>
-            <div className="flex justify-center">
-              <Button asChild>
-                <Link href="/my-lists">
-                  View My Lists
-                </Link>
-              </Button>
-            </div>
           </Card>
         </div>
       );
@@ -76,15 +69,14 @@ export default async function ListPage({ params }: ListPageProps) {
     const isCollaborator = list.collaborators?.some((c: ListCollaborator) => c.clerkId === userId && c.status === 'accepted');
 
     return (
-      <SubLayout title={list.title}>
-        <ListView 
-          list={list}
-          isOwner={isOwner}
-          isPinned={!!isPinned}
-          isFollowing={!!isFollowing}
-          isCollaborator={isCollaborator}
-        />
-      </SubLayout>
+      <ListPageContent
+        list={list}
+        isOwner={isOwner}
+        isPinned={!!isPinned}
+        isFollowing={!!isFollowing}
+        isCollaborator={isCollaborator}
+        returnPath={searchParams.from}
+      />
     );
   } catch (error) {
     console.error('Error loading list:', error);

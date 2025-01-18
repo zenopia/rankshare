@@ -16,11 +16,18 @@ interface ListViewProps {
   isOwner: boolean;
   isPinned: boolean;
   isFollowing: boolean;
-  isCollaborator?: boolean;
+  showCollaborators: boolean;
+  onCollaboratorsClick: () => void;
 }
 
-export function ListView({ list, isOwner, isPinned: initialIsPinned, isFollowing, isCollaborator }: ListViewProps) {
-  const [showCollaborators, setShowCollaborators] = useState(false);
+export function ListView({ 
+  list, 
+  isOwner, 
+  isPinned: initialIsPinned, 
+  isFollowing,
+  showCollaborators,
+  onCollaboratorsClick 
+}: ListViewProps) {
   const [isPinned, setIsPinned] = useState(initialIsPinned);
 
   const handlePinChange = (newIsPinned: boolean) => {
@@ -37,6 +44,19 @@ export function ListView({ list, isOwner, isPinned: initialIsPinned, isFollowing
           isOwner={isOwner}
         />
       </div>
+
+      {showCollaborators && isOwner && (
+        <div key="collaborators-section">
+          <ErrorBoundaryWrapper>
+            <CollaboratorManagement
+              listId={list.id}
+              isOwner={isOwner}
+              privacy={list.privacy}
+              onClose={onCollaboratorsClick}
+            />
+          </ErrorBoundaryWrapper>
+        </div>
+      )}
 
       <div key="header-section" className="space-y-4">
         <div className="flex items-start justify-between gap-4">
@@ -138,8 +158,6 @@ export function ListView({ list, isOwner, isPinned: initialIsPinned, isFollowing
           listId={list.id}
           isPinned={isPinned}
           onPinChange={handlePinChange}
-          canManageCollaborators={isOwner || isCollaborator}
-          onCollaboratorsClick={() => setShowCollaborators(true)}
         />
       </div>
 
@@ -148,19 +166,6 @@ export function ListView({ list, isOwner, isPinned: initialIsPinned, isFollowing
           <EditListFAB listId={list.id} />
         </div>
       )}
-
-      <div key="collaborators-section">
-        <ErrorBoundaryWrapper>
-          {showCollaborators && (
-            <CollaboratorManagement
-              listId={list.id}
-              isOwner={isOwner}
-              privacy={list.privacy}
-              onClose={() => setShowCollaborators(false)}
-            />
-          )}
-        </ErrorBoundaryWrapper>
-      </div>
     </div>
   );
 } 

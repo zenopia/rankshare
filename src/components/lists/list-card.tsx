@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import type { List } from "@/types/list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUsers } from "@/hooks/use-users";
+import { usePathname } from "next/navigation";
 
 interface ListCardProps {
   list: List;
@@ -20,9 +21,10 @@ export function ListCard({
 }: ListCardProps) {
   const { data: userData } = useUsers([list.owner.clerkId]);
   const ownerData = userData?.[0];
+  const currentPath = usePathname();
 
   return (
-    <Link href={`/lists/${list.id}`}>
+    <Link href={`/lists/${list.id}?from=${encodeURIComponent(currentPath)}`}>
       <Card className="group relative overflow-hidden transition-colors hover:bg-accent">
         <div className="p-4 space-y-3">
           <div className="space-y-1.5">
