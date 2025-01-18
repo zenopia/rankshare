@@ -44,7 +44,6 @@ export async function GET(
   { params }: { params: { listId: string } }
 ) {
   try {
-    const { userId } = auth();
     const { listId } = params;
     const requestUserId = request.headers.get('X-User-Id');
 
@@ -60,8 +59,8 @@ export async function GET(
       );
     }
 
-    // Check access permissions
-    if (!await hasListAccess(list, userId)) {
+    // Check access permissions using requestUserId
+    if (!await hasListAccess(list, requestUserId)) {
       return NextResponse.json(
         { error: "Not authorized to view this list" },
         { status: 403 }
