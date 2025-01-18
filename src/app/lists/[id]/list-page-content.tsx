@@ -19,6 +19,7 @@ export function ListPageContent({
   isOwner,
   isPinned,
   isFollowing,
+  isCollaborator,
   returnPath
 }: ListPageContentProps) {
   const [showCollaborators, setShowCollaborators] = useState(false);
@@ -29,13 +30,16 @@ export function ListPageContent({
         returnPath={returnPath} 
         title={list.title}
         isOwner={isOwner}
+        isCollaborator={isCollaborator}
         showCollaborators={showCollaborators}
         onCollaboratorsClick={() => setShowCollaborators(!showCollaborators)}
+        collaborators={list.collaborators}
       />
       <div className="container py-6">
         <ListView
           list={list}
           isOwner={isOwner}
+          _isCollaborator={isCollaborator}
           isPinned={isPinned}
           isFollowing={isFollowing}
           showCollaborators={showCollaborators}

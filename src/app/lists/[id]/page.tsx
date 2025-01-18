@@ -34,6 +34,7 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
       headers: {
         'X-User-Id': userId || ''
       },
+      next: { revalidate: 0 },
       cache: 'no-store'
     });
 
@@ -67,6 +68,23 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
 
     const isOwner = userId === list.owner.clerkId;
     const isCollaborator = list.collaborators?.some((c: ListCollaborator) => c.clerkId === userId && c.status === 'accepted');
+
+    // If the list is private, only allow owner and collaborators to view it
+    if (list.privacy === 'private' && !isOwner && !isCollaborator) {
+      return (
+        <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)]">
+          <Card className="w-full max-w-md p-6 space-y-4 text-center">
+            <div className="flex justify-center">
+              <Lock className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight">Private List</h1>
+            <p className="text-muted-foreground">
+              This list is private. You need to be the owner or a collaborator to view it.
+            </p>
+          </Card>
+        </div>
+      );
+    }
 
     return (
       <ListPageContent

@@ -14,6 +14,7 @@ import { CollaboratorManagement } from "@/components/lists/collaborator-manageme
 interface ListViewProps {
   list: List;
   isOwner: boolean;
+  _isCollaborator: boolean;
   isPinned: boolean;
   isFollowing: boolean;
   showCollaborators: boolean;
@@ -23,6 +24,7 @@ interface ListViewProps {
 export function ListView({ 
   list, 
   isOwner, 
+  _isCollaborator,
   isPinned: initialIsPinned, 
   isFollowing,
   showCollaborators,
@@ -36,7 +38,7 @@ export function ListView({
 
   return (
     <div className="space-y-8">
-      <div key="user-section">
+      <div className="user-section">
         <UserCard
           userId={list.owner.clerkId}
           username={list.owner.username}
@@ -46,7 +48,7 @@ export function ListView({
       </div>
 
       {showCollaborators && isOwner && (
-        <div key="collaborators-section">
+        <div className="collaborators-section">
           <ErrorBoundaryWrapper>
             <CollaboratorManagement
               listId={list.id}
@@ -58,7 +60,7 @@ export function ListView({
         </div>
       )}
 
-      <div key="header-section" className="space-y-4">
+      <div className="header-section space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-bold">{list.title}</h1>
@@ -75,7 +77,7 @@ export function ListView({
         </div>
       </div>
 
-      <div key="items-section" className="space-y-4">
+      <div className="items-section space-y-4">
         <h2 className="text-xl font-semibold">Items</h2>
         <div className="space-y-2">
           {(list.items || []).map((item, index) => (
@@ -91,19 +93,19 @@ export function ListView({
               <div className="flex-1 p-4">
                 <div className="font-medium">{item.title}</div>
                 {item.comment && (
-                  <p key="comment" className="mt-1 text-sm text-muted-foreground">{item.comment}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{item.comment}</p>
                 )}
                 {item.properties && item.properties.length > 0 && (
-                  <div key="properties" className="mt-2 space-y-1">
+                  <div className="mt-2 space-y-1">
                     {item.properties.map(prop => (
                       <div key={prop.id} className="flex items-center gap-2 text-sm">
                         <span className="font-medium">{prop.label}:</span>
                         {prop.type === 'link' ? (
-                          <a key="link" href={prop.value} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                          <a href={prop.value} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                             {prop.value}
                           </a>
                         ) : (
-                          <span key="text" className="text-muted-foreground">{prop.value}</span>
+                          <span className="text-muted-foreground">{prop.value}</span>
                         )}
                       </div>
                     ))}
@@ -115,7 +117,7 @@ export function ListView({
         </div>
       </div>
 
-      <div key="stats-section" className="space-y-4 border-t pt-4">
+      <div className="stats-section space-y-4 border-t pt-4">
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
@@ -162,7 +164,7 @@ export function ListView({
       </div>
 
       {isOwner && (
-        <div key="fab-section">
+        <div className="fab-section">
           <EditListFAB listId={list.id} />
         </div>
       )}

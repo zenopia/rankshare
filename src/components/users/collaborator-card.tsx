@@ -18,6 +18,8 @@ export interface CollaboratorCardProps {
   userId: string;
   username: string;
   role: 'owner' | 'admin' | 'editor' | 'viewer';
+  status?: 'pending' | 'accepted' | 'rejected';
+  _isEmailInvite?: boolean;
   linkToProfile?: boolean;
   canManageRoles?: boolean;
   isOwner?: boolean;
@@ -28,7 +30,9 @@ export interface CollaboratorCardProps {
 export function CollaboratorCard({ 
   userId, 
   username, 
-  role, 
+  role,
+  status = 'accepted',
+  _isEmailInvite = false,
   linkToProfile = true,
   canManageRoles = false,
   isOwner = false,
@@ -48,12 +52,11 @@ export function CollaboratorCard({
             <div className="h-3 w-16 bg-muted animate-pulse rounded" />
           </div>
         </div>
-        <div className="h-6 w-16 bg-muted animate-pulse rounded" />
       </div>
     );
   }
 
-  const [firstName, lastName] = userData?.displayName.split(' ') || [null, null];
+  const [firstName, lastName] = userData?.displayName?.split(' ') || [null, null];
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
@@ -99,7 +102,7 @@ export function CollaboratorCard({
               Transfer Ownership
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={onRemove}
             className="text-destructive focus:text-destructive"
           >
@@ -108,9 +111,11 @@ export function CollaboratorCard({
         </DropdownMenuContent>
       </DropdownMenu>
     ) : (
-      <Badge variant={getRoleBadgeVariant(role)} className="capitalize">
-        {role}
-      </Badge>
+      <div className="flex items-center gap-2">
+        <Badge variant={getRoleBadgeVariant(role)} className="capitalize">
+          {role}
+        </Badge>
+      </div>
     )
   );
 
@@ -127,6 +132,11 @@ export function CollaboratorCard({
           hideFollow={true}
           linkToProfile={false}
         />
+        {status !== 'accepted' && (
+          <Badge variant="outline" className="text-muted-foreground capitalize">
+            {status}
+          </Badge>
+        )}
       </div>
       <div onClick={(e) => e.preventDefault()}>
         {roleDisplay}
@@ -134,8 +144,8 @@ export function CollaboratorCard({
     </div>
   );
 
-  if (linkToProfile) {
-    return <Link href={`/@${userData?.username || username}`}>{content}</Link>;
+  if (linkToProfile && userData) {
+    return <Link href={`/@${userData.username || username}`}>{content}</Link>;
   }
 
   return content;

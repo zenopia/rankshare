@@ -96,34 +96,35 @@ export function CollaboratorManagement({
   };
 
   const handleInvite = async (value: { type: 'user', userId: string, username: string } | { type: 'email', email: string }) => {
-    setIsLoading(true);
     try {
+      setIsLoading(true);
+
       const response = await fetch(`/api/lists/${listId}/collaborators`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          email: value.type === 'email' ? value.email : undefined,
-          userId: value.type === 'user' ? value.userId : undefined,
-          role: "viewer",
-        }),
+          ...value,
+          role: 'viewer',
+          // Automatically accept if it's an app user
+          status: value.type === 'user' ? 'accepted' : 'pending'
+        })
       });
 
       if (!response.ok) {
-        throw new Error();
+        throw new Error('Failed to add collaborator');
       }
 
-      // Refresh collaborators list
-      const updatedResponse = await fetch(`/api/lists/${listId}/collaborators`);
-      if (updatedResponse.ok) {
-        const data = await updatedResponse.json();
-        setCollaborators(data);
-      }
-
-      toast.success("Invitation sent!");
+      const data = await response.json();
+      setCollaborators(prev => [...prev, data]);
+      toast.success(value.type === 'user' 
+        ? 'Collaborator added successfully' 
+        : 'Invitation sent successfully'
+      );
     } catch (error) {
-      toast.error("Failed to send invitation");
+      console.error('Error adding collaborator:', error);
+      toast.error('Failed to add collaborator');
     } finally {
       setIsLoading(false);
     }

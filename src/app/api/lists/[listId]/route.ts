@@ -94,7 +94,15 @@ export async function GET(
       id: _id.toString(),
       createdAt: updatedList.createdAt?.toISOString(),
       updatedAt: updatedList.updatedAt?.toISOString(),
-      editedAt: updatedList.editedAt?.toISOString()
+      editedAt: updatedList.editedAt?.toISOString(),
+      owner: {
+        ...updatedList.owner,
+        id: updatedList.owner.userId?.toString()
+      },
+      collaborators: updatedList.collaborators?.map((c: { _id?: { toString(): string } } & Record<string, unknown>) => ({
+        ...c,
+        id: c._id?.toString()
+      }))
     };
 
     return NextResponse.json(responseList);
@@ -182,7 +190,15 @@ export async function PUT(
       id: _id.toString(),
       createdAt: updatedList.createdAt?.toISOString(),
       updatedAt: updatedList.updatedAt?.toISOString(),
-      editedAt: updatedList.editedAt?.toISOString()
+      editedAt: updatedList.editedAt?.toISOString(),
+      owner: {
+        ...updatedList.owner,
+        id: updatedList.owner.userId?.toString()
+      },
+      collaborators: updatedList.collaborators?.map((c: { _id?: { toString(): string } } & Record<string, unknown>) => ({
+        ...c,
+        id: c._id?.toString()
+      }))
     };
 
     return NextResponse.json(responseList);

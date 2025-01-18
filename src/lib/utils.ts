@@ -43,7 +43,7 @@ export function serializeList(list: MongoListDocument): List {
       copyCount: list.stats.copyCount
     },
     collaborators: list.collaborators?.map(collab => ({
-      id: collab.userId.toString(),
+      id: collab.userId?.toString() || collab.clerkId,
       clerkId: collab.clerkId,
       username: collab.username,
       role: collab.role,
