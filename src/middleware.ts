@@ -23,6 +23,11 @@ const securityHeaders = {
     'camera=(), microphone=(), geolocation=()'
 };
 
+interface AuthObject {
+  userId: string | null;
+  isPublicRoute: boolean;
+}
+
 export default authMiddleware({
   publicRoutes: [
     "/",
@@ -39,29 +44,82 @@ export default authMiddleware({
     "/api/webhooks/user",
     "/manifest.json",
     "/api/health",
+    "/profile",
   ],
-  beforeAuth: (req: NextRequest) => {
-    const { pathname } = req.nextUrl;
-
-    // Handle @ routes before auth
-    if (pathname.startsWith('/@')) {
-      const username = pathname.slice(2);
-      const url = new URL(req.url);
-      url.pathname = `/${username}`;
-      return NextResponse.rewrite(url);
+  async afterAuth(auth: AuthObject, req: NextRequest) {
+    // If the user is not signed in and the route is not public, redirect to sign-in
+    if (!auth.userId && !auth.isPublicRoute) {
+      const signInUrl = new URL('/sign-in', req.url);
+      signInUrl.searchParams.set('returnUrl', req.url);
+      return NextResponse.redirect(signInUrl);
     }
 
-    const res = NextResponse.next();
+    // If the user is signed in and trying to access auth pages, redirect to home
+    if (auth.userId && (req.nextUrl.pathname === '/sign-in' || req.nextUrl.pathname === '/sign-up')) {
+      return NextResponse.redirect(new URL('/', req.url));
+    }
 
-    // Apply security headers
-    Object.entries(securityHeaders).forEach(([key, value]) => {
-      if (value) { // Only set header if value is not empty
-        res.headers.set(key, value);
+    // Get the pathname and full URL
+    const pathname = req.nextUrl.pathname;
+    const fullUrl = req.nextUrl.href;
+
+    // Skip profile check for the profile page itself and public routes
+    if (pathname === '/profile' || auth.isPublicRoute) {
+      return NextResponse.next();
+    }
+
+    // If the user is signed in and not on a public route, check their profile
+    if (auth.userId && !auth.isPublicRoute) {
+      try {
+        // Construct the profile API URL using the same origin as the request
+        const profileApiUrl = new URL('/api/profile', req.url);
+        
+        // Fetch the user's profile
+        const profileRes = await fetch(profileApiUrl, {
+          headers: {
+            'Cookie': req.headers.get('cookie') || '',
+            'Authorization': req.headers.get('authorization') || '',
+          }
+        });
+
+        if (!profileRes.ok) {
+          throw new Error('Failed to fetch profile');
+        }
+
+        const data = await profileRes.json();
+        
+        // If profile is not complete, redirect to profile page with encoded return URL
+        if (!data.profile?.profileComplete) {
+          const profileUrl = new URL('/profile', req.url);
+          profileUrl.searchParams.set('returnUrl', encodeURIComponent(fullUrl));
+          const response = NextResponse.redirect(profileUrl);
+          // Apply security headers
+          Object.entries(securityHeaders).forEach(([key, value]) => {
+            if (value) response.headers.set(key, value);
+          });
+          return response;
+        }
+      } catch (error) {
+        console.error('Error checking profile:', error);
+        // On error, redirect to profile page with encoded return URL
+        const profileUrl = new URL('/profile', req.url);
+        profileUrl.searchParams.set('returnUrl', encodeURIComponent(fullUrl));
+        const response = NextResponse.redirect(profileUrl);
+        // Apply security headers
+        Object.entries(securityHeaders).forEach(([key, value]) => {
+          if (value) response.headers.set(key, value);
+        });
+        return response;
       }
-    });
+    }
 
-    return res;
-  },
+    const response = NextResponse.next();
+    // Apply security headers to all responses
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+      if (value) response.headers.set(key, value);
+    });
+    return response;
+  }
 });
 
 export const config = {

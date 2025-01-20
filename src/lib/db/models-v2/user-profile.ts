@@ -8,6 +8,7 @@ export interface UserProfileDocument extends Document {
   dateOfBirth?: Date;
   gender?: string;
   livingStatus?: string;
+  profileComplete: boolean;
   privacySettings: {
     showBio: boolean;
     showLocation: boolean;
@@ -24,6 +25,7 @@ const userProfileSchema = new Schema<UserProfileDocument>({
   dateOfBirth: { type: Date },
   gender: { type: String },
   livingStatus: { type: String },
+  profileComplete: { type: Boolean, default: false },
   privacySettings: {
     showBio: { type: Boolean, default: true },
     showLocation: { type: Boolean, default: true },
@@ -33,6 +35,17 @@ const userProfileSchema = new Schema<UserProfileDocument>({
   }
 }, {
   timestamps: true
+});
+
+// Add middleware to automatically update profileComplete
+userProfileSchema.pre('save', function(next) {
+  this.profileComplete = !!(
+    this.location &&
+    this.dateOfBirth &&
+    this.gender &&
+    this.livingStatus
+  );
+  next();
 });
 
 // Remove redundant index since unique: true already creates an index

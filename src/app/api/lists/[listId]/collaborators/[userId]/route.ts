@@ -55,7 +55,6 @@ export async function PUT(
     }
 
     const ListModel = await getListModel();
-    const UserModel = await getUserModel();
     const list = await ListModel.findById(listId);
 
     if (!list) {
@@ -65,7 +64,27 @@ export async function PUT(
       );
     }
 
-    // Get user documents for both users
+    // Handle email collaborators
+    const isEmailCollaborator = targetUserId.includes('@');
+    if (isEmailCollaborator) {
+      const collaboratorIndex = list.collaborators.findIndex(
+        c => c._isEmailInvite && c.email === targetUserId
+      );
+
+      if (collaboratorIndex === -1) {
+        return NextResponse.json(
+          { error: "Collaborator not found" },
+          { status: 404 }
+        );
+      }
+
+      list.collaborators[collaboratorIndex].role = role;
+      await list.save();
+      return NextResponse.json({ message: "Collaborator updated successfully" });
+    }
+
+    // Handle regular user collaborators
+    const UserModel = await getUserModel();
     const [targetUser, currentUser] = await Promise.all([
       UserModel.findOne({ clerkId: targetUserId }).lean(),
       UserModel.findOne({ clerkId: currentUserId }).lean()
@@ -144,14 +163,6 @@ export async function DELETE(
 
     const { listId, userId: targetUserId } = params;
 
-    // Check permissions
-    if (!await canManageCollaborators(listId, currentUserId)) {
-      return NextResponse.json(
-        { error: "Not authorized to manage collaborators" },
-        { status: 403 }
-      );
-    }
-
     const ListModel = await getListModel();
     const list = await ListModel.findById(listId);
 
@@ -170,9 +181,22 @@ export async function DELETE(
       );
     }
 
+    // Allow if:
+    // 1. User is removing themselves, OR
+    // 2. User is the owner or admin
+    const isCurrentUser = currentUserId === targetUserId;
+    const canManage = await canManageCollaborators(listId, currentUserId);
+    
+    if (!isCurrentUser && !canManage) {
+      return NextResponse.json(
+        { error: "Not authorized to remove collaborators" },
+        { status: 403 }
+      );
+    }
+
     // Remove the collaborator
     list.collaborators = list.collaborators.filter(
-      c => c.clerkId !== targetUserId
+      c => (c._isEmailInvite ? c.email !== targetUserId : c.clerkId !== targetUserId)
     );
 
     await list.save();

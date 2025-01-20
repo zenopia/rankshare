@@ -23,7 +23,7 @@ import Image from "next/image";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { useClerk } from "@clerk/nextjs";
-import { SubLayout } from "@/components/layout/sub-layout";
+import { MainLayout } from "@/components/layout/main-layout";
 
 const CardDescription = ({ children }: { children: React.ReactNode }) => (
   <p className="text-sm text-muted-foreground">{children}</p>
@@ -46,12 +46,12 @@ const profileSchema = z.object({
   }),
 });
 
-export default function ProfilePage() {
+export function ProfilePage() {
   const { signOut } = useAuth();
   const { user: clerkUser } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnTo = searchParams?.get('return_to') ?? '/';
+  const returnUrl = searchParams.get('returnUrl');
   const [isLoading, setIsLoading] = useState(false);
   const [isProfileComplete, setIsProfileComplete] = useState(true);
   const [profileData, setProfileData] = useState<Partial<User>>({
@@ -131,7 +131,11 @@ export default function ProfilePage() {
       
       if (user) {
         toast.success('Profile updated successfully');
-        router.push(returnTo);
+        
+        // Redirect back to the original page if returnUrl exists
+        if (returnUrl) {
+          router.push(returnUrl);
+        }
       } else {
         toast.error('Failed to update profile');
       }
@@ -171,7 +175,7 @@ export default function ProfilePage() {
   if (!clerkUser) return null;
 
   return (
-    <SubLayout title="Account">
+    <MainLayout>
       <div className="px-0 md:px-6 lg:px-8 pb-8">
         <div className="max-w-4xl mx-auto">
           <div className="space-y-6">
@@ -444,6 +448,6 @@ export default function ProfilePage() {
           </Button>
         </div>
       </div>
-    </SubLayout>
+    </MainLayout>
   );
 } 

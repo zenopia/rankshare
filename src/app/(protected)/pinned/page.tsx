@@ -7,6 +7,7 @@ import { getPinModel } from "@/lib/db/models-v2/pin";
 import { connectToMongoDB } from "@/lib/db/client";
 import { MongoListDocument } from "@/types/mongo";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
+import { serializeList } from "@/lib/utils";
 
 interface SearchParams {
   q?: string;
@@ -20,9 +21,7 @@ interface PageProps {
 
 export default async function PinnedPage({ searchParams }: PageProps) {
   const { userId } = auth();
-  if (!userId) {
-    return null;
-  }
+  if (!userId) return null;
 
   await connectToMongoDB();
   const ListModel = await getListModel();
@@ -38,27 +37,7 @@ export default async function PinnedPage({ searchParams }: PageProps) {
   }).lean() as unknown as MongoListDocument[];
 
   // Serialize lists
-  const serializedLists = lists.map(list => ({
-    id: list._id.toString(),
-    title: list.title,
-    description: list.description || '',
-    category: list.category,
-    privacy: list.privacy,
-    owner: {
-      id: list.owner.id,
-      clerkId: list.owner.clerkId,
-      username: list.owner.username,
-      joinedAt: list.owner.joinedAt
-    },
-    items: list.items || [],
-    stats: {
-      viewCount: list.stats?.viewCount || 0,
-      pinCount: list.stats?.pinCount || 0,
-      copyCount: list.stats?.copyCount || 0
-    },
-    createdAt: list.createdAt,
-    updatedAt: list.updatedAt
-  }));
+  const serializedLists = lists.map(serializeList);
 
   // Filter by search query
   const filteredLists = serializedLists.filter(list => {

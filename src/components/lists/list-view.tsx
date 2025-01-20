@@ -47,7 +47,7 @@ export function ListView({
         />
       </div>
 
-      {showCollaborators && isOwner && (
+      {showCollaborators && (
         <div className="collaborators-section">
           <ErrorBoundaryWrapper>
             <CollaboratorManagement
@@ -55,6 +55,10 @@ export function ListView({
               isOwner={isOwner}
               privacy={list.privacy}
               onClose={onCollaboratorsClick}
+              onPrivacyChange={(newPrivacy) => {
+                // Update the list privacy locally
+                list.privacy = newPrivacy;
+              }}
             />
           </ErrorBoundaryWrapper>
         </div>
@@ -159,7 +163,9 @@ export function ListView({
         <ListActionBar
           listId={list.id}
           isPinned={isPinned}
+          canManageCollaborators={isOwner || _isCollaborator}
           onPinChange={handlePinChange}
+          onCollaboratorsClick={onCollaboratorsClick}
         />
       </div>
 

@@ -11,10 +11,12 @@ export interface ListCollaborator {
   userId?: mongoose.Types.ObjectId;
   clerkId?: string;
   email?: string;
+  username?: string;
   role: 'admin' | 'editor' | 'viewer';
-  status: 'pending' | 'accepted';
+  status: 'pending' | 'accepted' | 'rejected';
   invitedAt: Date;
   acceptedAt?: Date;
+  _isEmailInvite?: boolean;
 }
 
 interface ListItem {
@@ -59,10 +61,12 @@ const listSchema = new Schema<ListDocument>({
     userId: { type: Schema.Types.ObjectId, ref: 'User' },
     clerkId: { type: String },
     email: { type: String },
+    username: { type: String },
     role: { type: String, enum: ['admin', 'editor', 'viewer'], required: true },
-    status: { type: String, enum: ['pending', 'accepted'], required: true },
+    status: { type: String, enum: ['pending', 'accepted', 'rejected'], required: true },
     invitedAt: { type: Date, required: true },
-    acceptedAt: { type: Date }
+    acceptedAt: { type: Date },
+    _isEmailInvite: { type: Boolean, default: false }
   }],
   items: [{
     title: { type: String, required: true },
@@ -103,6 +107,8 @@ listSchema.index({
   privacy: 1,
   'owner.clerkId': 1,
   'collaborators.clerkId': 1,
+  'collaborators.email': 1,
+  'collaborators._isEmailInvite': 1,
   'collaborators.status': 1
 });
 

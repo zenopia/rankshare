@@ -8,11 +8,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { CollaboratorCard } from "@/components/users/collaborator-card";
 import { UserCombobox } from "@/components/users/user-combobox";
+import { useAuth } from "@clerk/nextjs";
 
 interface Collaborator {
   userId: string;
   username: string;
+  email?: string;
   role: 'owner' | 'admin' | 'editor' | 'viewer';
+  status?: 'pending' | 'accepted' | 'rejected';
+  _isEmailInvite?: boolean;
 }
 
 interface FollowingResult {
@@ -39,6 +43,7 @@ export function CollaboratorManagement({
   onClose,
   onPrivacyChange
 }: CollaboratorManagementProps) {
+  const { userId } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
@@ -191,10 +196,26 @@ export function CollaboratorManagement({
     }
   };
 
-  const handleRemoveCollaborator = async (userId: string) => {
+  const handleRemoveCollaborator = async (collaboratorId: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/lists/${listId}/collaborators/${userId}`, {
+      // Allow collaborators to remove themselves regardless of role
+      const isCurrentUser = collaboratorId === userId;
+      const currentCollaborator = collaborators.find(c => c.userId === collaboratorId);
+      
+      // Only allow removal if:
+      // 1. The user is removing themselves, OR
+      // 2. The user is the owner
+      if (!isCurrentUser && !isOwner) {
+        throw new Error("You don't have permission to remove other collaborators");
+      }
+
+      // Don't allow the owner to remove themselves
+      if (isCurrentUser && currentCollaborator?.role === 'owner') {
+        throw new Error("The owner cannot leave the list");
+      }
+
+      const response = await fetch(`/api/lists/${listId}/collaborators/${collaboratorId}`, {
         method: "DELETE",
       });
 
@@ -202,16 +223,22 @@ export function CollaboratorManagement({
         throw new Error();
       }
 
-      // Refresh collaborators list
+      // If the user removed themselves, close the sheet
+      if (isCurrentUser) {
+        handleClose();
+        return;
+      }
+
+      // Otherwise refresh collaborators list
       const updatedResponse = await fetch(`/api/lists/${listId}/collaborators`);
       if (updatedResponse.ok) {
         const data = await updatedResponse.json();
         setCollaborators(data);
       }
 
-      toast.success("Collaborator removed!");
+      toast.success(isCurrentUser ? "You left the list" : "Collaborator removed!");
     } catch (error) {
-      toast.error("Failed to remove collaborator");
+      toast.error(error instanceof Error ? error.message : "Failed to remove collaborator");
     } finally {
       setIsLoading(false);
     }
@@ -319,19 +346,25 @@ export function CollaboratorManagement({
                     </div>
                   ))
                 ) : (
-                  collaborators.map((collaborator) => (
-                    <CollaboratorCard
-                      key={collaborator.userId}
-                      userId={collaborator.userId}
-                      username={collaborator.username}
-                      role={collaborator.role}
-                      linkToProfile={true}
-                      canManageRoles={isOwner || collaborator.role === 'admin'}
-                      isOwner={isOwner}
-                      onRoleChange={(newRole) => handleRoleChange(collaborator.userId, newRole)}
-                      onRemove={() => handleRemoveCollaborator(collaborator.userId)}
-                    />
-                  ))
+                  collaborators.map((collaborator) => {
+                    const isCurrentUser = collaborator.userId === userId;
+                    return (
+                      <CollaboratorCard
+                        key={collaborator.userId}
+                        userId={collaborator.userId}
+                        username={collaborator.username}
+                        email={collaborator.email}
+                        role={collaborator.role}
+                        status={collaborator.status}
+                        clerkId={!collaborator._isEmailInvite ? collaborator.userId : undefined}
+                        canManageRoles={isOwner}
+                        isOwner={isOwner}
+                        currentUserRole={isCurrentUser ? collaborator.role : undefined}
+                        onRoleChange={(newRole) => handleRoleChange(collaborator.userId, newRole)}
+                        onRemove={() => handleRemoveCollaborator(collaborator.userId)}
+                      />
+                    );
+                  })
                 )}
               </div>
             </ScrollArea>

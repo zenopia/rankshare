@@ -1,30 +1,28 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
 
-export default async function ProtectedLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export async function checkAuth() {
+  const { userId } = auth();
+  if (!userId) {
+    redirect("/sign-in");
+  }
+  return userId;
+}
+
+export async function checkProfile(returnUrl?: string) {
+  // Skip profile check if we're already on the profile page
+  if (returnUrl === '/profile') {
+    return;
+  }
+
   const { userId } = auth();
   if (!userId) {
     redirect("/sign-in");
   }
 
-  // Get current path
-  const headersList = headers();
-  const pathname = headersList.get("x-invoke-path") || "";
-
-  // Skip profile check if we're on the profile page
-  if (pathname === "/profile") {
-    return <>{children}</>;
-  }
-
-  // Check if profile is complete
   await connectToMongoDB();
   const UserModel = await getUserModel();
   const UserProfileModel = await getUserProfileModel();
@@ -36,8 +34,8 @@ export default async function ProtectedLayout({
 
   const profile = await UserProfileModel.findOne({ userId: user._id });
   if (!profile?.profileComplete) {
-    redirect(`/profile?returnUrl=${encodeURIComponent(pathname)}`);
+    redirect(`/profile${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`);
   }
 
-  return <>{children}</>;
+  return { user, profile };
 } 

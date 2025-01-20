@@ -4,6 +4,7 @@ import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { MongoListDocument, MongoUserDocument } from "@/types/mongo";
+import { sendCollaborationInviteEmail } from "@/lib/email";
 
 export async function GET(
   req: Request,
@@ -31,25 +32,47 @@ export async function GET(
 
     // Get all collaborators including the owner
     const collaborators = [
-      { userId: list.owner.clerkId, role: "owner" as const },
-      ...(list.collaborators?.map((c: { clerkId: string; role: string }) => ({
-        userId: c.clerkId,
-        role: c.role
-      })) || [])
+      { userId: list.owner.clerkId, role: "owner" as const, status: "accepted" as const },
+      ...(list.collaborators?.map((c: any) => {
+        if (c._isEmailInvite) {
+          // Use the data directly from the database
+          return {
+            userId: c.email,
+            username: c.email,
+            email: c.email,
+            role: c.role,
+            status: c.status,
+            _isEmailInvite: true,
+            invitedAt: c.invitedAt,
+            acceptedAt: c.acceptedAt
+          };
+        }
+        return {
+          userId: c.clerkId,
+          role: c.role,
+          status: c.status
+        };
+      }) || [])
     ];
 
-    // Get user details for all collaborators
+    // Get user details only for non-email collaborators
+    const userCollaborators = collaborators.filter(c => !c._isEmailInvite);
     const users = (await UserModel.find({
-      clerkId: { $in: collaborators.map(c => c.userId) }
+      clerkId: { $in: userCollaborators.map(c => c.userId) }
     }).lean()) as unknown as MongoUserDocument[];
 
     // Combine user details with roles
     const collaboratorDetails = collaborators.map(collab => {
+      if (collab._isEmailInvite) {
+        return collab;  // Pass through the complete email invite data
+      }
+
       const user = users.find((u: MongoUserDocument) => u.clerkId === collab.userId);
       return {
         userId: collab.userId,
         username: user?.username || "",
-        role: collab.role
+        role: collab.role,
+        status: collab.status
       };
     });
 
@@ -70,20 +93,7 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { email, userId: targetUserId, role } = await req.json();
-
-    // Find user by email in Clerk if email is provided
-    let clerkUserId = targetUserId;
-    if (email && !targetUserId) {
-      const [clerkUser] = await clerkClient.users.getUserList({
-        emailAddress: [email],
-      });
-
-      if (!clerkUser) {
-        return new NextResponse("User not found", { status: 404 });
-      }
-      clerkUserId = clerkUser.id;
-    }
+    const { email, userId: targetUserId, role, note } = await req.json();
 
     await connectToMongoDB();
     const ListModel = await getListModel();
@@ -99,31 +109,97 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Find user in our database
-    const collaborator = (await UserModel.findOne({ clerkId: clerkUserId }).lean()) as unknown as MongoUserDocument;
-    if (!collaborator) {
-      return new NextResponse("User not found in our database", { status: 404 });
+    // Get inviter's details
+    const inviter = await UserModel.findOne({ clerkId: userId }).lean();
+    if (!inviter) {
+      return new NextResponse("Inviter not found", { status: 404 });
     }
 
-    // Check if user is already a collaborator
-    if (list.collaborators?.some((c: { clerkId: string }) => c.clerkId === collaborator.clerkId)) {
-      return new NextResponse("User is already a collaborator", { status: 400 });
-    }
-
-    // Add collaborator
-    await ListModel.findByIdAndUpdate(params.listId, {
-      $push: {
-        collaborators: {
-          clerkId: collaborator.clerkId,
-          username: collaborator.username,
-          role: role as "editor" | "viewer",
-          status: "pending",
-          invitedAt: new Date()
-        }
+    if (email) {
+      // Email invite flow
+      // Check if email is already a collaborator
+      if (list.collaborators?.some((c: any) => c.email === email || (c._isEmailInvite && c.username === email))) {
+        return new NextResponse("This email has already been invited", { status: 400 });
       }
-    });
 
-    return NextResponse.json({ success: true });
+      // Add email collaborator
+      const updatedList = await ListModel.findByIdAndUpdate(
+        params.listId,
+        {
+          $push: {
+            collaborators: {
+              email,
+              role: role as "editor" | "viewer",
+              status: "pending",
+              invitedAt: new Date(),
+              _isEmailInvite: true
+            }
+          }
+        },
+        { new: true }
+      ).lean();
+
+      // Send invitation email
+      const listUrl = `${process.env.NEXT_PUBLIC_APP_URL}/lists/${params.listId}`;
+      await sendCollaborationInviteEmail({
+        to: email,
+        inviterName: inviter.displayName || inviter.username,
+        listTitle: list.title,
+        listUrl,
+        note
+      });
+
+      // Return the new collaborator details
+      return NextResponse.json({
+        userId: email, // Use email as userId for email invites
+        username: email, // Use email as username for display
+        email: email, // Add email field for email invites
+        role: role as "editor" | "viewer",
+        status: "pending",
+        _isEmailInvite: true
+      });
+
+    } else if (targetUserId) {
+      // User invite flow
+      // Find user in our database
+      const collaborator = (await UserModel.findOne({ clerkId: targetUserId }).lean()) as unknown as MongoUserDocument;
+      if (!collaborator) {
+        return new NextResponse("User not found in our database", { status: 404 });
+      }
+
+      // Check if user is already a collaborator
+      if (list.collaborators?.some((c: { clerkId: string }) => c.clerkId === collaborator.clerkId)) {
+        return new NextResponse("User is already a collaborator", { status: 400 });
+      }
+
+      // Add user collaborator
+      const updatedList = await ListModel.findByIdAndUpdate(
+        params.listId,
+        {
+          $push: {
+            collaborators: {
+              clerkId: collaborator.clerkId,
+              username: collaborator.username,
+              role: role as "editor" | "viewer",
+              status: "accepted",
+              invitedAt: new Date(),
+              acceptedAt: new Date()
+            }
+          }
+        },
+        { new: true }
+      ).lean();
+
+      // Return the new collaborator details
+      return NextResponse.json({
+        userId: collaborator.clerkId,
+        username: collaborator.username,
+        role: role as "editor" | "viewer",
+        status: "accepted"
+      });
+    }
+
+    return new NextResponse("Invalid request - must provide either email or userId", { status: 400 });
   } catch (error) {
     console.error("[LISTS_COLLABORATORS_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });

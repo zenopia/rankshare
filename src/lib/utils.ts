@@ -2,6 +2,7 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { List } from "@/types/list";
 import type { MongoListDocument, MongoUserDocument } from "@/types/mongo";
+import type { UserProfileDocument } from "@/lib/db/models-v2/user-profile";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -89,4 +90,11 @@ export function serializeUser(user: MongoUserDocument | null) {
     createdAt: user.createdAt,
     updatedAt: user.updatedAt
   };
+}
+
+export function isProfileComplete(profile: Partial<UserProfileDocument> | null): boolean {
+  if (!profile) return false;
+  
+  const requiredFields = ['location', 'dateOfBirth', 'gender', 'livingStatus'];
+  return requiredFields.every(field => profile[field as keyof typeof profile] !== undefined && profile[field as keyof typeof profile] !== null && profile[field as keyof typeof profile] !== '');
 } 

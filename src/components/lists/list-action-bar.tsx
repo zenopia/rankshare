@@ -10,7 +10,7 @@ interface ListActionBarProps {
   listId: string;
   isPinned: boolean;
   canManageCollaborators?: boolean;
-  onPinChange?: (isPinned: boolean) => void;
+  onPinChange: (isPinned: boolean) => void;
   onCollaboratorsClick?: () => void;
 }
 
@@ -21,9 +21,9 @@ export default function ListActionBar({
   onPinChange,
   onCollaboratorsClick 
 }: ListActionBarProps) {
+  const router = useRouter();
   const [isPinning, setIsPinning] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
-  const router = useRouter();
 
   const handleShare = async () => {
     try {
@@ -110,7 +110,7 @@ export default function ListActionBar({
       >
         <Copy className="h-4 w-4" />
       </Button>
-      {canManageCollaborators && (
+      {canManageCollaborators && onCollaboratorsClick && (
         <Button
           variant="outline"
           size="icon"

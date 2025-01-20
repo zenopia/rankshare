@@ -34,7 +34,6 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
       headers: {
         'X-User-Id': userId || ''
       },
-      next: { revalidate: 0 },
       cache: 'no-store'
     });
 

@@ -11,6 +11,7 @@ import type { MongoListDocument } from "@/types/mongo";
 import { FilterQuery } from "mongoose";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
 
+
 interface PageProps {
   searchParams: {
     q?: string;
@@ -74,23 +75,34 @@ export default async function CollabPage({ searchParams }: PageProps) {
     <MainLayout>
       <div className="relative">
         <ListTabs />
-        <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
+        <div className="px-4 md:px-6 lg:px-8 pb-20 sm:pb-8">
           <div className="max-w-4xl mx-auto space-y-8">
-            <ListSearchControls 
-              defaultCategory={searchParams.category as ListCategory}
-              defaultSort={searchParams.sort}
-              
-            />
-
-            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {serializedLists.map((list) => (
-                <ListCard 
-                  key={list.id}
-                  list={list}
-                  showPrivacyBadge
+            {serializedLists.length > 0 && (
+              <div className="pt-4">
+                <ListSearchControls 
+                  defaultCategory={searchParams.category as ListCategory}
+                  defaultSort={searchParams.sort}
                 />
-              ))}
-            </div>
+              </div>
+            )}
+
+            {serializedLists.length === 0 ? (
+              <div className="pt-20 text-center">
+                <p className="text-muted-foreground">
+                  You are not collaborating on any lists
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 pt-4">
+                {serializedLists.map((list) => (
+                  <ListCard 
+                    key={list.id}
+                    list={list}
+                    showPrivacyBadge
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <CreateListFAB />
