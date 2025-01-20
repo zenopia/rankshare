@@ -4,6 +4,10 @@ import { useState } from "react";
 import { List } from "@/types/list";
 import { ListView } from "@/components/lists/list-view";
 import { ListViewNav } from "@/components/lists/list-view-nav";
+import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface ListPageContentProps {
   list: List;
@@ -12,6 +16,8 @@ interface ListPageContentProps {
   isFollowing: boolean;
   isCollaborator: boolean;
   returnPath?: string;
+  isLoading?: boolean;
+  error?: string;
 }
 
 export function ListPageContent({
@@ -20,9 +26,38 @@ export function ListPageContent({
   isPinned,
   isFollowing,
   isCollaborator,
-  returnPath
+  returnPath,
+  isLoading,
+  error
 }: ListPageContentProps) {
   const [showCollaborators, setShowCollaborators] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="container py-4 sm:py-6 md:py-8 space-y-8">
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-full max-w-[600px]" />
+        </div>
+        <div className="space-y-4">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container py-4 sm:py-6 md:py-8">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -35,16 +70,18 @@ export function ListPageContent({
         onCollaboratorsClick={() => setShowCollaborators(!showCollaborators)}
         collaborators={list.collaborators}
       />
-      <div className="container py-6">
-        <ListView
-          list={list}
-          isOwner={isOwner}
-          _isCollaborator={isCollaborator}
-          isPinned={isPinned}
-          isFollowing={isFollowing}
-          showCollaborators={showCollaborators}
-          onCollaboratorsClick={() => setShowCollaborators(!showCollaborators)}
-        />
+      <div className="container py-4 sm:py-6 md:py-8">
+        <ErrorBoundaryWrapper>
+          <ListView
+            list={list}
+            isOwner={isOwner}
+            isPinned={isPinned}
+            isFollowing={isFollowing}
+            isCollaborator={isCollaborator}
+            showCollaborators={showCollaborators}
+            onCollaboratorsClick={() => setShowCollaborators(!showCollaborators)}
+          />
+        </ErrorBoundaryWrapper>
       </div>
     </>
   );
