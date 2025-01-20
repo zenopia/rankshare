@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { connectToMongoDB } from "@/lib/db/client";
+import { connectToDatabase } from "@/lib/db/mongodb";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { MongoListDocument, MongoUserDocument } from "@/types/mongo";
@@ -16,7 +16,7 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    await connectToMongoDB();
+    await connectToDatabase();
     const ListModel = await getListModel();
     const UserModel = await getUserModel();
 
@@ -95,7 +95,7 @@ export async function POST(
 
     const { email, userId: targetUserId, role, note } = await req.json();
 
-    await connectToMongoDB();
+    await connectToDatabase();
     const ListModel = await getListModel();
     const UserModel = await getUserModel();
 

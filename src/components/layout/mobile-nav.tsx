@@ -174,7 +174,7 @@ export function MobileNav() {
             src="/Favely-logo.svg"
             alt="Favely"
             width={120}
-            height={60}
+            height={30}
             priority
           />
         </div>

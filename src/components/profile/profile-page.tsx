@@ -1,9 +1,9 @@
 "use client";
 
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth, useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Settings, LogOut } from "lucide-react";
+import { Settings, LogOut, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { User } from "@/types/user";
@@ -22,8 +22,18 @@ import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
-import { useClerk } from "@clerk/nextjs";
 import { MainLayout } from "@/components/layout/main-layout";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const CardDescription = ({ children }: { children: React.ReactNode }) => (
   <p className="text-sm text-muted-foreground">{children}</p>
@@ -49,10 +59,12 @@ const profileSchema = z.object({
 export function ProfilePage() {
   const { signOut } = useAuth();
   const { user: clerkUser } = useUser();
+  const { openUserProfile } = useClerk();
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isProfileComplete, setIsProfileComplete] = useState(true);
   const [profileData, setProfileData] = useState<Partial<User>>({
     bio: "",
@@ -68,7 +80,6 @@ export function ProfilePage() {
       showLivingStatus: true,
     },
   });
-  const { openUserProfile } = useClerk();
 
   // Check if profile is complete
   useEffect(() => {
@@ -95,7 +106,7 @@ export function ProfilePage() {
               ...(profile?.privacySettings || {}),
             },
           });
-          setIsProfileComplete(!!profile);
+          setIsProfileComplete(profile?.profileComplete ?? false);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -107,6 +118,41 @@ export function ProfilePage() {
       checkProfile();
     }
   }, [clerkUser]);
+
+  // Handle normal sign out
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.push('/');
+    } catch (error) {
+      console.error('Error during sign out:', error);
+      toast.error('Failed to sign out');
+    }
+  };
+
+  // Handle account deletion
+  const handleDeleteAccount = async () => {
+    try {
+      setIsDeleting(true);
+      // Delete user data from MongoDB
+      const response = await fetch('/api/profile', {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete user data');
+      }
+
+      toast.success('Account deleted successfully');
+      // Open Clerk user profile for account deletion
+      openUserProfile();
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error('Failed to delete account');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -132,9 +178,11 @@ export function ProfilePage() {
       if (user) {
         toast.success('Profile updated successfully');
         
-        // Redirect back to the original page if returnUrl exists
+        // Redirect back to the original page if returnUrl exists, otherwise go to homepage
         if (returnUrl) {
-          router.push(returnUrl);
+          router.push(decodeURIComponent(returnUrl));
+        } else {
+          router.push('/');
         }
       } else {
         toast.error('Failed to update profile');
@@ -176,7 +224,7 @@ export function ProfilePage() {
 
   return (
     <MainLayout>
-      <div className="px-0 md:px-6 lg:px-8 pb-8">
+      <div className="px-0 md:px-6 lg:px-8 pb-24">
         <div className="max-w-4xl mx-auto">
           <div className="space-y-6">
             {/* Profile Card */}
@@ -209,8 +257,8 @@ export function ProfilePage() {
                     <span>Manage Account</span>
                   </Button>
                   <Button 
-                    variant="destructive"
-                    onClick={() => signOut().then(() => router.push('/'))}
+                    variant="outline"
+                    onClick={handleSignOut}
                     className="flex items-center gap-2"
                   >
                     <LogOut className="h-4 w-4" />
@@ -422,6 +470,45 @@ export function ProfilePage() {
                   </CardContent>
                 </Card>
               )}
+            </div>
+
+            {/* Delete Account Section */}
+            <div className="mt-8">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    className="flex items-center gap-2 w-full sm:w-auto"
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>Delete Account</span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will:
+                      <ul className="list-disc list-inside mt-2">
+                        <li>Permanently delete your account</li>
+                        <li>Delete all your lists</li>
+                        <li>Remove you from all collaborative lists</li>
+                        <li>Delete all your profile information</li>
+                      </ul>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAccount}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete Account
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </div>

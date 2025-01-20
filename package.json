@@ -15,7 +15,8 @@
     "deploy:monitor": "pm2 monit",
     "db:create-indexes": "tsx src/scripts/create-indexes.ts",
     "migrate:edited-at": "tsx src/scripts/migrations/add-edited-at.ts",
-    "migrate:profile-complete": "tsx src/scripts/migrations/profile-complete.ts"
+    "migrate:profile-complete": "tsx src/scripts/migrations/profile-complete.ts",
+    "cleanup": "tsx src/scripts/cleanup/run-cleanup.ts"
   },
   "dependencies": {
     "@clerk/backend": "^1.23.0",

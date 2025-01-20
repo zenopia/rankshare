@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
-import { connectToMongoDB } from "@/lib/db/client";
+import { connectToDatabase } from "@/lib/db/mongodb";
 
 export default async function DashboardPage() {
   const { userId } = auth();
@@ -12,7 +12,7 @@ export default async function DashboardPage() {
     return null;
   }
 
-  await connectToMongoDB();
+  await connectToDatabase();
   const UserModel = await getUserModel();
   const ListModel = await getListModel();
   const FollowModel = await getFollowModel();

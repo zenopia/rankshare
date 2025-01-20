@@ -2,7 +2,7 @@ import { MainLayout } from "@/components/layout/main-layout";
 import { ListGrid } from "@/components/lists/list-grid";
 import { ListTabs } from "@/components/lists/list-tabs";
 import { getListModel } from "@/lib/db/models-v2/list";
-import { connectToMongoDB } from "@/lib/db/client";
+import { connectToDatabase } from "@/lib/db/mongodb";
 import { MongoListDocument } from "@/types/mongo";
 import { serializeLists } from "@/lib/utils";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
@@ -18,7 +18,7 @@ interface PageProps {
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  await connectToMongoDB();
+  await connectToDatabase();
   const ListModel = await getListModel();
 
   // Build base query

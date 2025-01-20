@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { connectToMongoDB } from "@/lib/db/client";
+import { connectToDatabase } from "@/lib/db/mongodb";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { FilterQuery } from "mongoose";
 import { MongoListDocument } from "@/types/mongo";
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    await connectToMongoDB();
+    await connectToDatabase();
     const ListModel = await getListModel();
 
     // Build match conditions for the aggregation pipeline

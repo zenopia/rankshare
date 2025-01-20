@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { connectToMongoDB } from "@/lib/db/client";
+import { connectToDatabase } from "@/lib/db/mongodb";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { getPinModel } from "@/lib/db/models-v2/pin";
 import { getUserModel } from "@/lib/db/models-v2/user";
@@ -18,7 +18,7 @@ export async function POST(
       );
     }
 
-    await connectToMongoDB();
+    await connectToDatabase();
     const ListModel = await getListModel();
     const PinModel = await getPinModel();
     const UserModel = await getUserModel();
@@ -93,7 +93,7 @@ export async function DELETE(
       );
     }
 
-    await connectToMongoDB();
+    await connectToDatabase();
     const ListModel = await getListModel();
     const PinModel = await getPinModel();
 

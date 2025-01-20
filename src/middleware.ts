@@ -39,7 +39,6 @@ export default authMiddleware({
     "/:username*",
     "/@:username*",
     "/users/:path*/lists",
-    "/api/profile",
     "/api/webhooks/clerk",
     "/api/webhooks/user",
     "/manifest.json",
@@ -65,7 +64,12 @@ export default authMiddleware({
 
     // Skip profile check for the profile page itself and public routes
     if (pathname === '/profile' || auth.isPublicRoute) {
-      return NextResponse.next();
+      const response = NextResponse.next();
+      // Apply security headers
+      Object.entries(securityHeaders).forEach(([key, value]) => {
+        if (value) response.headers.set(key, value);
+      });
+      return response;
     }
 
     // If the user is signed in and not on a public route, check their profile
@@ -99,6 +103,14 @@ export default authMiddleware({
           });
           return response;
         }
+
+        // If profile is complete, proceed normally
+        const response = NextResponse.next();
+        // Apply security headers
+        Object.entries(securityHeaders).forEach(([key, value]) => {
+          if (value) response.headers.set(key, value);
+        });
+        return response;
       } catch (error) {
         console.error('Error checking profile:', error);
         // On error, redirect to profile page with encoded return URL

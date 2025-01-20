@@ -76,8 +76,8 @@ export function Navbar() {
               <Image
                 src="/Favely-logo.svg"
                 alt="Favely"
-                width={100}
-                height={50}
+                width={120}
+                height={30}
                 priority
               />
             )}
