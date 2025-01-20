@@ -28,6 +28,7 @@ import { useAuth } from "@clerk/nextjs";
 import type { NavItem } from "@/types/nav";
 import { SidebarProfile } from "./sidebar-profile";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 // Additional nav items only for mobile
 const mobileOnlyNavItems: NavItem[] = [
@@ -167,6 +168,16 @@ export function MobileNav() {
           <SheetTitle>Navigation Menu</SheetTitle>
           <SheetDescription>Access all areas of the application</SheetDescription>
         </SheetHeader>
+
+        <div className="flex justify-center mb-6">
+          <Image
+            src="/Favely-logo.svg"
+            alt="Favely"
+            width={120}
+            height={60}
+            priority
+          />
+        </div>
 
         {isSignedIn && (
           <>

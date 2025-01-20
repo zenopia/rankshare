@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Home, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -20,12 +21,8 @@ export function Navbar() {
       case '/following':
       case '/followers':
         return 'People';
-      case '/':
-      case '/pinned':
-      case '/my-lists':
-        return 'Favely';
       default:
-        return 'Favely';
+        return null;
     }
   };
 
@@ -71,9 +68,19 @@ export function Navbar() {
           </div>
 
           <div className="absolute left-1/2 -translate-x-1/2">
-            <h1 className="text-xl font-semibold">
-              {getPageTitle()}
-            </h1>
+            {getPageTitle() ? (
+              <h1 className="text-xl font-semibold">
+                {getPageTitle()}
+              </h1>
+            ) : (
+              <Image
+                src="/Favely-logo.svg"
+                alt="Favely"
+                width={100}
+                height={50}
+                priority
+              />
+            )}
           </div>
 
           <div className="flex items-center">
