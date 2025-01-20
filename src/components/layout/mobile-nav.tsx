@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Portal } from "@radix-ui/react-portal";
 import { 
   Menu,
   Home,
@@ -16,14 +17,6 @@ import {
   Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetDescription
-} from "@/components/ui/sheet";
 import { useAuth } from "@clerk/nextjs";
 import type { NavItem } from "@/types/nav";
 import { SidebarProfile } from "./sidebar-profile";
@@ -149,73 +142,86 @@ export function MobileNav() {
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          className="md:hidden"
-          aria-label="Open navigation menu"
-          size="icon"
-        >
-          <Menu className="h-5 w-5" aria-hidden="true" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent 
-        side="left" 
-        className="w-[280px] pt-10 pb-20 data-[state=open]:animate-slide-in-left data-[state=closed]:animate-slide-out-left"
+    <>
+      <Button
+        variant="ghost"
+        className="md:hidden"
+        aria-label="Open navigation menu"
+        size="icon"
+        onClick={() => setOpen(true)}
       >
-        <SheetHeader className="sr-only">
-          <SheetTitle>Navigation Menu</SheetTitle>
-          <SheetDescription>Access all areas of the application</SheetDescription>
-        </SheetHeader>
+        <Menu className="h-5 w-5" aria-hidden="true" />
+      </Button>
 
-        <div className="flex justify-left mb-6">
-          <Image
-            src="/Favely-logo.svg"
-            alt="Favely"
-            className="h-[30px] w-[120px]"
-            width={120}
-            height={30}
-            priority
-          />
-        </div>
+      <Portal>
+        {/* Backdrop */}
+        <div 
+          className={cn(
+            "fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity duration-300",
+            open ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+          onClick={handleClose}
+          style={{ zIndex: 9999 }}
+        />
 
-        {isSignedIn && (
-          <>
-            <SidebarProfile collapsed={false} onClick={handleClose} />
-            <div className="h-px bg-border my-4" />
-          </>
-        )}
-
-        <nav 
-          className="flex flex-col space-y-4"
-          aria-label="Mobile navigation"
+        {/* Navigation Menu */}
+        <div 
+          className={cn(
+            "fixed inset-y-0 left-0 h-full w-[280px] bg-white dark:bg-background p-6 shadow-lg transition-transform duration-300 ease-in-out border-r",
+            open ? "translate-x-0" : "-translate-x-full"
+          )}
+          style={{ zIndex: 10000 }}
         >
-          {mobileOnlyNavItems.map((item, index) =>
-            (item.public || isSignedIn) && renderNavLink(item, index)
-          )}
-          {isSignedIn && navItems.map((item, index) => renderNavLink(item, index))}
-          
-          {!isSignedIn && (
-            <>
-              <Link
-                href="/sign-in"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
-              >
-                <span>Sign In</span>
-              </Link>
-              <Link
-                href="/sign-up"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
-              >
-                <span>Sign Up</span>
-              </Link>
-            </>
-          )}
-        </nav>
-      </SheetContent>
-    </Sheet>
+          <div className="flex flex-col h-full pt-4">
+            <div className="flex justify-left mb-6">
+              <Image
+                src="/Favely-logo.svg"
+                alt="Favely"
+                className="h-[30px] w-[120px]"
+                width={120}
+                height={30}
+                priority
+              />
+            </div>
+
+            {isSignedIn && (
+              <>
+                <SidebarProfile collapsed={false} onClick={handleClose} />
+                <div className="h-px bg-border my-4" />
+              </>
+            )}
+
+            <nav 
+              className="flex flex-col space-y-4"
+              aria-label="Mobile navigation"
+            >
+              {mobileOnlyNavItems.map((item, index) =>
+                (item.public || isSignedIn) && renderNavLink(item, index)
+              )}
+              {isSignedIn && navItems.map((item, index) => renderNavLink(item, index))}
+              
+              {!isSignedIn && (
+                <>
+                  <Link
+                    href="/sign-in"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                  >
+                    <span>Sign In</span>
+                  </Link>
+                  <Link
+                    href="/sign-up"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                  >
+                    <span>Sign Up</span>
+                  </Link>
+                </>
+              )}
+            </nav>
+          </div>
+        </div>
+      </Portal>
+    </>
   );
 } 
