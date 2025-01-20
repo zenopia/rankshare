@@ -6,6 +6,16 @@ export interface UserDocument extends Document {
   username: string;
   displayName: string;
   searchIndex: string;
+  bio?: string;
+  location?: string;
+  dateOfBirth?: Date;
+  gender?: string;
+  livingStatus?: string;
+  privacySettings: {
+    showDateOfBirth: boolean;
+    showGender: boolean;
+    showLivingStatus: boolean;
+  };
   followersCount: number;
   followingCount: number;
   listCount: number;
@@ -18,6 +28,16 @@ const userSchema = new Schema<UserDocument>({
   username: { type: String, required: true, unique: true },
   displayName: { type: String, required: true },
   searchIndex: { type: String },
+  bio: { type: String },
+  location: { type: String },
+  dateOfBirth: { type: Date },
+  gender: { type: String },
+  livingStatus: { type: String },
+  privacySettings: {
+    showDateOfBirth: { type: Boolean, default: false },
+    showGender: { type: Boolean, default: true },
+    showLivingStatus: { type: Boolean, default: true }
+  },
   followersCount: { type: Number, default: 0 },
   followingCount: { type: Number, default: 0 },
   listCount: { type: Number, default: 0 },

@@ -2,7 +2,9 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { List } from "@/types/list";
 import type { MongoListDocument, MongoUserDocument } from "@/types/mongo";
+import type { UserDocument } from "@/lib/db/models-v2/user";
 import type { UserProfileDocument } from "@/lib/db/models-v2/user-profile";
+import type { Document, Types } from "mongoose";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -71,7 +73,7 @@ export function serializeLists(lists: MongoListDocument[]): List[] {
   return lists.map(serializeList);
 }
 
-export function serializeUser(user: MongoUserDocument | null) {
+export function serializeUser(user: any) {
   if (!user) return null;
 
   return {
