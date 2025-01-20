@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Share2, Pin, Copy, Users } from "lucide-react";
+import { Share2, Pin, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -9,17 +9,13 @@ import { useState } from "react";
 interface ListActionBarProps {
   listId: string;
   isPinned: boolean;
-  canManageCollaborators?: boolean;
   onPinChange: (isPinned: boolean) => void;
-  onCollaboratorsClick?: () => void;
 }
 
 export default function ListActionBar({ 
   listId, 
   isPinned, 
-  canManageCollaborators,
   onPinChange,
-  onCollaboratorsClick 
 }: ListActionBarProps) {
   const router = useRouter();
   const [isPinning, setIsPinning] = useState(false);
@@ -110,16 +106,6 @@ export default function ListActionBar({
       >
         <Copy className="h-4 w-4" />
       </Button>
-      {canManageCollaborators && onCollaboratorsClick && (
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={onCollaboratorsClick}
-          title="Manage collaborators"
-        >
-          <Users className="h-4 w-4" />
-        </Button>
-      )}
     </div>
   );
 } 

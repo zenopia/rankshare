@@ -163,9 +163,7 @@ export function ListView({
         <ListActionBar
           listId={list.id}
           isPinned={isPinned}
-          canManageCollaborators={isOwner || _isCollaborator}
           onPinChange={handlePinChange}
-          onCollaboratorsClick={onCollaboratorsClick}
         />
       </div>
 

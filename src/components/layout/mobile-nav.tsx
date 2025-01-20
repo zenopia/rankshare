@@ -169,12 +169,13 @@ export function MobileNav() {
           <SheetDescription>Access all areas of the application</SheetDescription>
         </SheetHeader>
 
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-left mb-6">
           <Image
             src="/Favely-logo.svg"
             alt="Favely"
             width={120}
             height={30}
+            style={{ height: 'auto' }}
             priority
           />
         </div>
