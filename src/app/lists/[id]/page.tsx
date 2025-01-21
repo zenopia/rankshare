@@ -29,12 +29,11 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
     }
 
     // Get list and increment view count
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/lists/${params.id}`, {
-      method: 'GET',
+    const response = await fetch(`/api/lists/${params.id}`, {
       headers: {
-        'X-User-Id': userId || ''
+        'Content-Type': 'application/json',
       },
-      cache: 'no-store'
+      cache: 'no-store',
     });
 
     if (response.status === 403) {
