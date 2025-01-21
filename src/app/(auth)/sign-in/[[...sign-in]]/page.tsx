@@ -55,17 +55,20 @@ export default function SignInPage() {
   }, [isSignedIn, router]);
 
   return (
-    <SubLayout title="Sign In">
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <SignIn 
-          appearance={{
-            elements: {
-              rootBox: "mx-auto",
-              card: "shadow-md"
-            }
-          }}
-        />
-      </div>
-    </SubLayout>
+    <div className="container max-w-lg mx-auto py-8">
+      <SignIn
+        appearance={{
+          elements: {
+            formButtonPrimary: "bg-primary hover:bg-primary/90",
+            card: "shadow-none",
+            footer: "hidden"
+          }
+        }}
+        routing="path"
+        path="/sign-in"
+        signUpUrl="/sign-up"
+        redirectUrl="/"
+      />
+    </div>
   );
 } 

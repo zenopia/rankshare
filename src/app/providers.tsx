@@ -20,7 +20,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
           footer: "hidden",
         }
       }}
-      navigate={(to) => router.push(to)}
+      navigate={(to) => {
+        // Handle absolute URLs for custom domain
+        if (to.startsWith('https://accounts.favely.net')) {
+          window.location.href = to;
+          return;
+        }
+        router.push(to);
+      }}
     >
       <SWRConfig 
         value={{

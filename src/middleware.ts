@@ -49,7 +49,7 @@ export default authMiddleware({
     // If the user is not signed in and the route is not public, redirect to sign-in
     if (!auth.userId && !auth.isPublicRoute) {
       const signInUrl = new URL('/sign-in', req.url);
-      signInUrl.searchParams.set('returnUrl', req.url);
+      signInUrl.searchParams.set('redirect_url', req.url);
       return NextResponse.redirect(signInUrl);
     }
 

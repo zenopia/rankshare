@@ -45,14 +45,18 @@ export default function SignUpPage() {
 
   return (
     <SubLayout title="Sign Up">
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <SignUp 
+      <div className="container max-w-lg mx-auto py-8">
+        <SignUp
           appearance={{
             elements: {
-              rootBox: "mx-auto",
-              card: "shadow-md"
+              formButtonPrimary: "bg-primary hover:bg-primary/90",
+              card: "shadow-none",
+              footer: "hidden"
             }
           }}
+          routing="path"
+          path="/sign-up"
+          signInUrl="/sign-in"
           redirectUrl="/profile"
         />
       </div>
