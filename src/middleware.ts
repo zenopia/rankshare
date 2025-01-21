@@ -40,7 +40,11 @@ export default authMiddleware({
     "/api/webhooks/user",
     "/manifest.json",
     "/api/health",
+    "/api/users/batch",
     "/profile",
+    "/privacy",
+    "/terms",
+    "/about",
     // Username routes - exclude sign-in and sign-up
     "/@:username*",
     {
@@ -50,6 +54,18 @@ export default authMiddleware({
   ],
   signInUrl: SIGN_IN_URL,
   async afterAuth(auth: AuthObject, req: NextRequest) {
+    // For API routes when not signed in, return 401 instead of redirecting
+    if (!auth.userId && !auth.isPublicRoute && req.nextUrl.pathname.startsWith('/api/')) {
+      return new NextResponse(null, { 
+        status: 401,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
+    }
+
     // If the user is not signed in and the route is not public, redirect to sign-in
     if (!auth.userId && !auth.isPublicRoute) {
       const signInUrl = new URL(SIGN_IN_URL);
