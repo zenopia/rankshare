@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   ChevronLeft,
@@ -14,6 +14,7 @@ import {
   Users,
   PlusCircle,
   ListIcon,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarProfile } from "@/components/layout/sidebar-profile";
@@ -92,6 +93,13 @@ const menuItems: NavItem[] = [
     public: false,
     icon: PlusCircle,
     description: "Create a new list"
+  },
+  {
+    title: "Feedback",
+    href: "/feedback",
+    public: true,
+    icon: MessageSquare,
+    description: "Send us feedback"
   }
 ];
 
@@ -103,6 +111,8 @@ interface SidebarProps {
 export function Sidebar({ className, isMobile = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
 
   return (
     <div
@@ -143,7 +153,7 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
             return (
               <Link
                 key={index}
-                href={item.href}
+                href={item.href === '/feedback' ? `/feedback?from=${encodeURIComponent(currentUrl)}` : item.href}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent hover:text-accent-foreground",
                   isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground",
