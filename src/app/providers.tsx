@@ -3,8 +3,11 @@
 import { ThemeProvider } from "next-themes";
 import { SWRConfig } from "swr";
 import { ClerkProvider } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
     throw new Error('Missing NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY');
   }
@@ -17,7 +20,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           footer: "hidden",
         }
       }}
-      navigate={(to) => window.location.href = to}
+      navigate={(to) => router.push(to)}
     >
       <SWRConfig 
         value={{
