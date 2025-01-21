@@ -214,14 +214,14 @@ export function MobileNav() {
               {!isSignedIn && (
                 <>
                   <Link
-                    href="/sign-in"
+                    href={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}
                     onClick={() => setOpen(false)}
                     className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
                   >
                     <span>Sign In</span>
                   </Link>
                   <Link
-                    href="/sign-up"
+                    href={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}
                     onClick={() => setOpen(false)}
                     className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
                   >
