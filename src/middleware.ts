@@ -31,8 +31,6 @@ interface AuthObject {
 export default authMiddleware({
   publicRoutes: [
     "/",
-    "/sign-in",
-    "/sign-up",
     "/search",
     "/lists/:path*",
     "/api/lists/:path*",
@@ -49,7 +47,9 @@ export default authMiddleware({
     // If the user is not signed in and the route is not public, redirect to sign-in
     if (!auth.userId && !auth.isPublicRoute) {
       const signInUrl = new URL('https://accounts.favely.net/sign-in');
-      signInUrl.searchParams.set('redirect_url', req.url);
+      // Use the full URL for redirect
+      const returnUrl = new URL(req.url).toString();
+      signInUrl.searchParams.set('redirect_url', returnUrl);
       return NextResponse.redirect(signInUrl);
     }
 

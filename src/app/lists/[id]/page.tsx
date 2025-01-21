@@ -29,7 +29,7 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
     }
 
     // Get list and increment view count
-    const response = await fetch(`${process.env.SERVER_URL}/api/lists/${params.id}`, {
+    const response = await fetch(`https://localhost:3030/api/lists/${params.id}`, {
       headers: {
         'Content-Type': 'application/json',
       },
