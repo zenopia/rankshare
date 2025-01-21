@@ -1,61 +1,35 @@
-name: Deploy Application
+name: Deploy
 
 on:
   push:
-    branches:
-      - main
-      - develop
+    branches: [ main, dev ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Set deployment target
-        id: set-target
-        run: |
-          if [ ${{ github.ref }} = 'refs/heads/main' ]; then
-            echo "host=curate.fileopia.com" >> $GITHUB_OUTPUT
-            echo "user=fileopia-curate" >> $GITHUB_OUTPUT
-          else
-            echo "host=curate-dev.fileopia.com" >> $GITHUB_OUTPUT
-            echo "user=fileopia-curate-dev" >> $GITHUB_OUTPUT
-          fi
+    - name: Set deployment target
+      id: set-target
+      run: |
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          echo "host=favely.net" >> $GITHUB_OUTPUT
+          echo "user=favely" >> $GITHUB_OUTPUT
+        else
+          echo "host=curate-dev.fileopia.com" >> $GITHUB_OUTPUT
+          echo "user=fileopia-curate-dev" >> $GITHUB_OUTPUT
+        fi
 
-      - name: Deploy to server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ steps.set-target.outputs.user }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            echo "Starting deployment..."
-            
-            # Load NVM
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            
-            # Use Node 18
-            nvm use 18
-            
-            cd ~/htdocs/${{ steps.set-target.outputs.host }}
-            
-            # Pull latest changes
-            git fetch origin ${{ github.ref_name }}
-            git reset --hard origin/${{ github.ref_name }}
-            
-            # Install and build with increased memory
-            npm install
-            NODE_OPTIONS="--max-old-space-size=4096" npm run build
-            
-            # Restart the application
-            if [ ${{ github.ref }} = 'refs/heads/main' ]; then
-              PORT=3000 pm2 restart ${{ steps.set-target.outputs.host }} || PORT=3000 pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
-            else
-              PORT=3001 pm2 restart ${{ steps.set-target.outputs.host }} || PORT=3001 pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
-            fi
-            
-            # Show status
-            pm2 list
-            
-            echo "Deployment complete!"
+    - name: Deploy to server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ steps.set-target.outputs.user }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          cd /home/${{ steps.set-target.outputs.user }}/htdocs/${{ steps.set-target.outputs.host }}
+          git pull
+          npm install
+          npm run build
+          pm2 reload ${{ steps.set-target.outputs.host }}
               

@@ -9,7 +9,7 @@
     "lint": "next lint",
     "format": "prettier --write .",
     "analyze": "ANALYZE=true next build",
-    "deploy": "npm run build && pm2 reload curate.fileopia.com",
+    "deploy": "npm run build && pm2 reload favely.net",
     "deploy:dev": "npm run build && pm2 reload curate-dev.fileopia.com",
     "deploy:logs": "pm2 logs",
     "deploy:monitor": "pm2 monit",
