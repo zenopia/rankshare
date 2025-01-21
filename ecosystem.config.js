@@ -2,21 +2,20 @@ module.exports = {
   apps: [
     {
       name: 'favely.net',
-      script: 'npm',
-      args: 'start',
+      script: './start.sh',
       cwd: '/home/favely/htdocs/favely.net',
       env: {
-        NODE_ENV: 'production',
+        NODE_ENV: 'production'
       },
     },
     {
       name: 'curate-dev.fileopia.com',
-      script: 'npm',
-      args: 'start',
+      script: 'node_modules/.bin/next',
+      args: 'start -p 3031',
       cwd: '/home/fileopia-curate-dev/htdocs/curate-dev.fileopia.com',
       env: {
-        NODE_ENV: 'production',
+        NODE_ENV: 'production'
       },
     },
   ],
-}; 
+};

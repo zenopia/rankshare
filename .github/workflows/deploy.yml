@@ -65,9 +65,9 @@ jobs:
           pm2 describe ${{ steps.set-target.outputs.host }} > /dev/null
           if [ $? -eq 0 ]; then
             # Application exists, reload it
-            pm2 reload ${{ steps.set-target.outputs.host }}
+            pm2 reload ecosystem.config.js --only ${{ steps.set-target.outputs.host }} --update-env
           else
             # Application doesn't exist, start it
-            pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+            pm2 start ecosystem.config.js --only ${{ steps.set-target.outputs.host }}
           fi
               
