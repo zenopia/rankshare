@@ -31,11 +31,28 @@ jobs:
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           
-          # Use Node 18
+          # Install Node 18 if not already installed
+          nvm install 18
           nvm use 18
           
+          # Create directory if it doesn't exist
+          mkdir -p /home/${{ steps.set-target.outputs.user }}/htdocs/${{ steps.set-target.outputs.host }}
           cd /home/${{ steps.set-target.outputs.user }}/htdocs/${{ steps.set-target.outputs.host }}
-          git pull
+          
+          # Initialize git repository if it doesn't exist
+          if [ ! -d .git ]; then
+            git init
+            git remote add origin https://github.com/zenopia/rankshare.git
+          fi
+          
+          # Fetch and reset to the correct branch
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            git fetch origin main
+            git reset --hard origin/main
+          else
+            git fetch origin develop
+            git reset --hard origin/develop
+          fi
           
           # Install global tools
           npm install -g pm2
@@ -44,6 +61,13 @@ jobs:
           npm install
           npm run build
           
-          # Reload the application
-          pm2 reload ${{ steps.set-target.outputs.host }}
+          # Start/reload the application
+          pm2 describe ${{ steps.set-target.outputs.host }} > /dev/null
+          if [ $? -eq 0 ]; then
+            # Application exists, reload it
+            pm2 reload ${{ steps.set-target.outputs.host }}
+          else
+            # Application doesn't exist, start it
+            pm2 start npm --name "${{ steps.set-target.outputs.host }}" -- start
+          fi
               
