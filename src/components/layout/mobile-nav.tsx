@@ -13,7 +13,6 @@ import {
   Bookmark,
   Users2,
   UserPlus,
-  LayoutDashboard,
   Users,
   MessageSquare
 } from "lucide-react";
@@ -101,13 +100,6 @@ const navItems: NavItem[] = [
     icon: UserPlus,
     description: "Users following you",
     indent: true
-  },
-  {
-    title: "Dashboard",
-    href: "/dashboard",
-    public: false,
-    icon: LayoutDashboard,
-    description: "View your dashboard"
   },
   {
     title: "Create List",
