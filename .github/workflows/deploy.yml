@@ -27,9 +27,23 @@ jobs:
         username: ${{ steps.set-target.outputs.user }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
+          # Load NVM
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          
+          # Use Node 18
+          nvm use 18
+          
           cd /home/${{ steps.set-target.outputs.user }}/htdocs/${{ steps.set-target.outputs.host }}
           git pull
+          
+          # Install global tools
+          npm install -g pm2
+          
+          # Install and build
           npm install
           npm run build
+          
+          # Reload the application
           pm2 reload ${{ steps.set-target.outputs.host }}
               
