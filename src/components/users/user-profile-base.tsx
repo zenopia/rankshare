@@ -22,6 +22,9 @@ export interface UserProfileBaseProps {
     showBio?: boolean;
     showLocation?: boolean;
     showPersonalDetails?: boolean;
+    showDateOfBirth?: boolean;
+    showGender?: boolean;
+    showLivingStatus?: boolean;
   };
   
   // Display options
@@ -148,26 +151,22 @@ export function UserProfileBase({
                   <span>{location}</span>
                 </div>
               )}
-              {privacySettings?.showPersonalDetails && (
-                <>
-                  {livingStatus && (
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      <span className="capitalize">{livingStatus.replace('-', ' ')}</span>
-                    </div>
-                  )}
-                  {dateOfBirth && (
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>{calculateAge(new Date(dateOfBirth))} years old</span>
-                    </div>
-                  )}
-                  {gender && gender !== 'prefer-not-to-say' && (
-                    <div className="flex items-center gap-1">
-                      <span className="capitalize">{gender}</span>
-                    </div>
-                  )}
-                </>
+              {dateOfBirth && privacySettings?.showDateOfBirth && (
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
+                  <span>{calculateAge(new Date(dateOfBirth))} years old</span>
+                </div>
+              )}
+              {gender && privacySettings?.showGender && gender !== 'prefer-not-to-say' && (
+                <div className="flex items-center gap-1">
+                  <span className="capitalize">{gender}</span>
+                </div>
+              )}
+              {livingStatus && privacySettings?.showLivingStatus && (
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4" />
+                  <span className="capitalize">{livingStatus.replace('-', ' ')}</span>
+                </div>
               )}
             </div>
             

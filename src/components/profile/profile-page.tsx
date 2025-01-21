@@ -7,7 +7,6 @@ import { Settings, LogOut, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { User } from "@/types/user";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,10 +33,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
-const CardDescription = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-sm text-muted-foreground">{children}</p>
-);
+import Link from "next/link";
 
 // First, let's create a type for the privacy settings keys
 type PrivacySettingKey = 'showBio' | 'showLocation' | 'showDateOfBirth' | 'showGender' | 'showLivingStatus';
@@ -224,256 +220,243 @@ export function ProfilePage() {
 
   return (
     <MainLayout>
-      <div className="px-0 md:px-6 lg:px-8 pb-24">
-        <div className="max-w-4xl mx-auto">
-          <div className="space-y-6">
-            {/* Profile Card */}
-            <Card>
-              <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between py-6 gap-4">
-                <div className="flex items-center gap-6">
-                  <Image
-                    src={clerkUser.imageUrl}
-                    alt={clerkUser.username || "Profile"}
-                    width={64}
-                    height={64}
-                    className="rounded-full"
-                  />
-                  <div>
-                    <h2 className="text-xl font-semibold">
-                      {clerkUser.fullName || clerkUser.username}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      @{clerkUser.username}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline"
-                    onClick={() => openUserProfile()}
-                    className="flex items-center gap-2"
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span>Manage Account</span>
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={handleSignOut}
-                    className="flex items-center gap-2"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Sign Out</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+      <div className="flex flex-col min-h-screen">
+        <div className="flex-1">
+          {/* Profile Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-6 px-4 sm:px-6 lg:px-8 gap-4 border-b">
+            <Link 
+              href={`/${clerkUser.username}`}
+              className="flex items-center gap-6 hover:opacity-80 transition-opacity"
+            >
+              <Image
+                src={clerkUser.imageUrl}
+                alt={clerkUser.username || "Profile"}
+                width={64}
+                height={64}
+                className="rounded-full"
+              />
+              <div>
+                <h2 className="text-xl font-semibold">
+                  {clerkUser.fullName || clerkUser.username}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  @{clerkUser.username}
+                </p>
+              </div>
+            </Link>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => openUserProfile()}
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                <span>Manage Account</span>
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleSignOut}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sign Out</span>
+              </Button>
+            </div>
+          </div>
 
-            {/* Profile Sections */}
-            <div className="grid gap-6">
-              {/* Bio Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Bio</CardTitle>
-                  <CardDescription>
-                    {!isProfileComplete 
-                      ? "Optional - You can add this later" 
-                      : "Tell others about yourself"
-                    }
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Textarea
-                    value={profileData.bio || ''}
-                    onChange={(e) => handleChange('bio', e.target.value)}
-                    placeholder="Write a short bio..."
-                    className="min-h-[100px]"
-                    maxLength={300}
-                  />
-                  <div className="text-xs text-muted-foreground text-right mt-1">
-                    {(profileData.bio?.length || 0)}/300
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Location Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Location</CardTitle>
-                  <CardDescription>Where are you based?</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <Input
-                      value={profileData.location || ''}
-                      onChange={(e) => handleChange('location', e.target.value)}
-                      placeholder="Enter your location"
-                      required
-                      className={!profileData.location ? "border-destructive" : ""}
-                    />
-                    {!profileData.location && (
-                      <p className="text-sm text-destructive">Location is required</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Personal Details Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Personal Details</CardTitle>
-                  <CardDescription>Required information for better results</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="dob">Date of Birth *</Label>
-                    <Input
-                      type="date"
-                      id="dob"
-                      value={profileData.dateOfBirth 
-                        ? new Date(profileData.dateOfBirth).toISOString().split('T')[0] 
-                        : ''
-                      }
-                      onChange={(e) => handleChange('dateOfBirth', new Date(e.target.value))}
-                      required
-                      className={!profileData.dateOfBirth ? "border-destructive" : ""}
-                    />
-                    {!profileData.dateOfBirth && (
-                      <p className="text-sm text-destructive">Date of birth is required</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">Gender *</Label>
-                    <Select
-                      value={profileData.gender || ''}
-                      onValueChange={(value) => handleChange('gender', value)}
-                      required
-                    >
-                      <SelectTrigger 
-                        className={cn(
-                          "bg-background",
-                          !profileData.gender ? "border-destructive" : ""
-                        )}
-                      >
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background">
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                        <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {!profileData.gender && (
-                      <p className="text-sm text-destructive">Gender is required</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="living-status">Living Status *</Label>
-                    <Select
-                      value={profileData.livingStatus || ''}
-                      onValueChange={(value) => handleChange('livingStatus', value)}
-                      required
-                    >
-                      <SelectTrigger 
-                        className={cn(
-                          "bg-background",
-                          !profileData.livingStatus ? "border-destructive" : ""
-                        )}
-                      >
-                        <SelectValue placeholder="Select living status" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background">
-                        <SelectItem value="single">Single</SelectItem>
-                        <SelectItem value="couple">Couple</SelectItem>
-                        <SelectItem value="family">Family</SelectItem>
-                        <SelectItem value="shared">Shared</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {!profileData.livingStatus && (
-                      <p className="text-sm text-destructive">Living status is required</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Privacy Settings */}
-              {isProfileComplete && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Privacy Settings</CardTitle>
-                    <CardDescription>Control what others can see</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Show Bio</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Make your bio visible to others
-                        </p>
-                      </div>
-                      <Switch
-                        checked={profileData.privacySettings?.showBio ?? true}
-                        onCheckedChange={(value) => handlePrivacyChange('showBio', value)}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Show Location</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Display your location on your profile
-                        </p>
-                      </div>
-                      <Switch
-                        checked={profileData.privacySettings?.showLocation ?? true}
-                        onCheckedChange={(value) => handlePrivacyChange('showLocation', value)}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Show Date of Birth</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Share your date of birth
-                        </p>
-                      </div>
-                      <Switch
-                        checked={profileData.privacySettings?.showDateOfBirth ?? false}
-                        onCheckedChange={(value) => handlePrivacyChange('showDateOfBirth', value)}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Show Gender</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Share your gender
-                        </p>
-                      </div>
-                      <Switch
-                        checked={profileData.privacySettings?.showGender ?? false}
-                        onCheckedChange={(value) => handlePrivacyChange('showGender', value)}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Show Living Status</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Share your living status
-                        </p>
-                      </div>
-                      <Switch
-                        checked={profileData.privacySettings?.showLivingStatus ?? false}
-                        onCheckedChange={(value) => handlePrivacyChange('showLivingStatus', value)}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+          {/* Profile Sections */}
+          <div className="px-4 sm:px-6 lg:px-8">
+            {/* Bio Section */}
+            <div className="py-6 border-b">
+              <h3 className="text-lg font-semibold mb-1">Bio</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                {!isProfileComplete 
+                  ? "Optional - You can add this later" 
+                  : "Tell others about yourself"
+                }
+              </p>
+              <Textarea
+                value={profileData.bio || ''}
+                onChange={(e) => handleChange('bio', e.target.value)}
+                placeholder="Write a short bio..."
+                className="min-h-[100px]"
+                maxLength={300}
+              />
+              <div className="text-xs text-muted-foreground text-right mt-1">
+                {(profileData.bio?.length || 0)}/300
+              </div>
             </div>
 
+            {/* Location Section */}
+            <div className="py-6 border-b">
+              <h3 className="text-lg font-semibold mb-1">Location</h3>
+              <p className="text-sm text-muted-foreground mb-4">Where are you based?</p>
+              <div className="space-y-2">
+                <Input
+                  value={profileData.location || ''}
+                  onChange={(e) => handleChange('location', e.target.value)}
+                  placeholder="Enter your location"
+                  required
+                  className={!profileData.location ? "border-destructive" : ""}
+                />
+                {!profileData.location && (
+                  <p className="text-sm text-destructive">Location is required</p>
+                )}
+              </div>
+            </div>
+
+            {/* Personal Details Section */}
+            <div className="py-6 border-b">
+              <h3 className="text-lg font-semibold mb-1">Personal Details</h3>
+              <p className="text-sm text-muted-foreground mb-4">Required information for better results</p>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="dob">Date of Birth *</Label>
+                  <Input
+                    type="date"
+                    id="dob"
+                    value={profileData.dateOfBirth 
+                      ? new Date(profileData.dateOfBirth).toISOString().split('T')[0] 
+                      : ''
+                    }
+                    onChange={(e) => handleChange('dateOfBirth', new Date(e.target.value))}
+                    required
+                    className={!profileData.dateOfBirth ? "border-destructive" : ""}
+                  />
+                  {!profileData.dateOfBirth && (
+                    <p className="text-sm text-destructive">Date of birth is required</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender *</Label>
+                  <Select
+                    value={profileData.gender || ''}
+                    onValueChange={(value) => handleChange('gender', value)}
+                    required
+                  >
+                    <SelectTrigger 
+                      className={cn(
+                        "bg-background",
+                        !profileData.gender ? "border-destructive" : ""
+                      )}
+                    >
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {!profileData.gender && (
+                    <p className="text-sm text-destructive">Gender is required</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="living-status">Living Status *</Label>
+                  <Select
+                    value={profileData.livingStatus || ''}
+                    onValueChange={(value) => handleChange('livingStatus', value)}
+                    required
+                  >
+                    <SelectTrigger 
+                      className={cn(
+                        "bg-background",
+                        !profileData.livingStatus ? "border-destructive" : ""
+                      )}
+                    >
+                      <SelectValue placeholder="Select living status" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      <SelectItem value="single">Single</SelectItem>
+                      <SelectItem value="couple">Couple</SelectItem>
+                      <SelectItem value="family">Family</SelectItem>
+                      <SelectItem value="shared">Shared</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {!profileData.livingStatus && (
+                    <p className="text-sm text-destructive">Living status is required</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Privacy Settings */}
+            {isProfileComplete && (
+              <div className="py-6 border-b">
+                <h3 className="text-lg font-semibold mb-1">Privacy Settings</h3>
+                <p className="text-sm text-muted-foreground mb-4">Control what others can see</p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Show Bio</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Make your bio visible to others
+                      </p>
+                    </div>
+                    <Switch
+                      checked={profileData.privacySettings?.showBio ?? true}
+                      onCheckedChange={(value) => handlePrivacyChange('showBio', value)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Show Location</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Display your location on your profile
+                      </p>
+                    </div>
+                    <Switch
+                      checked={profileData.privacySettings?.showLocation ?? true}
+                      onCheckedChange={(value) => handlePrivacyChange('showLocation', value)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Show Age</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Share your age
+                      </p>
+                    </div>
+                    <Switch
+                      checked={profileData.privacySettings?.showDateOfBirth ?? false}
+                      onCheckedChange={(value) => handlePrivacyChange('showDateOfBirth', value)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Show Gender</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Share your gender
+                      </p>
+                    </div>
+                    <Switch
+                      checked={profileData.privacySettings?.showGender ?? false}
+                      onCheckedChange={(value) => handlePrivacyChange('showGender', value)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Show Living Status</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Share your living status
+                      </p>
+                    </div>
+                    <Switch
+                      checked={profileData.privacySettings?.showLivingStatus ?? false}
+                      onCheckedChange={(value) => handlePrivacyChange('showLivingStatus', value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Delete Account Section */}
-            <div className="mt-8">
+            <div className="py-6">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -512,27 +495,27 @@ export function ProfilePage() {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Sticky footer with save button */}
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-background py-4">
-        <div className="container flex justify-end max-w-4xl">
-          <Button 
-            type="button"
-            size="lg"
-            disabled={isLoading}
-            onClick={handleSubmit}
-            className="flex items-center gap-2 w-full sm:w-auto"
-          >
-            {isLoading ? (
-              <>
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                {!isProfileComplete ? 'Creating Profile...' : 'Saving Changes...'}
-              </>
-            ) : (
-              !isProfileComplete ? 'Create Profile & Continue' : 'Save Changes'
-            )}
-          </Button>
+        {/* Sticky footer with save button */}
+        <div className="sticky bottom-0 border-t bg-background py-4">
+          <div className="px-4 sm:px-6 lg:px-8">
+            <Button 
+              type="button"
+              size="lg"
+              disabled={isLoading}
+              onClick={handleSubmit}
+              className="flex items-center gap-2 w-full sm:w-auto"
+            >
+              {isLoading ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  {!isProfileComplete ? 'Creating Profile...' : 'Saving Changes...'}
+                </>
+              ) : (
+                !isProfileComplete ? 'Create Profile & Continue' : 'Save Changes'
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </MainLayout>
