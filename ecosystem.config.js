@@ -5,7 +5,8 @@ module.exports = {
       script: './start.sh',
       cwd: '/home/favely/htdocs/favely.net',
       env: {
-        NODE_ENV: 'production'
+        NODE_ENV: 'production',
+        PORT: 3030
       },
     },
     {
@@ -13,7 +14,8 @@ module.exports = {
       script: './start.sh',
       cwd: '/home/fileopia-curate-dev/htdocs/curate-dev.fileopia.com',
       env: {
-        NODE_ENV: 'production'
+        NODE_ENV: 'development',
+        PORT: 3001
       },
     },
   ],
