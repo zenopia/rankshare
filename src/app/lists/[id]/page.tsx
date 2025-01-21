@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import mongoose from 'mongoose';
 import { auth } from "@clerk/nextjs/server";
+import { headers } from "next/headers";
 import { ListCollaborator } from "@/lib/db/models-v2/list";
 import { getPinModel } from "@/lib/db/models-v2/pin";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
@@ -28,8 +29,13 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
       notFound();
     }
 
+    // Get the host from headers
+    const headersList = headers();
+    const host = headersList.get("host");
+    const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
+
     // Get list and increment view count
-    const response = await fetch(`/api/lists/${params.id}`, {
+    const response = await fetch(`${protocol}://${host}/api/lists/${params.id}`, {
       headers: {
         'Content-Type': 'application/json',
         'X-User-Id': userId || '', // Add user ID for view tracking
