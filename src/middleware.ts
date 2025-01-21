@@ -55,44 +55,64 @@ export default authMiddleware({
   ],
   signInUrl: SIGN_IN_URL,
   async afterAuth(auth: AuthObject, req: NextRequest) {
-    // For API routes when not signed in, return 401 instead of redirecting
-    if (!auth.userId && !auth.isPublicRoute && req.nextUrl.pathname.startsWith('/api/')) {
-      return new NextResponse(null, { 
-        status: 401,
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new NextResponse(null, {
+        status: 204,
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          'Access-Control-Max-Age': '86400'
-        }
+          'Access-Control-Max-Age': '86400',
+        },
+      });
+    }
+
+    // Create base response headers including CORS and security headers
+    const baseHeaders = {
+      ...securityHeaders,
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    };
+
+    // Get the pathname
+    const pathname = req.nextUrl.pathname;
+
+    // For API routes when not signed in, return 401
+    if (!auth.userId && !auth.isPublicRoute && req.nextUrl.pathname.startsWith('/api/')) {
+      return new NextResponse(null, { 
+        status: 401,
+        headers: baseHeaders
       });
     }
 
     // If the user is not signed in and the route is not public, redirect to sign-in
     if (!auth.userId && !auth.isPublicRoute) {
       const signInUrl = new URL(SIGN_IN_URL);
-      const returnUrl = new URL(req.url).toString();
-      signInUrl.searchParams.set('redirect_url', returnUrl);
-      return NextResponse.redirect(signInUrl);
+      const returnUrl = new URL(req.url);
+      // Ensure the return URL uses the same domain as the sign-in URL
+      returnUrl.protocol = signInUrl.protocol;
+      returnUrl.host = signInUrl.host;
+      signInUrl.searchParams.set('redirect_url', returnUrl.toString());
+      return NextResponse.redirect(signInUrl, {
+        headers: baseHeaders
+      });
     }
 
     // If the user is signed in and trying to access auth pages, redirect to home
     if (auth.userId && (req.nextUrl.pathname === '/sign-in' || req.nextUrl.pathname === '/sign-up')) {
-      return NextResponse.redirect(new URL('/', req.url));
+      return NextResponse.redirect(new URL('/', req.url), {
+        headers: baseHeaders
+      });
     }
-
-    // Get the pathname and full URL
-    const pathname = req.nextUrl.pathname;
-    const fullUrl = req.nextUrl.href;
 
     // Skip profile check for the profile page itself and public routes
     if (pathname === '/profile' || auth.isPublicRoute) {
-      const response = NextResponse.next();
-      // Apply security headers
-      Object.entries(securityHeaders).forEach(([key, value]) => {
-        if (value) response.headers.set(key, value);
+      return NextResponse.next({
+        headers: baseHeaders
       });
-      return response;
     }
 
     // If the user is signed in and not on a public route, check their profile
@@ -115,45 +135,34 @@ export default authMiddleware({
 
         const data = await profileRes.json();
         
-        // If profile is not complete, redirect to profile page with encoded return URL
+        // If profile is not complete, redirect to profile page
         if (!data.profile?.profileComplete) {
           const profileUrl = new URL('/profile', req.url);
-          profileUrl.searchParams.set('returnUrl', encodeURIComponent(fullUrl));
-          const response = NextResponse.redirect(profileUrl);
-          // Apply security headers
-          Object.entries(securityHeaders).forEach(([key, value]) => {
-            if (value) response.headers.set(key, value);
+          profileUrl.searchParams.set('returnUrl', req.url);
+          return NextResponse.redirect(profileUrl, {
+            headers: baseHeaders
           });
-          return response;
         }
 
         // If profile is complete, proceed normally
-        const response = NextResponse.next();
-        // Apply security headers
-        Object.entries(securityHeaders).forEach(([key, value]) => {
-          if (value) response.headers.set(key, value);
+        return NextResponse.next({
+          headers: baseHeaders
         });
-        return response;
       } catch (error) {
         console.error('Error checking profile:', error);
-        // On error, redirect to profile page with encoded return URL
+        // On error, redirect to profile page
         const profileUrl = new URL('/profile', req.url);
-        profileUrl.searchParams.set('returnUrl', encodeURIComponent(fullUrl));
-        const response = NextResponse.redirect(profileUrl);
-        // Apply security headers
-        Object.entries(securityHeaders).forEach(([key, value]) => {
-          if (value) response.headers.set(key, value);
+        profileUrl.searchParams.set('returnUrl', req.url);
+        return NextResponse.redirect(profileUrl, {
+          headers: baseHeaders
         });
-        return response;
       }
     }
 
-    const response = NextResponse.next();
-    // Apply security headers to all responses
-    Object.entries(securityHeaders).forEach(([key, value]) => {
-      if (value) response.headers.set(key, value);
+    // Default response
+    return NextResponse.next({
+      headers: baseHeaders
     });
-    return response;
   }
 });
 
