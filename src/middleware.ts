@@ -2,7 +2,7 @@ import { authMiddleware } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
 const isDevelopment = process.env.NODE_ENV === 'development';
-const SIGN_IN_URL = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL;
+const SIGN_IN_URL = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || 'https://accounts.favely.net/sign-in';
 
 const securityHeaders = {
   'X-DNS-Prefetch-Control': 'on',
@@ -47,8 +47,7 @@ export default authMiddleware({
   async afterAuth(auth: AuthObject, req: NextRequest) {
     // If the user is not signed in and the route is not public, redirect to sign-in
     if (!auth.userId && !auth.isPublicRoute) {
-      const signInUrl = new URL(SIGN_IN_URL, req.url);
-      // Use the full URL for redirect
+      const signInUrl = new URL(SIGN_IN_URL);
       const returnUrl = new URL(req.url).toString();
       signInUrl.searchParams.set('redirect_url', returnUrl);
       return NextResponse.redirect(signInUrl);
