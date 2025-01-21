@@ -137,7 +137,7 @@ export default authMiddleware({
 
 export const config = {
   matcher: [
-    "/((?!.+\\.[\\w]+$|_next).*)",
+    "/((?!.+\\.[\\w]+$|_next|sign-in|sign-up).*)",
     "/(api|trpc)(.*)",
     "/@:username*"
   ]
