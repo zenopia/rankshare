@@ -4,6 +4,7 @@ import { SignUp } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import { SubLayout } from "@/components/layout/sub-layout";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -43,16 +44,18 @@ export default function SignUpPage() {
   }, [isSignedIn, router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <SignUp 
-        appearance={{
-          elements: {
-            rootBox: "mx-auto",
-            card: "shadow-md"
-          }
-        }}
-        redirectUrl="/profile"
-      />
-    </div>
+    <SubLayout title="Sign Up">
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+        <SignUp 
+          appearance={{
+            elements: {
+              rootBox: "mx-auto",
+              card: "shadow-md"
+            }
+          }}
+          redirectUrl="/profile"
+        />
+      </div>
+    </SubLayout>
   );
 } 
