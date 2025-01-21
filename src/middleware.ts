@@ -35,14 +35,18 @@ export default authMiddleware({
     "/search",
     "/lists/:path*",
     "/api/lists/:path*",
-    "/:username*",
-    "/@:username*",
     "/users/:path*/lists",
     "/api/webhooks/clerk",
     "/api/webhooks/user",
     "/manifest.json",
     "/api/health",
     "/profile",
+    // Username routes - exclude sign-in and sign-up
+    "/@:username*",
+    {
+      matcher: "/:username*",
+      not: ["/sign-in*", "/sign-up*"]
+    }
   ],
   signInUrl: SIGN_IN_URL,
   async afterAuth(auth: AuthObject, req: NextRequest) {
