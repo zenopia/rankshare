@@ -192,7 +192,7 @@ export function MobileNav() {
             )}
 
             <nav 
-              className="flex flex-col space-y-4"
+              className="flex flex-col space-y-4 overflow-y-auto flex-1"
               aria-label="Mobile navigation"
             >
               {mobileOnlyNavItems.map((item, index) =>

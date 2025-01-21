@@ -79,7 +79,7 @@ export function CollaboratorCard({
 
   const roleDisplay = (
     (canManageRoles || currentUserRole) && role !== 'owner' ? (
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button 
             variant="ghost" 
@@ -93,7 +93,7 @@ export function CollaboratorCard({
             <ChevronDown className="h-3 w-3" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="z-[150]">
           {canManageRoles && (
             <>
               <DropdownMenuItem onClick={() => onRoleChange?.('admin')}>

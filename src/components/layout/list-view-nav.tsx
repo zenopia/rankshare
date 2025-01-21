@@ -1,5 +1,3 @@
-"use client"
-
 import { ArrowLeft, UserPlus } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -36,6 +34,7 @@ export function ListViewNav({
     if (returnPath) {
       router.push(returnPath)
     } else {
+      // If no return path is provided, go to home
       router.push('/')
     }
   }
@@ -63,15 +62,15 @@ export function ListViewNav({
                   <div className="flex -space-x-3 mr-2">
                     {acceptedCollaborators.length > 5 ? (
                       <>
+                        <Avatar className="h-6 w-6 border-2 border-background ring-0 bg-muted">
+                          <AvatarFallback>+{acceptedCollaborators.length - 5}</AvatarFallback>
+                        </Avatar>
                         {userData.slice(0, 5).map((user) => (
                           <Avatar key={user.id} className="h-6 w-6 border-2 border-background ring-0">
                             <AvatarImage src={user.imageUrl ?? undefined} alt={user.username || ''} />
                             <AvatarFallback>{user.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
                           </Avatar>
                         ))}
-                        <Avatar className="h-6 w-6 border-2 border-background ring-0 bg-muted">
-                          <AvatarFallback className="text-xs text-[#801CCC]">+{acceptedCollaborators.length - 5}</AvatarFallback>
-                        </Avatar>
                       </>
                     ) : (
                       userData.map((user) => (

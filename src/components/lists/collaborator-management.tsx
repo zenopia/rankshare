@@ -245,7 +245,7 @@ export function CollaboratorManagement({
   };
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-[100]">
       {/* Backdrop */}
       <div 
         className={cn(
@@ -258,13 +258,13 @@ export function CollaboratorManagement({
       {/* Collaborator Sheet */}
       <div 
         className={cn(
-          "fixed inset-y-0 right-0 w-[400px] bg-background p-6 shadow-lg",
+          "fixed inset-y-0 right-0 w-[400px] bg-background shadow-lg",
           "border-l transition-transform duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
-        <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col h-full relative">
+          <div className="flex items-center justify-between p-6 pb-0">
             <div>
               <h2 className="text-lg font-semibold">Manage Access</h2>
               <p className="text-sm text-muted-foreground">
@@ -281,60 +281,60 @@ export function CollaboratorManagement({
             </Button>
           </div>
 
-          <div className="space-y-6">
-            {/* Privacy section - visible to all, toggle only for owners and admins */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    {privacy === "public" ? (
-                      <Globe className="h-4 w-4" />
-                    ) : (
-                      <Lock className="h-4 w-4" />
-                    )}
-                    <h3 className="font-medium">
-                      {privacy === "public" ? "Public" : "Private"} List
-                    </h3>
+          <div className="flex-1 overflow-y-auto p-6 pt-4">
+            <div className="space-y-6 pb-40">
+              {/* Privacy section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      {privacy === "public" ? (
+                        <Globe className="h-4 w-4" />
+                      ) : (
+                        <Lock className="h-4 w-4" />
+                      )}
+                      <h3 className="font-medium">
+                        {privacy === "public" ? "Public" : "Private"} List
+                      </h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {privacy === "public"
+                        ? "Anyone can view this list"
+                        : "Only collaborators can view this list"}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {privacy === "public"
-                      ? "Anyone can view this list"
-                      : "Only collaborators can view this list"}
-                  </p>
+                  {(isOwner || collaborators.some(c => c.role === 'admin')) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={togglePrivacy}
+                      disabled={isLoading}
+                    >
+                      Make {privacy === "public" ? "Private" : "Public"}
+                    </Button>
+                  )}
                 </div>
-                {(isOwner || collaborators.some(c => c.role === 'admin')) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={togglePrivacy}
-                    disabled={isLoading}
-                  >
-                    Make {privacy === "public" ? "Private" : "Public"}
-                  </Button>
-                )}
               </div>
-            </div>
 
-            {/* Invite section - for owners and admins */}
-            {(isOwner || collaborators.some(c => c.role === 'admin')) && (
-              <>
-                <div className="space-y-2">
-                  <UserCombobox
-                    placeholder="Add people..."
-                    onSelect={handleInvite}
-                    disabled={isLoading || isLoadingFollowing}
-                    userIds={followingIds}
-                    excludeUserIds={collaborators.map(c => c.userId)}
-                  />
-                </div>
-                <div className="h-[1px] bg-border" />
-              </>
-            )}
+              {/* Invite section */}
+              {(isOwner || collaborators.some(c => c.role === 'admin')) && (
+                <>
+                  <div className="space-y-2">
+                    <UserCombobox
+                      placeholder="Add people..."
+                      onSelect={handleInvite}
+                      disabled={isLoading || isLoadingFollowing}
+                      userIds={followingIds}
+                      excludeUserIds={collaborators.map(c => c.userId)}
+                    />
+                  </div>
+                  <div className="h-[1px] bg-border" />
+                </>
+              )}
 
-            <ScrollArea className="flex-1 -mx-6 px-6">
+              {/* Collaborators list */}
               <div className="space-y-4">
                 {isLoadingCollaborators ? (
-                  // Show loading skeletons
                   Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="animate-pulse">
                       <CollaboratorCard
@@ -367,7 +367,7 @@ export function CollaboratorManagement({
                   })
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </div>
       </div>
