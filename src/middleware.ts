@@ -44,6 +44,7 @@ export default authMiddleware({
     "/api/health",
     "/profile",
   ],
+  signInUrl: SIGN_IN_URL,
   async afterAuth(auth: AuthObject, req: NextRequest) {
     // If the user is not signed in and the route is not public, redirect to sign-in
     if (!auth.userId && !auth.isPublicRoute) {
