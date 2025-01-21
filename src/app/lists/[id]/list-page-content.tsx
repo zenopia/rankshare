@@ -34,7 +34,7 @@ export function ListPageContent({
 
   if (isLoading) {
     return (
-      <div className="container py-4 sm:py-6 md:py-8 space-y-8">
+      <div className="container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 space-y-8">
         <div className="space-y-4">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-4 w-full max-w-[600px]" />
@@ -50,7 +50,7 @@ export function ListPageContent({
 
   if (error) {
     return (
-      <div className="container py-4 sm:py-6 md:py-8">
+      <div className="container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
@@ -70,7 +70,7 @@ export function ListPageContent({
         onCollaboratorsClick={() => setShowCollaborators(!showCollaborators)}
         collaborators={list.collaborators}
       />
-      <div className="container py-4 sm:py-6 md:py-8">
+      <div className="container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         <ErrorBoundaryWrapper>
           <ListView
             list={list}

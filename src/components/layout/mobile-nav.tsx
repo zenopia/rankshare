@@ -14,7 +14,8 @@ import {
   Users2,
   UserPlus,
   LayoutDashboard,
-  Users
+  Users,
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
@@ -22,6 +23,7 @@ import type { NavItem } from "@/types/nav";
 import { SidebarProfile } from "./sidebar-profile";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { usePathname, useSearchParams } from "next/navigation";
 
 // Additional nav items only for mobile
 const mobileOnlyNavItems: NavItem[] = [
@@ -116,6 +118,23 @@ const navItems: NavItem[] = [
   },
 ];
 
+function FeedbackButton({ onClose }: { onClose: () => void }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
+
+  return (
+    <Link
+      href={`/feedback?from=${encodeURIComponent(currentUrl)}`}
+      onClick={onClose}
+      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent text-muted-foreground"
+    >
+      <MessageSquare className="h-4 w-4" aria-hidden="true" />
+      <span>Feedback</span>
+    </Link>
+  );
+}
+
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const { isSignedIn } = useAuth();
@@ -172,7 +191,7 @@ export function MobileNav() {
           )}
           style={{ zIndex: 10000 }}
         >
-          <div className="flex flex-col h-full pt-4">
+          <div className="flex flex-col h-full">
             <div className="flex justify-left mb-6">
               <Image
                 src="/Favely-logo.svg"
@@ -219,6 +238,11 @@ export function MobileNav() {
                 </>
               )}
             </nav>
+
+            {/* Feedback link at bottom */}
+            <div className="mt-auto pt-4 border-t">
+              <FeedbackButton onClose={() => setOpen(false)} />
+            </div>
           </div>
         </div>
       </Portal>
