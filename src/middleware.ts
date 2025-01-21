@@ -13,13 +13,13 @@ const securityHeaders = {
   'Content-Security-Policy': isDevelopment 
     ? "" // Disable CSP in development
     : "default-src 'self' https://*.clerk.dev https://*.clerk.com https://*.favely.net https://accounts.favely.net; " +
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev https://*.favely.net https://accounts.favely.net; " +
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev https://*.favely.net https://accounts.favely.net https://accounts.google.com; " +
       "worker-src 'self' blob:; " +
       "style-src 'self' 'unsafe-inline' https://*.clerk.dev https://*.clerk.com; " +
-      "img-src 'self' blob: data: https: https://*.clerk.dev https://*.clerk.com https://img.clerk.com; " +
+      "img-src 'self' blob: data: https: https://*.clerk.dev https://*.clerk.com https://img.clerk.com https://lh3.googleusercontent.com; " +
       "font-src 'self' data: https://*.clerk.dev https://*.clerk.com; " +
-      "frame-src 'self' https://*.clerk.dev https://*.clerk.com https://*.favely.net https://accounts.favely.net; " +
-      "connect-src 'self' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev https://clerk.favely.net https://*.favely.net https://accounts.favely.net wss://*.clerk.com",
+      "frame-src 'self' https://*.clerk.dev https://*.clerk.com https://*.favely.net https://accounts.favely.net https://accounts.google.com; " +
+      "connect-src 'self' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev https://clerk.favely.net https://*.favely.net https://accounts.favely.net https://accounts.google.com wss://*.clerk.com",
   'Permissions-Policy': 
     'camera=(), microphone=(), geolocation=()'
 };
