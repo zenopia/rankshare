@@ -10,8 +10,7 @@ module.exports = {
     },
     {
       name: 'curate-dev.fileopia.com',
-      script: 'node_modules/.bin/next',
-      args: 'start -p 3031',
+      script: './start.sh',
       cwd: '/home/fileopia-curate-dev/htdocs/curate-dev.fileopia.com',
       env: {
         NODE_ENV: 'production'

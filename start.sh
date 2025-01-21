@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Load environment variables
+# Automatically export all variables from .env.production
 set -a
-source .env.production
+source .env.development
 set +a
 
-# Start Next.js
-exec node_modules/.bin/next start -p 3030 
+# Start Next.js with the specified port
+exec node_modules/.bin/next start -p 3001 
