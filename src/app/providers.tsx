@@ -21,7 +21,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         }
       }}
       navigate={(to) => {
-        // Handle absolute URLs for custom domain
+        // Handle navigation to external Clerk pages
         if (to.startsWith('https://accounts.favely.net')) {
           window.location.href = to;
           return;

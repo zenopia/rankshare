@@ -11,14 +11,14 @@ const securityHeaders = {
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Content-Security-Policy': isDevelopment 
     ? "" // Disable CSP in development
-    : "default-src 'self' https://*.clerk.dev https://*.clerk.com https://*.favely.net; " +
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev https://*.favely.net; " +
+    : "default-src 'self' https://*.clerk.dev https://*.clerk.com https://*.favely.net https://accounts.favely.net; " +
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev https://*.favely.net https://accounts.favely.net; " +
       "worker-src 'self' blob:; " +
       "style-src 'self' 'unsafe-inline' https://*.clerk.dev https://*.clerk.com; " +
       "img-src 'self' blob: data: https: https://*.clerk.dev https://*.clerk.com https://img.clerk.com; " +
       "font-src 'self' data: https://*.clerk.dev https://*.clerk.com; " +
-      "frame-src 'self' https://*.clerk.dev https://*.clerk.com https://*.favely.net; " +
-      "connect-src 'self' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev https://clerk.favely.net https://*.favely.net wss://*.clerk.com",
+      "frame-src 'self' https://*.clerk.dev https://*.clerk.com https://*.favely.net https://accounts.favely.net; " +
+      "connect-src 'self' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev https://clerk.favely.net https://*.favely.net https://accounts.favely.net wss://*.clerk.com",
   'Permissions-Policy': 
     'camera=(), microphone=(), geolocation=()'
 };
@@ -48,7 +48,7 @@ export default authMiddleware({
   async afterAuth(auth: AuthObject, req: NextRequest) {
     // If the user is not signed in and the route is not public, redirect to sign-in
     if (!auth.userId && !auth.isPublicRoute) {
-      const signInUrl = new URL('/sign-in', req.url);
+      const signInUrl = new URL('https://accounts.favely.net/sign-in');
       signInUrl.searchParams.set('redirect_url', req.url);
       return NextResponse.redirect(signInUrl);
     }
