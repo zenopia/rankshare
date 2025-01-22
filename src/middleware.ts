@@ -74,15 +74,24 @@ export default authMiddleware({
     // If the user is signed in and not on a public route, check their profile
     if (auth.userId && !auth.isPublicRoute) {
       try {
-        // Construct the profile API URL using the same origin as the request
-        const profileApiUrl = new URL('/api/profile', req.url);
+        // Get the origin from the request URL
+        const origin = new URL(req.url).origin;
+        // Construct the profile API URL using the request's origin
+        const profileApiUrl = `${origin}/api/profile`;
         
         // Fetch the user's profile with proper headers
         const profileRes = await fetch(profileApiUrl, {
+          method: 'GET',
           headers: {
             'Cookie': req.headers.get('cookie') || '',
             'Authorization': `Bearer ${auth.userId}`,
             'Content-Type': 'application/json',
+            // Pass through the host header to ensure correct routing
+            'Host': req.headers.get('host') || '',
+            // Pass through x-forwarded headers if they exist
+            ...(req.headers.get('x-forwarded-proto') ? { 'x-forwarded-proto': req.headers.get('x-forwarded-proto') || '' } : {}),
+            ...(req.headers.get('x-forwarded-host') ? { 'x-forwarded-host': req.headers.get('x-forwarded-host') || '' } : {}),
+            ...(req.headers.get('x-forwarded-for') ? { 'x-forwarded-for': req.headers.get('x-forwarded-for') || '' } : {})
           },
           credentials: 'include',
         });
