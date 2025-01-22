@@ -14,7 +14,8 @@ import {
   Users2,
   UserPlus,
   Users,
-  MessageSquare
+  MessageSquare,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
@@ -26,6 +27,13 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 // Additional nav items only for mobile
 const mobileOnlyNavItems: NavItem[] = [
+  {
+    title: "About",
+    href: "/about",
+    public: true,
+    icon: Info,
+    description: "About Favely"
+  },
   {
     title: "Search",
     href: "/search",

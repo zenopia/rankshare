@@ -2,6 +2,7 @@
 
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
  
 export function UserNav() {
   const { isSignedIn, isLoaded } = useAuth();
@@ -11,18 +12,16 @@ export function UserNav() {
 
   if (!isSignedIn) {
     return (
-      <div className="flex items-center gap-4">
-        <Link href="/sign-in">
-          <button className="text-sm font-medium">
+      <nav className="flex items-center space-x-4">
+        <Button 
+          className="bg-[#801CCC] hover:bg-[#801CCC]/90 text-white"
+          asChild
+        >
+          <Link href="/sign-in">
             Sign In
-          </button>
-        </Link>
-        <Link href="/sign-up">
-          <button className="text-sm font-medium">
-            Sign Up
-          </button>
-        </Link>
-      </div>
+          </Link>
+        </Button>
+      </nav>
     );
   }
 

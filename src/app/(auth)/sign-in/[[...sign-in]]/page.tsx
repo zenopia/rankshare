@@ -61,9 +61,19 @@ export default function SignInPage() {
           appearance={{
             elements: {
               rootBox: "mx-auto",
-              card: "shadow-md"
+              card: "shadow-md",
+              footerActionLink: "text-[#801CCC] hover:text-[#801CCC]/90",
+              footer: {
+                "& + div": {
+                  "& button": {
+                    display: "none"
+                  }
+                }
+              }
             }
           }}
+          afterSignInUrl="/"
+          routing="path"
         />
       </div>
     </SubLayout>
