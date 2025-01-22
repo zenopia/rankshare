@@ -43,6 +43,8 @@ export default authMiddleware({
     "/api/webhooks/user",
     "/manifest.json",
     "/api/health",
+    "/:path*/_rsc",
+    "/@:username*/_rsc",
   ],
   async afterAuth(auth: AuthObject, req: NextRequest) {
     // If the user is not signed in and the route is not public, redirect to sign-in

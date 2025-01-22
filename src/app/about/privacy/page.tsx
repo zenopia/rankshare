@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { UserNav } from "@/components/layout/user-nav";
 
 export default function PrivacyPage() {
   return (
@@ -24,16 +24,7 @@ export default function PrivacyPage() {
                 />
               </Link>
             </div>
-            <nav className="flex items-center space-x-4">
-              <Button 
-                className="bg-[#801CCC] hover:bg-[#801CCC]/90 text-white"
-                asChild
-              >
-                <Link href="/sign-in">
-                  Sign In
-                </Link>
-              </Button>
-            </nav>
+            <UserNav />
           </div>
         </div>
       </header>

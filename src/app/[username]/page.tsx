@@ -10,10 +10,10 @@ import { serializeLists, serializeUser } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import type { ListCategory } from "@/types/list";
 import type { MongoListDocument, MongoUserDocument } from "@/types/mongo";
-import { getUserModel, type UserDocument } from "@/lib/db/models-v2/user";
+import { getUserModel } from "@/lib/db/models-v2/user";
 import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
-import { SortOrder, Document } from "mongoose";
-import { FlattenMaps, Types } from "mongoose";
+import { SortOrder } from "mongoose";
+import { MongoError } from 'mongodb';
 
 interface PageProps {
   params: {
@@ -34,17 +34,19 @@ export default async function UserPage({ params, searchParams }: PageProps) {
     const username = decodeURIComponent(params.username).replace(/^@/, '');
 
     // Get user from Clerk first
-    const users = await clerkClient.users.getUserList({
-      limit: 100
-    });
-    console.log('Looking for user:', username);
-    const profileUser = users.find(
-      (user: { username: string | null }) => 
-      user.username?.toLowerCase() === username.toLowerCase()
-    );
+    let profileUser;
+    try {
+      const users = await clerkClient.users.getUserList({
+        username: [username]
+      });
+      profileUser = users[0];
+    } catch (error) {
+      console.error('Error fetching user from Clerk:', error);
+      notFound();
+    }
     
     if (!profileUser) {
-      console.error(`User not found: ${username}`);
+      console.error(`User not found in Clerk: ${username}`);
       notFound();
     }
 
@@ -64,26 +66,66 @@ export default async function UserPage({ params, searchParams }: PageProps) {
 
     // Get user data from MongoDB
     let mongoUser = (await UserModel.findOne({ 
-      clerkId: profileUser.id 
+      $or: [
+        { clerkId: profileUser.id },
+        { username: { $regex: new RegExp(`^${username}$`, 'i') } }
+      ]
     }).lean()) as unknown as MongoUserDocument;
 
     if (!mongoUser) {
-      // If user exists in Clerk but not in MongoDB, create them
-      const newUser = await UserModel.create({
-        clerkId: profileUser.id,
-        username: profileUser.username || '',
-        displayName: `${profileUser.firstName || ''} ${profileUser.lastName || ''}`.trim() || profileUser.username || '',
-        searchIndex: `${profileUser.username || ''} ${profileUser.firstName || ''} ${profileUser.lastName || ''}`.toLowerCase(),
-        followersCount: 0,
-        followingCount: 0,
-        listCount: 0,
-        privacySettings: {
-          showDateOfBirth: false,
-          showGender: true,
-          showLivingStatus: true
+      try {
+        // If user exists in Clerk but not in MongoDB, create them
+        const newUser = await UserModel.create({
+          clerkId: profileUser.id,
+          username: profileUser.username || '',
+          displayName: `${profileUser.firstName || ''} ${profileUser.lastName || ''}`.trim() || profileUser.username || '',
+          searchIndex: `${profileUser.username || ''} ${profileUser.firstName || ''} ${profileUser.lastName || ''}`.toLowerCase(),
+          followersCount: 0,
+          followingCount: 0,
+          listCount: 0,
+          privacySettings: {
+            showDateOfBirth: false,
+            showGender: true,
+            showLivingStatus: true
+          }
+        });
+        mongoUser = newUser.toObject() as unknown as MongoUserDocument;
+      } catch (error) {
+        console.error("Error creating MongoDB user:", error);
+        if ((error as MongoError).code === 11000) {
+          // If we hit a duplicate key error, try to find the user again
+          mongoUser = (await UserModel.findOne({ 
+            username: { $regex: new RegExp(`^${username}$`, 'i') }
+          }).lean()) as unknown as MongoUserDocument;
+          
+          if (!mongoUser) {
+            console.error("Username conflict - user not found after creation attempt");
+            notFound();
+          }
+        } else {
+          throw error;
         }
-      });
-      mongoUser = newUser.toObject() as unknown as MongoUserDocument;
+      }
+    }
+
+    if (mongoUser && mongoUser.clerkId !== profileUser.id) {
+      // If we found a user but the clerkId doesn't match, update it
+      mongoUser = (await UserModel.findOneAndUpdate(
+        { _id: mongoUser._id },
+        { 
+          $set: { 
+            clerkId: profileUser.id,
+            displayName: `${profileUser.firstName || ''} ${profileUser.lastName || ''}`.trim() || profileUser.username || '',
+            searchIndex: `${profileUser.username || ''} ${profileUser.firstName || ''} ${profileUser.lastName || ''}`.toLowerCase(),
+          }
+        },
+        { new: true }
+      ).lean()) as unknown as MongoUserDocument;
+
+      if (!mongoUser) {
+        console.error("Failed to update user with new clerkId");
+        notFound();
+      }
     }
 
     // Get remaining data after we have mongoUser
@@ -116,7 +158,10 @@ export default async function UserPage({ params, searchParams }: PageProps) {
 
     // Build filter for lists
     const filter = { 
-      'owner.clerkId': profileUser.id,
+      $or: [
+        { 'owner.clerkId': profileUser.id },
+        { 'owner.userId': mongoUser._id }
+      ],
       privacy: 'public',
       ...(searchParams.category ? { category: searchParams.category } : {})
     };
