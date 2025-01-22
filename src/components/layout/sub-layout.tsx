@@ -12,7 +12,7 @@ function FeedbackButton() {
   const currentUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
 
   return (
-    <Link href={`/feedback?from=${encodeURIComponent(currentUrl)}`}>
+    <Link href={`/feedback?from=${encodeURIComponent(currentUrl)}`} prefetch={false}>
       <Button
         variant="ghost"
         size="icon"

@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const SIGN_IN_URL = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || 'https://accounts.favely.net/sign-in';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://favely.net';
 
 const securityHeaders = {
   'X-DNS-Prefetch-Control': 'on',
@@ -23,11 +24,6 @@ const securityHeaders = {
   'Permissions-Policy': 
     'camera=(), microphone=(), geolocation=()'
 };
-
-interface AuthObject {
-  userId: string | null;
-  isPublicRoute: boolean;
-}
 
 export default authMiddleware({
   publicRoutes: [
@@ -54,127 +50,35 @@ export default authMiddleware({
     }
   ],
   signInUrl: SIGN_IN_URL,
-  async afterAuth(auth: AuthObject, req: NextRequest) {
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-      return new NextResponse(null, {
-        status: 204,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          'Access-Control-Max-Age': '86400',
-        },
-      });
-    }
+  afterAuth(auth: { userId: string | null; isPublicRoute: boolean }, req: NextRequest) {
+    // Apply security headers to all responses
+    const response = NextResponse.next();
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+      if (value) response.headers.set(key, value);
+    });
 
-    // Create base response headers including CORS and security headers
-    const baseHeaders = {
-      ...securityHeaders,
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400',
-    };
-
-    // Get the pathname
-    const pathname = req.nextUrl.pathname;
-
-    // For API routes when not signed in, return 401
-    if (!auth.userId && !auth.isPublicRoute && req.nextUrl.pathname.startsWith('/api/')) {
-      return new NextResponse(null, { 
-        status: 401,
-        headers: baseHeaders
-      });
-    }
-
-    // If the user is not signed in and the route is not public, redirect to sign-in
+    // If user is not signed in and route is not public, let Clerk handle the redirect
     if (!auth.userId && !auth.isPublicRoute) {
       const signInUrl = new URL(SIGN_IN_URL);
       const returnUrl = new URL(req.url);
-      // Ensure the return URL uses the same domain as the sign-in URL
-      returnUrl.protocol = signInUrl.protocol;
-      returnUrl.host = signInUrl.host;
+      // Ensure the return URL uses the main app domain
+      returnUrl.protocol = new URL(APP_URL).protocol;
+      returnUrl.host = new URL(APP_URL).host;
       signInUrl.searchParams.set('redirect_url', returnUrl.toString());
-      return NextResponse.redirect(signInUrl, {
-        headers: baseHeaders
-      });
+      return NextResponse.redirect(signInUrl);
     }
 
-    // If the user is signed in and trying to access auth pages, redirect to home
+    // If user is signed in and trying to access auth pages, redirect to home
     if (auth.userId && (req.nextUrl.pathname === '/sign-in' || req.nextUrl.pathname === '/sign-up')) {
-      return NextResponse.redirect(new URL('/', req.url), {
-        headers: baseHeaders
-      });
+      return NextResponse.redirect(new URL('/', req.url));
     }
 
-    // Skip profile check for the profile page itself and public routes
-    if (pathname === '/profile' || auth.isPublicRoute) {
-      return NextResponse.next({
-        headers: baseHeaders
-      });
-    }
-
-    // If the user is signed in and not on a public route, check their profile
-    if (auth.userId && !auth.isPublicRoute) {
-      try {
-        // Construct the profile API URL using the same origin as the request
-        const profileApiUrl = new URL('/api/profile', req.url);
-        
-        // Fetch the user's profile
-        const profileRes = await fetch(profileApiUrl, {
-          headers: {
-            'Cookie': req.headers.get('cookie') || '',
-            'Authorization': req.headers.get('authorization') || '',
-          }
-        });
-
-        if (!profileRes.ok) {
-          throw new Error('Failed to fetch profile');
-        }
-
-        const data = await profileRes.json();
-        
-        // If profile is not complete, redirect to profile page
-        if (!data.profile?.profileComplete) {
-          const profileUrl = new URL('/profile', req.url);
-          profileUrl.searchParams.set('returnUrl', req.url);
-          return NextResponse.redirect(profileUrl, {
-            headers: baseHeaders
-          });
-        }
-
-        // If profile is complete, proceed normally
-        return NextResponse.next({
-          headers: baseHeaders
-        });
-      } catch (error) {
-        console.error('Error checking profile:', error);
-        // On error, redirect to profile page
-        const profileUrl = new URL('/profile', req.url);
-        profileUrl.searchParams.set('returnUrl', req.url);
-        return NextResponse.redirect(profileUrl, {
-          headers: baseHeaders
-        });
-      }
-    }
-
-    // Default response
-    return NextResponse.next({
-      headers: baseHeaders
-    });
+    return response;
   }
 });
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
     "/((?!_next/static|_next/image|favicon.ico).*)",
     "/(api|trpc)(.*)"
   ]
