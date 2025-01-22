@@ -8,14 +8,14 @@ import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
 export interface FollowButtonProps {
-  userId: string;
+  username: string;
   isFollowing: boolean;
   variant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive";
   size?: "default" | "sm" | "lg" | "icon";
 }
 
 export function FollowButton({ 
-  userId, 
+  username, 
   isFollowing: initialIsFollowing,
   variant = "default",
   size = "default"
@@ -33,7 +33,7 @@ export function FollowButton({
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/users/${userId}/follow`, {
+      const response = await fetch(`/api/users/${username}/follow`, {
         method: initialIsFollowing ? 'DELETE' : 'POST',
       });
 

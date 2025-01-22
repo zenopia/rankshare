@@ -96,9 +96,8 @@ export function PeopleResults() {
     <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
       {users.map((user) => (
         <UserCard
-          key={user.clerkId}
-          userId={user.clerkId}
-          username={user.username}
+          key={user._id}
+          username={user.clerkId}
           isFollowing={user.isFollowing ?? false}
         />
       ))}

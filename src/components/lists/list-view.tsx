@@ -40,8 +40,7 @@ export function ListView({
     <div key="root" className="space-y-8">
       <div key="user-section" className="user-section">
         <UserCard
-          userId={list.owner.clerkId}
-          username={list.owner.username}
+          username={list.owner.clerkId}
           isFollowing={isFollowing}
           isOwner={isOwner}
         />

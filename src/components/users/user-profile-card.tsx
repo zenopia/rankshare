@@ -5,7 +5,7 @@ import { UserProfileBase } from "@/components/users/user-profile-base";
 import { ListChecks } from "lucide-react";
 
 interface UserProfileCardProps {
-  userId: string;
+  username: string;
   isFollowing: boolean;
   hideFollow?: boolean;
   listCount?: number;
@@ -20,12 +20,12 @@ interface UserProfile {
 }
 
 export function UserProfileCard({ 
-  userId, 
+  username, 
   isFollowing, 
   hideFollow,
   listCount = 0
 }: UserProfileCardProps) {
-  const { data: user, error } = useSWR<UserProfile>(`/api/users/${userId}`);
+  const { data: user, error } = useSWR<UserProfile>(`/api/users/${username}`);
 
   if (error || !user) return null;
 
@@ -33,7 +33,6 @@ export function UserProfileCard({
     <div className="overflow-hidden rounded-lg border bg-card hover:border-primary transition-colors">
       <div className="p-6">
         <UserProfileBase
-          userId={userId}
           username={user.username}
           firstName={user.firstName}
           lastName={user.lastName}

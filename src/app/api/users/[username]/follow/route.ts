@@ -1,16 +1,33 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { getUserModel } from "@/lib/db/models-v2/user";
 
 export async function POST(
   req: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: { username: string } }
 ) {
   try {
     const { userId: followerId } = auth();
     if (!followerId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Remove @ if present and decode the username
+    const username = decodeURIComponent(params.username).replace(/^@/, '');
+
+    // Get user from Clerk first
+    const users = await clerkClient.users.getUserList({
+      username: [username]
+    });
+    const userToFollow = users[0];
+
+    if (!userToFollow) {
+      return NextResponse.json(
+        { error: "User to follow not found" },
+        { status: 404 }
+      );
     }
 
     const UserModel = await getUserModel();
@@ -19,7 +36,7 @@ export async function POST(
     // Get both users' info
     const [follower, following] = await Promise.all([
       UserModel.findOne({ clerkId: followerId }).lean(),
-      UserModel.findOne({ clerkId: params.userId }).lean()
+      UserModel.findOne({ clerkId: userToFollow.id }).lean()
     ]);
 
     if (!following) {
@@ -39,7 +56,7 @@ export async function POST(
     // Check if already following
     const existingFollow = await FollowModel.findOne({
       followerId,
-      followingId: params.userId,
+      followingId: userToFollow.id,
     });
 
     if (existingFollow) {
@@ -52,7 +69,7 @@ export async function POST(
     // Create new follow relationship
     await FollowModel.create({
       followerId,
-      followingId: params.userId,
+      followingId: userToFollow.id,
       status: 'accepted',
       followerInfo: {
         username: follower.username,
@@ -79,7 +96,7 @@ export async function POST(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: { username: string } }
 ) {
   try {
     const { userId: followerId } = auth();
@@ -87,11 +104,27 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Remove @ if present and decode the username
+    const username = decodeURIComponent(params.username).replace(/^@/, '');
+
+    // Get user from Clerk first
+    const users = await clerkClient.users.getUserList({
+      username: [username]
+    });
+    const userToUnfollow = users[0];
+
+    if (!userToUnfollow) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
     const FollowModel = await getFollowModel();
 
     const follow = await FollowModel.findOne({
       followerId,
-      followingId: params.userId,
+      followingId: userToUnfollow.id,
     });
 
     if (!follow) {

@@ -15,10 +15,24 @@ interface ErrorResponse {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: { username: string } }
 ): Promise<NextResponse<UserResponse | ErrorResponse>> {
   try {
-    const user = await clerkClient.users.getUser(params.userId);
+    // Remove @ if present and decode the username
+    const username = decodeURIComponent(params.username).replace(/^@/, '');
+
+    // Get user from Clerk
+    const users = await clerkClient.users.getUserList({
+      username: [username]
+    });
+    const user = users[0];
+
+    if (!user) {
+      return NextResponse.json<ErrorResponse>(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
     
     const response: UserResponse = {
       id: user.id,

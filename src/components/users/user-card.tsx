@@ -9,15 +9,14 @@ import { toast } from "sonner";
 import { useUsers } from "@/hooks/use-users";
 
 export interface UserCardProps {
-  userId: string;
   username: string;
   isFollowing: boolean;
   isOwner?: boolean;
   linkToProfile?: boolean;
 }
 
-export function UserCard({ userId, username, isFollowing: initialIsFollowing, isOwner = false, linkToProfile = true }: UserCardProps) {
-  const { data: users, isLoading } = useUsers([userId]);
+export function UserCard({ username, isFollowing: initialIsFollowing, isOwner = false, linkToProfile = true }: UserCardProps) {
+  const { data: users, isLoading, error } = useUsers(username ? [username] : undefined);
   const userData = users?.[0];
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isLoadingFollow, setIsLoadingFollow] = useState(false);
@@ -26,7 +25,7 @@ export function UserCard({ userId, username, isFollowing: initialIsFollowing, is
     e.preventDefault();
     setIsLoadingFollow(true);
     try {
-      const response = await fetch(`/api/users/${userId}/follow`, {
+      const response = await fetch(`/api/users/${username}/follow`, {
         method: isFollowing ? 'DELETE' : 'POST',
       });
 
@@ -41,7 +40,7 @@ export function UserCard({ userId, username, isFollowing: initialIsFollowing, is
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !username) {
     return (
       <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
         <div className="flex items-center gap-3 min-w-0">
@@ -56,16 +55,13 @@ export function UserCard({ userId, username, isFollowing: initialIsFollowing, is
     );
   }
 
-  const [firstName, lastName] = userData?.displayName.split(' ') || [null, null];
-
   const content = (
     <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
       <div className="flex items-center gap-3 min-w-0">
         <UserProfileBase
-          userId={userId}
           username={userData?.username || username}
-          firstName={firstName}
-          lastName={lastName}
+          firstName={userData?.displayName}
+          lastName={null}
           imageUrl={userData?.imageUrl}
           variant="compact"
           hideFollow={true}

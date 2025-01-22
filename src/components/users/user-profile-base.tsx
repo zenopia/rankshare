@@ -8,7 +8,6 @@ import { MapPin, Calendar, Users } from "lucide-react";
 
 export interface UserProfileBaseProps {
   // Core user data
-  userId: string;
   username: string;
   firstName?: string | null;
   lastName?: string | null;
@@ -53,17 +52,14 @@ export function formatDisplayName(firstName: string | null | undefined, lastName
 function calculateAge(dateOfBirth: Date): number {
   const today = new Date();
   let age = today.getFullYear() - dateOfBirth.getFullYear();
-  const monthDiff = today.getMonth() - dateOfBirth.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())) {
+  const m = today.getMonth() - dateOfBirth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dateOfBirth.getDate())) {
     age--;
   }
-  
   return age;
 }
 
 export function UserProfileBase({
-  userId,
   username,
   firstName,
   lastName,
@@ -114,13 +110,13 @@ export function UserProfileBase({
               </div>
               {!hideFollow && (
                 <FollowButton
-                  userId={userId}
+                  username={username}
                   isFollowing={isFollowing}
                   variant="default"
                 />
               )}
             </div>
-            
+
             {showStats && stats && (
               <div className="flex gap-4 mt-2">
                 {stats.followers !== undefined && (
@@ -169,7 +165,7 @@ export function UserProfileBase({
                 </div>
               )}
             </div>
-            
+
             {bio && privacySettings?.showBio && (
               <p className="mt-4 text-sm text-muted-foreground whitespace-pre-wrap">
                 {bio}
@@ -196,7 +192,7 @@ export function UserProfileBase({
 
       {!hideFollow && variant !== "full" && (
         <FollowButton
-          userId={userId}
+          username={username}
           isFollowing={isFollowing}
           variant="outline"
         />

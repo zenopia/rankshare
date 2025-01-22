@@ -29,8 +29,7 @@ export function UserList({ users }: UserListProps) {
       {users.map((user) => (
         <UserCard
           key={user.id}
-          userId={user.clerkId}
-          username={user.username}
+          username={user.clerkId}
           isFollowing={user.isFollowing}
         />
       ))}

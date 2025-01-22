@@ -15,7 +15,6 @@ export function SidebarProfile({ collapsed, onClick }: SidebarProfileProps) {
 
   return (
     <UserProfileBase
-      userId={user.id}
       username={user.username || ""}
       firstName={user.firstName}
       lastName={user.lastName}
