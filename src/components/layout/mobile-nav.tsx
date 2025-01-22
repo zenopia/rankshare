@@ -30,9 +30,10 @@ const mobileOnlyNavItems: NavItem[] = [
   {
     title: "About",
     href: "/about",
-    public: true,
+    public: false,
     icon: Info,
-    description: "About Favely"
+    description: "About Favely",
+    showWhenSignedOut: true
   },
   {
     title: "Search",
@@ -215,7 +216,7 @@ export function MobileNav() {
               aria-label="Mobile navigation"
             >
               {mobileOnlyNavItems.map((item, index) =>
-                (item.public || isSignedIn) && renderNavLink(item, index)
+                ((item.public || isSignedIn) || (!isSignedIn && item.showWhenSignedOut)) && renderNavLink(item, index)
               )}
               {isSignedIn && navItems.map((item, index) => renderNavLink(item, index))}
               
