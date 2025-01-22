@@ -4,10 +4,9 @@
 set -a
 if [ "$NODE_ENV" = "production" ]; then
   source .env.production
+  exec node_modules/.bin/next start -p $PORT
 else
   source .env.development
+  exec node_modules/.bin/next dev -p $PORT
 fi
 set +a
-
-# Start Next.js with the specified port from PM2 environment
-exec node_modules/.bin/next start -p $PORT 
