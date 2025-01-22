@@ -28,14 +28,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 // Additional nav items only for mobile
 const mobileOnlyNavItems: NavItem[] = [
   {
-    title: "About",
-    href: "/about",
-    public: false,
-    icon: Info,
-    description: "About Favely",
-    showWhenSignedOut: true
-  },
-  {
     title: "Search",
     href: "/search",
     public: true,
@@ -240,8 +232,16 @@ export function MobileNav() {
               )}
             </nav>
 
-            {/* Feedback link at bottom */}
+            {/* About and Feedback links at bottom */}
             <div className="mt-auto pt-4 border-t">
+              <Link
+                href="/about"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent text-muted-foreground"
+              >
+                <Info className="h-4 w-4" aria-hidden="true" />
+                <span>About</span>
+              </Link>
               <FeedbackButton onClose={() => setOpen(false)} />
             </div>
           </div>

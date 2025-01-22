@@ -43,7 +43,6 @@ export default authMiddleware({
     "/api/webhooks/user",
     "/manifest.json",
     "/api/health",
-    "/profile",
   ],
   async afterAuth(auth: AuthObject, req: NextRequest) {
     // If the user is not signed in and the route is not public, redirect to sign-in
@@ -78,22 +77,25 @@ export default authMiddleware({
         // Construct the profile API URL using the same origin as the request
         const profileApiUrl = new URL('/api/profile', req.url);
         
-        // Fetch the user's profile
+        // Fetch the user's profile with proper headers
         const profileRes = await fetch(profileApiUrl, {
           headers: {
             'Cookie': req.headers.get('cookie') || '',
-            'Authorization': req.headers.get('authorization') || '',
-          }
+            'Authorization': `Bearer ${auth.userId}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
         });
 
         if (!profileRes.ok) {
+          console.error('Profile fetch failed:', await profileRes.text());
           throw new Error('Failed to fetch profile');
         }
 
         const data = await profileRes.json();
         
-        // If profile is not complete, redirect to profile page with encoded return URL
-        if (!data.profile?.profileComplete) {
+        // If profile doesn't exist or is not complete, redirect to profile page
+        if (!data.profile || data.profile.profileComplete === false) {
           const profileUrl = new URL('/profile', req.url);
           profileUrl.searchParams.set('returnUrl', encodeURIComponent(fullUrl));
           const response = NextResponse.redirect(profileUrl);
@@ -113,10 +115,8 @@ export default authMiddleware({
         return response;
       } catch (error) {
         console.error('Error checking profile:', error);
-        // On error, redirect to profile page with encoded return URL
-        const profileUrl = new URL('/profile', req.url);
-        profileUrl.searchParams.set('returnUrl', encodeURIComponent(fullUrl));
-        const response = NextResponse.redirect(profileUrl);
+        // On error, proceed normally instead of redirecting
+        const response = NextResponse.next();
         // Apply security headers
         Object.entries(securityHeaders).forEach(([key, value]) => {
           if (value) response.headers.set(key, value);
