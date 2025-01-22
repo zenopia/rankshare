@@ -5,6 +5,7 @@ import { Share2, Pin, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 
 interface ListActionBarProps {
   listId: string;
@@ -20,6 +21,7 @@ export default function ListActionBar({
   const router = useRouter();
   const [isPinning, setIsPinning] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
+  const { isSignedIn } = useAuth();
 
   const handleShare = async () => {
     try {
@@ -33,6 +35,11 @@ export default function ListActionBar({
   };
 
   const handlePin = async () => {
+    if (!isSignedIn) {
+      router.push(`/sign-in?returnUrl=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+
     try {
       setIsPinning(true);
       const method = isPinned ? "DELETE" : "POST";
@@ -56,6 +63,11 @@ export default function ListActionBar({
   };
 
   const handleCopy = async () => {
+    if (!isSignedIn) {
+      router.push(`/sign-in?returnUrl=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+
     try {
       setIsCopying(true);
       const response = await fetch(`/api/lists/${listId}/copy`, {

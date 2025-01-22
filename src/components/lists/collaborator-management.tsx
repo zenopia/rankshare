@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Globe, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { CollaboratorCard } from "@/components/users/collaborator-card";
 import { UserCombobox } from "@/components/users/user-combobox";
@@ -140,7 +139,7 @@ export function CollaboratorManagement({
     setIsLoading(true);
     try {
       const response = await fetch(`/api/lists/${listId}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
@@ -321,7 +320,7 @@ export function CollaboratorManagement({
                 <>
                   <div className="space-y-2">
                     <UserCombobox
-                      placeholder="Add people..."
+                      placeholder="Add people by username or email..."
                       onSelect={handleInvite}
                       disabled={isLoading || isLoadingFollowing}
                       userIds={followingIds}

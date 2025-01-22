@@ -255,4 +255,81 @@ export async function DELETE(
       { status: 500 }
     );
   }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: { listId: string } }
+) {
+  try {
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { listId } = params;
+    const data = await request.json();
+    const { privacy } = data;
+
+    const ListModel = await getListModel();
+    const list = await ListModel.findById(listId).lean();
+
+    if (!list) {
+      return NextResponse.json(
+        { error: "List not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check edit permissions
+    if (!await canEditList(list, userId)) {
+      return NextResponse.json(
+        { error: "Not authorized to edit this list" },
+        { status: 403 }
+      );
+    }
+
+    // Update list privacy
+    const updatedList = await ListModel.findByIdAndUpdate(
+      params.listId,
+      {
+        privacy,
+        editedAt: new Date()
+      },
+      { new: true }
+    ).lean();
+
+    if (!updatedList) {
+      return NextResponse.json(
+        { error: "List not found" },
+        { status: 404 }
+      );
+    }
+
+    // Convert _id to string for the response
+    const { _id, ...rest } = updatedList;
+    const responseList = {
+      ...rest,
+      id: _id.toString(),
+      createdAt: updatedList.createdAt?.toISOString(),
+      updatedAt: updatedList.updatedAt?.toISOString(),
+      editedAt: updatedList.editedAt?.toISOString(),
+      owner: {
+        ...updatedList.owner,
+        id: updatedList.owner.userId?.toString()
+      },
+      collaborators: updatedList.collaborators?.map((c: { _id?: { toString(): string } } & Record<string, unknown>) => ({
+        ...c,
+        id: c._id?.toString()
+      }))
+    };
+
+    return NextResponse.json(responseList);
+  } catch (error) {
+    console.error('Error updating list privacy:', error);
+    return NextResponse.json(
+      { error: "Failed to update list privacy" },
+      { status: 500 }
+    );
+  }
 } 

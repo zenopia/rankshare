@@ -65,11 +65,7 @@ export async function POST(
       }
     });
 
-    // Increment pin count
-    await ListModel.findByIdAndUpdate(params.listId, {
-      $inc: { 'stats.pinCount': 1 }
-    });
-
+    // Pin count is automatically incremented by the pre-save hook
     return NextResponse.json({ message: "List pinned successfully" });
   } catch (error) {
     console.error("Failed to pin list:", error);
