@@ -6,6 +6,7 @@ import { connectToDatabase } from "@/lib/db/mongodb";
 import { MongoListDocument } from "@/types/mongo";
 import { serializeLists } from "@/lib/utils";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
+import { SessionRedirect } from "@/components/home/session-redirect";
 
 interface SearchParams {
   q?: string;
@@ -70,6 +71,7 @@ export default async function HomePage({ searchParams }: PageProps) {
 
   return (
     <MainLayout>
+      <SessionRedirect />
       <div className="relative">
         <ListTabs />
         <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
