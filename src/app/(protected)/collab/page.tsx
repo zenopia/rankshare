@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { MainLayout } from "@/components/layout/main-layout";
-import { ListSearchControls } from "@/components/lists/list-search-controls";
-import { ListCard } from "@/components/lists/list-card";
+import { ListGrid } from "@/components/lists/list-grid";
 import { ListTabs } from "@/components/lists/list-tabs";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { connectToMongoDB } from "@/lib/db/client";
@@ -11,13 +10,14 @@ import type { MongoListDocument } from "@/types/mongo";
 import { FilterQuery } from "mongoose";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
 
+interface SearchParams {
+  q?: string;
+  category?: ListCategory;
+  sort?: string;
+}
 
 interface PageProps {
-  searchParams: {
-    q?: string;
-    category?: ListCategory;
-    sort?: string;
-  };
+  searchParams: SearchParams;
 }
 
 export default async function CollabPage({ searchParams }: PageProps) {
@@ -77,32 +77,11 @@ export default async function CollabPage({ searchParams }: PageProps) {
         <ListTabs />
         <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
           <div className="max-w-7xl mx-auto">
-            {serializedLists.length > 0 && (
-              <div className="pt-4">
-                <ListSearchControls 
-                  defaultCategory={searchParams.category as ListCategory}
-                  defaultSort={searchParams.sort}
-                />
-              </div>
-            )}
-
-            {serializedLists.length === 0 ? (
-              <div className="pt-20 text-center">
-                <p className="text-muted-foreground">
-                  You are not collaborating on any lists
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {serializedLists.map((list) => (
-                  <ListCard 
-                    key={list.id}
-                    list={list}
-                    showPrivacyBadge
-                  />
-                ))}
-              </div>
-            )}
+            <ListGrid 
+              lists={serializedLists}
+              searchParams={searchParams}
+              showPrivacyBadge
+            />
           </div>
         </div>
         <CreateListFAB />
