@@ -6,7 +6,8 @@ import { MongoClient } from 'mongodb';
 const envPath = resolve(process.cwd(), '.env.local');
 config({ path: envPath });
 
-if (!process.env.MONGODB_URI_V2) {
+const mongoUri = process.env.MONGODB_URI_V2;
+if (!mongoUri) {
   console.error('MONGODB_URI_V2 is not defined in .env.local');
   process.exit(1);
 }
@@ -16,7 +17,7 @@ async function createIndexes() {
 
   try {
     console.log('Starting index creation process...');
-    client = new MongoClient(process.env.MONGODB_URI_V2);
+    client = new MongoClient(mongoUri as string);
     await client.connect();
     console.log('Connected to MongoDB');
 
