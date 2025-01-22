@@ -11,10 +11,19 @@ interface UserData {
   imageUrl: string | null;
 }
 
+interface UserResponse {
+  id: string;
+  username: string;
+  firstName: string | null;
+  lastName: string | null;
+  displayName: string;
+  imageUrl: string | null;
+}
+
 interface UseUsersReturn {
   data: UserData[] | undefined;
   isLoading: boolean;
-  error: any;
+  error: Error | null;
 }
 
 const fetcher = async (userIdentifiers: string[]) => {
@@ -41,7 +50,7 @@ const fetcher = async (userIdentifiers: string[]) => {
   const users = await response.json();
   
   // Transform the responses to match the expected UserData format
-  return users.map((user: any) => ({
+  return users.map((user: UserResponse) => ({
     id: user.id,
     username: user.username,
     firstName: user.firstName || null,

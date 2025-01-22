@@ -14,7 +14,7 @@ import { CollaboratorManagement } from "@/components/lists/collaborator-manageme
 interface ListViewProps {
   list: List;
   isOwner: boolean;
-  isCollaborator: boolean;
+  _isCollaborator: boolean;
   isPinned: boolean;
   isFollowing: boolean;
   showCollaborators: boolean;
@@ -24,7 +24,7 @@ interface ListViewProps {
 export function ListView({ 
   list, 
   isOwner, 
-  isCollaborator,
+  _isCollaborator,
   isPinned: initialIsPinned, 
   isFollowing,
   showCollaborators,

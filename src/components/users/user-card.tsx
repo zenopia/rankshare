@@ -16,7 +16,7 @@ export interface UserCardProps {
 }
 
 export function UserCard({ username, isFollowing: initialIsFollowing, isOwner = false, linkToProfile = true }: UserCardProps) {
-  const { data: users, isLoading, error } = useUsers(username ? [username] : undefined);
+  const { data: users, isLoading } = useUsers(username ? [username] : undefined);
   const userData = users?.[0];
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isLoadingFollow, setIsLoadingFollow] = useState(false);
