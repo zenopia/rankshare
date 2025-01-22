@@ -15,6 +15,7 @@ import {
   PlusCircle,
   ListIcon,
   MessageSquare,
+  InfoIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarProfile } from "@/components/layout/sidebar-profile";
@@ -95,6 +96,13 @@ const menuItems: NavItem[] = [
     description: "Create a new list"
   },
   {
+    title: "About",
+    href: "/about",
+    public: true,
+    icon: InfoIcon,
+    description: "About RankShare"
+  },
+  {
     title: "Feedback",
     href: "/feedback",
     public: true,
@@ -117,15 +125,15 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
   return (
     <div
       className={cn(
-        "flex h-screen flex-col border-r bg-background transition-all duration-300",
+        "flex h-[calc(100vh-64px)] flex-col border-r bg-background transition-all duration-300",
         isMobile ? "w-full" : collapsed ? "w-16" : "w-64",
         className
       )}
       role="navigation"
     >
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full min-h-0">
         {!isMobile && (
-          <div className="flex h-14 items-center justify-between px-4 border-b">
+          <div className="flex h-14 items-center justify-between px-4 border-b shrink-0">
             {!collapsed && <span className="text-sm font-semibold">Menu</span>}
             <Button
               variant="ghost"
@@ -143,30 +151,56 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
           </div>
         )}
 
-        <div className="p-4 pb-6 border-b">
+        <div className="p-4 pb-6 border-b shrink-0">
           <SidebarProfile collapsed={collapsed} />
         </div>
 
-        <div className="flex-1 space-y-1 p-2 overflow-y-auto">
-          {menuItems.map((item, index) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={index}
-                href={item.href === '/feedback' ? `/feedback?from=${encodeURIComponent(currentUrl)}` : item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent hover:text-accent-foreground",
-                  isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground",
-                  item.indent && !collapsed && "ml-4"
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {!collapsed && (
-                  <span className="truncate">{item.title}</span>
-                )}
-              </Link>
-            );
-          })}
+        <div className="flex-1 space-y-1 p-2 overflow-y-auto min-h-0">
+          {menuItems
+            .filter(item => item.title !== 'Feedback' && item.title !== 'About')
+            .map((item, index) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={index}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent hover:text-accent-foreground",
+                    isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+                    item.indent && !collapsed && "ml-4"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {!collapsed && (
+                    <span className="truncate">{item.title}</span>
+                  )}
+                </Link>
+              );
+            })}
+        </div>
+
+        <div className="p-2 border-t shrink-0 space-y-1">
+          {menuItems
+            .filter(item => item.title === 'About' || item.title === 'Feedback')
+            .sort((a, _b) => a.title === 'About' ? -1 : 1)
+            .map((item, index) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={index}
+                  href={item.title === 'Feedback' ? `/feedback?from=${encodeURIComponent(currentUrl)}` : item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent hover:text-accent-foreground",
+                    isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {!collapsed && (
+                    <span className="truncate">{item.title}</span>
+                  )}
+                </Link>
+              );
+            })}
         </div>
       </div>
     </div>
