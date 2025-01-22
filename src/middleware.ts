@@ -81,6 +81,8 @@ export default authMiddleware({
         // Construct the profile API URL using the request's origin
         const profileApiUrl = `${origin}/api/profile`;
         
+        console.log('Checking profile at:', profileApiUrl);
+        
         // Fetch the user's profile with proper headers
         const profileRes = await fetch(profileApiUrl, {
           method: 'GET',
@@ -98,37 +100,49 @@ export default authMiddleware({
           credentials: 'include',
         });
 
-        if (!profileRes.ok) {
-          console.error('Profile fetch failed:', await profileRes.text());
-          throw new Error('Failed to fetch profile');
-        }
+        console.log('Profile response status:', profileRes.status);
 
-        const data = await profileRes.json();
-        
-        // If profile doesn't exist or is not complete, redirect to profile page
-        if (!data.profile || data.profile.profileComplete === false) {
-          const profileUrl = new URL('/profile', req.url);
-          profileUrl.searchParams.set('returnUrl', encodeURIComponent(fullUrl));
-          const response = NextResponse.redirect(profileUrl);
-          // Apply security headers
+        if (!profileRes.ok) {
+          const errorText = await profileRes.text();
+          console.error('Profile fetch failed:', {
+            status: profileRes.status,
+            statusText: profileRes.statusText,
+            error: errorText
+          });
+          // Instead of throwing, let's proceed normally
+          const response = NextResponse.next();
           Object.entries(securityHeaders).forEach(([key, value]) => {
             if (value) response.headers.set(key, value);
           });
           return response;
         }
 
-        // If profile is complete, proceed normally
+        const data = await profileRes.json();
+        console.log('Profile data:', data);
+        
+        // If profile doesn't exist or is not complete, redirect to profile page
+        if (!data.profile) {
+          console.log('No profile found, redirecting to profile page');
+          const profileUrl = new URL('/profile', req.url);
+          profileUrl.searchParams.set('returnUrl', encodeURIComponent(fullUrl));
+          const response = NextResponse.redirect(profileUrl);
+          Object.entries(securityHeaders).forEach(([key, value]) => {
+            if (value) response.headers.set(key, value);
+          });
+          return response;
+        }
+
+        // If profile exists, proceed normally regardless of completion status
         const response = NextResponse.next();
-        // Apply security headers
         Object.entries(securityHeaders).forEach(([key, value]) => {
           if (value) response.headers.set(key, value);
         });
         return response;
+
       } catch (error) {
         console.error('Error checking profile:', error);
         // On error, proceed normally instead of redirecting
         const response = NextResponse.next();
-        // Apply security headers
         Object.entries(securityHeaders).forEach(([key, value]) => {
           if (value) response.headers.set(key, value);
         });
