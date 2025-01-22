@@ -81,12 +81,7 @@ export function ProfilePage() {
   useEffect(() => {
     async function checkProfile() {
       try {
-        const response = await fetch('/api/profile', {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+        const response = await fetch('/api/profile');
         if (!response.ok) throw new Error('Failed to fetch profile');
         
         const { user, profile } = await response.json();
@@ -138,8 +133,6 @@ export function ProfilePage() {
       // Delete user data from MongoDB
       const response = await fetch('/api/profile', {
         method: 'DELETE',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
       });
 
       if (!response.ok) {
@@ -170,7 +163,6 @@ export function ProfilePage() {
 
       const response = await fetch('/api/profile', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profileData),
       });

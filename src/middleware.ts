@@ -2,8 +2,6 @@ import { authMiddleware } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
 const isDevelopment = process.env.NODE_ENV === 'development';
-const SIGN_IN_URL = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || 'https://accounts.favely.net/sign-in';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://favely.net';
 
 const securityHeaders = {
   'X-DNS-Prefetch-Control': 'on',
@@ -13,73 +11,133 @@ const securityHeaders = {
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Content-Security-Policy': isDevelopment 
     ? "" // Disable CSP in development
-    : "default-src 'self' https://*.clerk.dev https://*.clerk.com https://*.favely.net https://accounts.favely.net; " +
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev https://*.favely.net https://accounts.favely.net https://accounts.google.com; " +
+    : "default-src 'self' https://*.clerk.dev https://*.clerk.com; " +
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev; " +
       "worker-src 'self' blob:; " +
       "style-src 'self' 'unsafe-inline' https://*.clerk.dev https://*.clerk.com; " +
-      "img-src 'self' blob: data: https: https://*.clerk.dev https://*.clerk.com https://img.clerk.com https://lh3.googleusercontent.com; " +
+      "img-src 'self' blob: data: https: https://*.clerk.dev https://*.clerk.com https://img.clerk.com; " +
       "font-src 'self' data: https://*.clerk.dev https://*.clerk.com; " +
-      "frame-src 'self' https://*.clerk.dev https://*.clerk.com https://*.favely.net https://accounts.favely.net https://accounts.google.com; " +
-      "connect-src 'self' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev https://clerk.favely.net https://*.favely.net https://accounts.favely.net https://accounts.google.com wss://*.clerk.com",
+      "frame-src 'self' https://*.clerk.dev https://*.clerk.com; " +
+      "connect-src 'self' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev https://clerk.rankshare.com wss://*.clerk.com",
   'Permissions-Policy': 
     'camera=(), microphone=(), geolocation=()'
 };
 
+interface AuthObject {
+  userId: string | null;
+  isPublicRoute: boolean;
+}
+
 export default authMiddleware({
   publicRoutes: [
     "/",
+    "/sign-in",
+    "/sign-up",
     "/search",
     "/lists/:path*",
     "/api/lists/:path*",
+    "/:username*",
+    "/@:username*",
     "/users/:path*/lists",
     "/api/webhooks/clerk",
     "/api/webhooks/user",
     "/manifest.json",
     "/api/health",
-    "/api/users/batch",
     "/profile",
-    "/api/profile",
-    "/privacy",
-    "/terms",
-    "/about",
-    // Username routes - exclude sign-in and sign-up
-    "/@:username*",
-    {
-      matcher: "/:username*",
-      not: ["/sign-in*", "/sign-up*"]
-    }
   ],
-  signInUrl: SIGN_IN_URL,
-  afterAuth(auth: { userId: string | null; isPublicRoute: boolean }, req: NextRequest) {
-    // Apply security headers to all responses
-    const response = NextResponse.next();
-    Object.entries(securityHeaders).forEach(([key, value]) => {
-      if (value) response.headers.set(key, value);
-    });
-
-    // If user is not signed in and route is not public, let Clerk handle the redirect
+  async afterAuth(auth: AuthObject, req: NextRequest) {
+    // If the user is not signed in and the route is not public, redirect to sign-in
     if (!auth.userId && !auth.isPublicRoute) {
-      const signInUrl = new URL(SIGN_IN_URL);
-      const returnUrl = new URL(req.url);
-      // Ensure the return URL uses the main app domain
-      returnUrl.protocol = new URL(APP_URL).protocol;
-      returnUrl.host = new URL(APP_URL).host;
-      signInUrl.searchParams.set('redirect_url', returnUrl.toString());
+      const signInUrl = new URL('/sign-in', req.url);
+      signInUrl.searchParams.set('returnUrl', req.url);
       return NextResponse.redirect(signInUrl);
     }
 
-    // If user is signed in and trying to access auth pages, redirect to home
+    // If the user is signed in and trying to access auth pages, redirect to home
     if (auth.userId && (req.nextUrl.pathname === '/sign-in' || req.nextUrl.pathname === '/sign-up')) {
       return NextResponse.redirect(new URL('/', req.url));
     }
 
+    // Get the pathname and full URL
+    const pathname = req.nextUrl.pathname;
+    const fullUrl = req.nextUrl.href;
+
+    // Skip profile check for the profile page itself and public routes
+    if (pathname === '/profile' || auth.isPublicRoute) {
+      const response = NextResponse.next();
+      // Apply security headers
+      Object.entries(securityHeaders).forEach(([key, value]) => {
+        if (value) response.headers.set(key, value);
+      });
+      return response;
+    }
+
+    // If the user is signed in and not on a public route, check their profile
+    if (auth.userId && !auth.isPublicRoute) {
+      try {
+        // Construct the profile API URL using the same origin as the request
+        const profileApiUrl = new URL('/api/profile', req.url);
+        
+        // Fetch the user's profile
+        const profileRes = await fetch(profileApiUrl, {
+          headers: {
+            'Cookie': req.headers.get('cookie') || '',
+            'Authorization': req.headers.get('authorization') || '',
+          }
+        });
+
+        if (!profileRes.ok) {
+          throw new Error('Failed to fetch profile');
+        }
+
+        const data = await profileRes.json();
+        
+        // If profile is not complete, redirect to profile page with encoded return URL
+        if (!data.profile?.profileComplete) {
+          const profileUrl = new URL('/profile', req.url);
+          profileUrl.searchParams.set('returnUrl', encodeURIComponent(fullUrl));
+          const response = NextResponse.redirect(profileUrl);
+          // Apply security headers
+          Object.entries(securityHeaders).forEach(([key, value]) => {
+            if (value) response.headers.set(key, value);
+          });
+          return response;
+        }
+
+        // If profile is complete, proceed normally
+        const response = NextResponse.next();
+        // Apply security headers
+        Object.entries(securityHeaders).forEach(([key, value]) => {
+          if (value) response.headers.set(key, value);
+        });
+        return response;
+      } catch (error) {
+        console.error('Error checking profile:', error);
+        // On error, redirect to profile page with encoded return URL
+        const profileUrl = new URL('/profile', req.url);
+        profileUrl.searchParams.set('returnUrl', encodeURIComponent(fullUrl));
+        const response = NextResponse.redirect(profileUrl);
+        // Apply security headers
+        Object.entries(securityHeaders).forEach(([key, value]) => {
+          if (value) response.headers.set(key, value);
+        });
+        return response;
+      }
+    }
+
+    const response = NextResponse.next();
+    // Apply security headers to all responses
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+      if (value) response.headers.set(key, value);
+    });
     return response;
   }
 });
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico).*)",
-    "/(api|trpc)(.*)"
+    "/((?!.+\\.[\\w]+$|_next).*)",
+    "/(api|trpc)(.*)",
+    "/@:username*"
   ]
 };

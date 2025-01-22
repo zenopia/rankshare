@@ -12,12 +12,12 @@ export function UserNav() {
   if (!isSignedIn) {
     return (
       <div className="flex items-center gap-4">
-        <Link href={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}>
+        <Link href="/sign-in">
           <button className="text-sm font-medium">
             Sign In
           </button>
         </Link>
-        <Link href={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}>
+        <Link href="/sign-up">
           <button className="text-sm font-medium">
             Sign Up
           </button>

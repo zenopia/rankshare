@@ -5,36 +5,6 @@ import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { connectToDatabase } from "@/lib/db/mongodb";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL?.split('/sign-in')[0] || 'https://accounts.favely.net',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie, X-Clerk-Auth',
-  'Access-Control-Allow-Credentials': 'true',
-  'Access-Control-Max-Age': '86400', // Cache preflight request for 24 hours
-} as const;
-
-export async function OPTIONS(request: Request) {
-  // Get the actual origin from the request
-  const origin = request.headers.get('origin') || '';
-  const allowedOrigins = [
-    'https://accounts.favely.net',
-    'https://favely.net',
-    'http://localhost:3000',
-    'http://localhost:3001'
-  ] as const;
-
-  // Only set Access-Control-Allow-Origin if the origin is allowed
-  const headers = {
-    ...corsHeaders,
-    'Access-Control-Allow-Origin': allowedOrigins.includes(origin as typeof allowedOrigins[number]) ? origin : corsHeaders['Access-Control-Allow-Origin']
-  } satisfies HeadersInit;
-
-  return new NextResponse(null, { 
-    status: 204,
-    headers
-  });
-}
-
 async function updateEmailInvites(email: string, clerkId: string, username: string) {
   const ListModel = await getListModel();
   
@@ -75,27 +45,11 @@ async function updateEmailInvites(email: string, clerkId: string, username: stri
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const origin = request.headers.get('origin') || '';
-    const allowedOrigins = [
-      'https://accounts.favely.net',
-      'https://favely.net',
-      'http://localhost:3000',
-      'http://localhost:3001'
-    ] as const;
-
-    const headers = {
-      ...corsHeaders,
-      'Access-Control-Allow-Origin': allowedOrigins.includes(origin as typeof allowedOrigins[number]) ? origin : corsHeaders['Access-Control-Allow-Origin']
-    } satisfies HeadersInit;
-
     const { userId } = auth();
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { 
-        status: 401,
-        headers
-      });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectToDatabase();
@@ -133,37 +87,22 @@ export async function GET(request: Request) {
       await profile.save();
     }
 
-    return NextResponse.json({ user, profile }, { headers });
+    return NextResponse.json({ user, profile });
   } catch (error) {
     console.error('Error in profile GET:', error);
     return NextResponse.json(
       { error: "Failed to fetch profile" },
-      { status: 500, headers: corsHeaders }
+      { status: 500 }
     );
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const origin = request.headers.get('origin') || '';
-    const allowedOrigins = [
-      'https://accounts.favely.net',
-      'https://favely.net',
-      'http://localhost:3000',
-      'http://localhost:3001'
-    ] as const;
-
-    const headers = {
-      ...corsHeaders,
-      'Access-Control-Allow-Origin': allowedOrigins.includes(origin as typeof allowedOrigins[number]) ? origin : corsHeaders['Access-Control-Allow-Origin']
-    } satisfies HeadersInit;
-
     const { userId } = auth();
+
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { 
-        status: 401,
-        headers
-      });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectToDatabase();
@@ -234,12 +173,12 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, profile: updatedProfile }, { headers });
+    return NextResponse.json({ user, profile: updatedProfile });
   } catch (error) {
-    console.error('Error in profile POST:', error);
+    console.error('Error updating profile:', error);
     return NextResponse.json(
       { error: "Failed to update profile" },
-      { status: 500, headers: corsHeaders }
+      { status: 500 }
     );
   }
 }
@@ -248,10 +187,7 @@ export async function DELETE() {
   try {
     const { userId } = auth();
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { 
-        status: 401,
-        headers: corsHeaders
-      });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectToDatabase();
@@ -274,12 +210,12 @@ export async function DELETE() {
     // Delete the user document itself
     await UserModel.deleteOne({ _id: user._id });
 
-    return NextResponse.json({ success: true }, { headers: corsHeaders });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting user:', error);
     return NextResponse.json(
       { error: "Failed to delete user" },
-      { status: 500, headers: corsHeaders }
+      { status: 500 }
     );
   }
 } 

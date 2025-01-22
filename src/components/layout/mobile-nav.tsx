@@ -119,7 +119,6 @@ function FeedbackButton({ onClose }: { onClose: () => void }) {
     <Link
       href={`/feedback?from=${encodeURIComponent(currentUrl)}`}
       onClick={onClose}
-      prefetch={false}
       className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent text-muted-foreground"
     >
       <MessageSquare className="h-4 w-4" aria-hidden="true" />
@@ -215,21 +214,14 @@ export function MobileNav() {
               {!isSignedIn && (
                 <>
                   <Link
-                    href="/about"
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
-                  >
-                    <span>About</span>
-                  </Link>
-                  <Link
-                    href={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}
+                    href="/sign-in"
                     onClick={() => setOpen(false)}
                     className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
                   >
                     <span>Sign In</span>
                   </Link>
                   <Link
-                    href={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}
+                    href="/sign-up"
                     onClick={() => setOpen(false)}
                     className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
                   >
