@@ -22,24 +22,34 @@ export default async function FollowersPage() {
     status: 'accepted'
   }).lean();
 
-  // Get user details for each follower
+  // Get user details for each follower and check if current user follows them
   const users = await Promise.all(
     follows.map(async (follow) => {
-      const user = await UserModel.findOne({
-        clerkId: follow.followerId
-      }).lean();
-      return user;
+      const [user, isFollowingBack] = await Promise.all([
+        UserModel.findOne({
+          clerkId: follow.followerId
+        }).lean(),
+        FollowModel.findOne({
+          followerId: userId,
+          followingId: follow.followerId,
+          status: 'accepted'
+        }).lean()
+      ]);
+      return { user, isFollowingBack };
     })
   );
 
   // Filter out any null values and serialize
-  const validUsers = users.filter((user): user is NonNullable<typeof user> => Boolean(user)).map(user => ({
-    id: user._id.toString(),
-    clerkId: user.clerkId,
-    username: user.username,
-    displayName: user.displayName,
-    isFollowing: true // They are following the current user
-  }));
+  const validUsers = users
+    .filter((result): result is NonNullable<typeof result> & { user: NonNullable<typeof result['user']> } => 
+      Boolean(result.user))
+    .map(({ user, isFollowingBack }) => ({
+      id: user._id.toString(),
+      clerkId: user.clerkId,
+      username: user.username,
+      displayName: user.displayName,
+      isFollowing: Boolean(isFollowingBack)
+    }));
 
   return (
     <MainLayout>

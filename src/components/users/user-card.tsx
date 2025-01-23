@@ -32,9 +32,11 @@ export function UserCard({
 
   const handleFollowClick = async (e: React.MouseEvent) => {
     e.preventDefault();
+    if (!userData?.username) return;
+    
     setIsLoadingFollow(true);
     try {
-      const response = await fetch(`/api/users/${username}/follow`, {
+      const response = await fetch(`/api/users/${userData.username}/follow`, {
         method: isFollowing ? 'DELETE' : 'POST',
       });
 
@@ -83,7 +85,7 @@ export function UserCard({
           size="sm"
           className="flex-shrink-0"
           onClick={handleFollowClick}
-          disabled={isLoadingFollow}
+          disabled={isLoadingFollow || !userData?.username}
         >
           {isLoadingFollow ? 'Loading...' : (isFollowing ? (
             <>

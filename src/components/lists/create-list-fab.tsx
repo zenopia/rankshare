@@ -27,7 +27,7 @@ export function CreateListFAB() {
     <Button
       onClick={handleClick}
       size="lg"
-      className="fixed bottom-20 right-4 z-[60] h-14 px-6 shadow-lg flex items-center gap-2 sm:bottom-8 sm:right-8"
+      className="fixed bottom-20 right-4 z-[60] h-14 px-6 shadow-lg flex items-center gap-2 sm:bottom-8 sm:right-8 fab-button"
     >
       <Plus className="h-5 w-5" />
       <span className="hidden sm:inline">Create List</span>

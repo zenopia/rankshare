@@ -16,7 +16,7 @@ export function EditListFAB({ listId }: EditListFABProps) {
     >
       <Button 
         size="lg"
-        className="h-14 px-6 shadow-lg flex items-center gap-2"
+        className="h-14 px-6 shadow-lg flex items-center gap-2 fab-button"
       >
         <Pencil className="h-5 w-5" />
         <span>Edit list</span>

@@ -28,18 +28,21 @@ export default async function FollowingPage() {
       const user = await UserModel.findOne({
         clerkId: follow.followingId
       }).lean();
-      return user;
+      return { user };
     })
   );
 
   // Filter out any null values and serialize
-  const validUsers = users.filter((user): user is NonNullable<typeof user> => Boolean(user)).map(user => ({
-    id: user._id.toString(),
-    clerkId: user.clerkId,
-    username: user.username,
-    displayName: user.displayName,
-    isFollowing: true // Current user is following them
-  }));
+  const validUsers = users
+    .filter((result): result is NonNullable<typeof result> & { user: NonNullable<typeof result['user']> } => 
+      Boolean(result.user))
+    .map(({ user }) => ({
+      id: user._id.toString(),
+      clerkId: user.clerkId,
+      username: user.username,
+      displayName: user.displayName,
+      isFollowing: true // Current user is following them
+    }));
 
   return (
     <MainLayout>

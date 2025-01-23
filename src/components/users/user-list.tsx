@@ -9,6 +9,7 @@ interface User {
   displayName: string;
   bio?: string;
   isFollowing: boolean;
+  imageUrl?: string;
 }
 
 interface UserListProps {
@@ -30,6 +31,7 @@ export function UserList({ users }: UserListProps) {
         <UserCard
           key={user.id}
           username={user.clerkId}
+          displayName={user.displayName}
           isFollowing={user.isFollowing}
         />
       ))}
