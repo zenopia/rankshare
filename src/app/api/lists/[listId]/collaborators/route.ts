@@ -5,6 +5,7 @@ import { getListModel } from "@/lib/db/models-v2/list";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { MongoListDocument, MongoUserDocument } from "@/types/mongo";
 import { sendCollaborationInviteEmail } from "@/lib/email";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 
 export async function GET(
   req: Request,
@@ -129,7 +130,52 @@ export async function POST(
     }
 
     if (email) {
-      // Email invite flow
+      // First check if a user with this email exists in Clerk
+      const users = await clerkClient.users.getUserList({
+        emailAddress: [email]
+      });
+      const existingUser = users[0];
+
+      if (existingUser) {
+        // If user exists, add them as a regular collaborator
+        const collaborator = await UserModel.findOne({ clerkId: existingUser.id }).lean();
+        if (!collaborator) {
+          return new NextResponse("User not found in our database", { status: 404 });
+        }
+
+        // Check if user is already a collaborator
+        if (list.collaborators?.some((c: { clerkId: string }) => c.clerkId === collaborator.clerkId)) {
+          return new NextResponse("User is already a collaborator", { status: 400 });
+        }
+
+        // Add user collaborator
+        await ListModel.findByIdAndUpdate(
+          params.listId,
+          {
+            $push: {
+              collaborators: {
+                clerkId: collaborator.clerkId,
+                username: collaborator.username,
+                role: role as "editor" | "viewer",
+                status: "accepted",
+                invitedAt: new Date(),
+                acceptedAt: new Date()
+              }
+            }
+          },
+          { new: true }
+        ).lean();
+
+        // Return the new collaborator details
+        return NextResponse.json({
+          userId: collaborator.clerkId,
+          username: collaborator.username,
+          role: role as "editor" | "viewer",
+          status: "accepted"
+        });
+      }
+
+      // If no existing user found, proceed with email invite flow
       // Check if email is already a collaborator
       if (list.collaborators?.some((c: { email?: string; _isEmailInvite?: boolean; username?: string }) => 
         c.email === email || (c._isEmailInvite && c.username === email)
@@ -177,7 +223,6 @@ export async function POST(
         status: "pending",
         _isEmailInvite: true
       });
-
     } else if (targetUserId) {
       // User invite flow
       // Find user in our database

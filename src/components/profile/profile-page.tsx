@@ -20,25 +20,18 @@ import {
 import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
 import { z } from "zod";
-import { cn } from "@/lib/utils";
 import { MainLayout } from "@/components/layout/main-layout";
 import Link from "next/link";
 
 // First, let's create a type for the privacy settings keys
 type PrivacySettingKey = 'showBio' | 'showLocation' | 'showDateOfBirth' | 'showGender' | 'showLivingStatus';
 
-// Add validation schema
+// Remove validation schema since fields are no longer required
 const profileSchema = z.object({
-  location: z.string().min(1, "Location is required"),
-  dateOfBirth: z.date({
-    required_error: "Date of birth is required",
-  }),
-  gender: z.enum(['male', 'female', 'other', 'prefer-not-to-say'], {
-    required_error: "Gender is required",
-  }),
-  livingStatus: z.enum(['single', 'couple', 'family', 'shared', 'other'], {
-    required_error: "Living status is required",
-  }),
+  location: z.string(),
+  dateOfBirth: z.date(),
+  gender: z.enum(['male', 'female', 'other', 'prefer-not-to-say']),
+  livingStatus: z.enum(['single', 'couple', 'family', 'shared', 'other']),
 });
 
 export function ProfilePage() {
@@ -260,22 +253,17 @@ export function ProfilePage() {
                   value={profileData.location || ''}
                   onChange={(e) => handleChange('location', e.target.value)}
                   placeholder="Enter your location"
-                  required
-                  className={!profileData.location ? "border-destructive" : ""}
                 />
-                {!profileData.location && (
-                  <p className="text-sm text-destructive">Location is required</p>
-                )}
               </div>
             </div>
 
             {/* Personal Details Section */}
             <div className="py-6 border-b">
               <h3 className="text-lg font-semibold mb-1">Personal Details</h3>
-              <p className="text-sm text-muted-foreground mb-4">Required information for better results</p>
+              <p className="text-sm text-muted-foreground mb-4">Optional information to help personalize your experience</p>
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="dob">Date of Birth *</Label>
+                  <Label htmlFor="dob">Date of Birth</Label>
                   <Input
                     type="date"
                     id="dob"
@@ -284,26 +272,17 @@ export function ProfilePage() {
                       : ''
                     }
                     onChange={(e) => handleChange('dateOfBirth', new Date(e.target.value))}
-                    required
-                    className={!profileData.dateOfBirth ? "border-destructive" : ""}
                   />
-                  {!profileData.dateOfBirth && (
-                    <p className="text-sm text-destructive">Date of birth is required</p>
-                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="gender">Gender *</Label>
+                  <Label htmlFor="gender">Gender</Label>
                   <Select
                     value={profileData.gender || ''}
                     onValueChange={(value) => handleChange('gender', value)}
-                    required
                   >
                     <SelectTrigger 
-                      className={cn(
-                        "bg-background",
-                        !profileData.gender ? "border-destructive" : ""
-                      )}
+                      className="bg-background"
                     >
                       <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
@@ -314,23 +293,16 @@ export function ProfilePage() {
                       <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
                     </SelectContent>
                   </Select>
-                  {!profileData.gender && (
-                    <p className="text-sm text-destructive">Gender is required</p>
-                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="living-status">Living Status *</Label>
+                  <Label htmlFor="living-status">Living Status</Label>
                   <Select
                     value={profileData.livingStatus || ''}
                     onValueChange={(value) => handleChange('livingStatus', value)}
-                    required
                   >
                     <SelectTrigger 
-                      className={cn(
-                        "bg-background",
-                        !profileData.livingStatus ? "border-destructive" : ""
-                      )}
+                      className="bg-background"
                     >
                       <SelectValue placeholder="Select living status" />
                     </SelectTrigger>
@@ -342,9 +314,6 @@ export function ProfilePage() {
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
-                  {!profileData.livingStatus && (
-                    <p className="text-sm text-destructive">Living status is required</p>
-                  )}
                 </div>
               </div>
             </div>
