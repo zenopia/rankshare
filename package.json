@@ -19,7 +19,7 @@
     "cleanup": "tsx src/scripts/cleanup/run-cleanup.ts"
   },
   "dependencies": {
-    "@clerk/backend": "^1.23.0",
+    "@clerk/backend": "^1.23.5",
     "@clerk/nextjs": "^4.29.7",
     "@clerk/themes": "^1.7.9",
     "@clerk/types": "^4.40.3",
