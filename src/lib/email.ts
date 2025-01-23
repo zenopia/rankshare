@@ -25,12 +25,19 @@ export async function sendCollaborationInviteEmail({
   listUrl,
   note
 }: SendCollaborationInviteEmailParams) {
-  const signUpUrl = `${process.env.NEXT_PUBLIC_APP_URL}/sign-up`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) {
+    console.error('NEXT_PUBLIC_APP_URL is not defined');
+    throw new Error('Application URL is not configured');
+  }
+
+  const signUpUrl = `${appUrl}/sign-up`;
+  console.log('Generating email with URLs:', { appUrl, signUpUrl, listUrl });
   
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="text-align: center; margin-bottom: 2em;">
-        <img src="${process.env.NEXT_PUBLIC_APP_URL}/Favely-logo.svg" alt="Favely" style="width: 120px; height: 60px;" />
+        <img src="${appUrl}/Favely-logo.png" alt="Favely" style="width: 120px; height: 60px;" />
       </div>
       <h2>You're invited to collaborate!</h2>
       <p>${inviterName} has invited you to collaborate on the list "${listTitle}" on Favely.net.</p>

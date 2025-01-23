@@ -156,6 +156,10 @@ export async function POST(
 
       // Send invitation email
       const listUrl = `${process.env.NEXT_PUBLIC_APP_URL}/lists/${params.listId}`;
+      console.log('Sending invitation with URLs:', {
+        appUrl: process.env.NEXT_PUBLIC_APP_URL,
+        listUrl
+      });
       await sendCollaborationInviteEmail({
         to: email,
         inviterName: inviter.displayName || inviter.username,
