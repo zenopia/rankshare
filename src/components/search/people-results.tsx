@@ -11,6 +11,7 @@ interface SearchUser {
   displayName: string;
   bio?: string;
   isFollowing?: boolean;
+  imageUrl?: string;
 }
 
 export function PeopleResults() {
@@ -97,7 +98,9 @@ export function PeopleResults() {
       {users.map((user) => (
         <UserCard
           key={user._id}
-          username={user.clerkId}
+          username={user.username}
+          displayName={user.displayName}
+          imageUrl={user.imageUrl}
           isFollowing={user.isFollowing ?? false}
         />
       ))}

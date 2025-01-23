@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ListCard } from "@/components/lists/list-card";
 import { ListSearchControls } from "@/components/lists/list-search-controls";
-import type { List } from "@/types/list";
+import type { List, ListCategory } from "@/types/list";
+import { LIST_CATEGORIES } from "@/types/list";
+import { useAuth } from "@clerk/nextjs";
 
 interface ListGridProps {
   lists: List[];
@@ -13,9 +16,44 @@ interface ListGridProps {
   };
   showPrivacyBadge?: boolean;
   isFollowing?: boolean;
+  lastViewedMap?: Record<string, Date>;
 }
 
-export function ListGrid({ lists, searchParams, showPrivacyBadge, isFollowing }: ListGridProps) {
+export function ListGrid({ lists, searchParams, showPrivacyBadge, isFollowing, lastViewedMap: initialLastViewedMap }: ListGridProps) {
+  const { userId } = useAuth();
+  const [lastViewedMap, setLastViewedMap] = useState<Record<string, Date>>(initialLastViewedMap || {});
+  
+  useEffect(() => {
+    if (!userId) return;
+    
+    // Only fetch for lists not already in the map
+    const listsToFetch = lists.filter(list => !lastViewedMap[list.id]);
+    if (listsToFetch.length === 0) return;
+
+    const fetchPinData = async () => {
+      try {
+        const response = await fetch('/api/pins/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listIds: listsToFetch.map(l => l.id) })
+        });
+        
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        setLastViewedMap(prev => ({ ...prev, ...data }));
+      } catch (error) {
+        console.error('Failed to fetch pin data:', error);
+      }
+    };
+
+    fetchPinData();
+  }, [userId, lists, lastViewedMap]);
+
+  const category = searchParams?.category && LIST_CATEGORIES.includes(searchParams.category as ListCategory) 
+    ? searchParams.category as ListCategory 
+    : undefined;
+
   if (lists.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -27,7 +65,7 @@ export function ListGrid({ lists, searchParams, showPrivacyBadge, isFollowing }:
   return (
     <div className="space-y-8">
       <ListSearchControls 
-        defaultCategory={searchParams?.category}
+        defaultCategory={category}
         defaultSort={searchParams?.sort}
       />
 
@@ -37,7 +75,8 @@ export function ListGrid({ lists, searchParams, showPrivacyBadge, isFollowing }:
             key={list.id}
             list={list}
             showPrivacyBadge={showPrivacyBadge}
-            isFollowing={isFollowing}
+            _isFollowing={isFollowing}
+            lastViewedAt={lastViewedMap?.[list.id]}
           />
         ))}
       </div>

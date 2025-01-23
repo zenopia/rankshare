@@ -31,6 +31,12 @@ export default async function PinnedPage({ searchParams }: PageProps) {
   const pins = await PinModel.find({ clerkId: userId }).lean();
   const listIds = pins.map(pin => pin.listId);
 
+  // Create a map of list IDs to last viewed timestamps
+  const lastViewedMap = pins.reduce((acc, pin) => {
+    acc[pin.listId.toString()] = pin.lastViewedAt;
+    return acc;
+  }, {} as Record<string, Date>);
+
   // Get all pinned lists
   const lists = await ListModel.find({
     _id: { $in: listIds }
@@ -76,6 +82,7 @@ export default async function PinnedPage({ searchParams }: PageProps) {
             <ListGrid 
               lists={sortedLists}
               searchParams={searchParams}
+              lastViewedMap={lastViewedMap}
             />
           </div>
         </div>

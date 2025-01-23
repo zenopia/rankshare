@@ -33,6 +33,7 @@ interface CollaboratorManagementProps {
   privacy: 'public' | 'private';
   onClose: () => void;
   onPrivacyChange?: (privacy: 'public' | 'private') => void;
+  currentUserRole?: 'owner' | 'admin' | 'editor' | 'viewer';
 }
 
 export function CollaboratorManagement({ 
@@ -40,7 +41,8 @@ export function CollaboratorManagement({
   isOwner, 
   privacy: initialPrivacy,
   onClose,
-  onPrivacyChange
+  onPrivacyChange,
+  currentUserRole
 }: CollaboratorManagementProps) {
   const { userId } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +52,8 @@ export function CollaboratorManagement({
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [isLoadingFollowing, setIsLoadingFollowing] = useState(true);
   const [privacy, setPrivacy] = useState(initialPrivacy);
+
+  const canManageCollaborators = isOwner || currentUserRole === 'admin';
 
   useEffect(() => {
     // Trigger open animation after mount
@@ -103,6 +107,11 @@ export function CollaboratorManagement({
     try {
       setIsLoading(true);
 
+      // Check if user has permission to add collaborators
+      if (!canManageCollaborators) {
+        throw new Error("You don't have permission to add collaborators");
+      }
+
       const response = await fetch(`/api/lists/${listId}/collaborators`, {
         method: 'POST',
         headers: {
@@ -127,8 +136,11 @@ export function CollaboratorManagement({
         : 'Invitation sent successfully'
       );
     } catch (error) {
-      console.error('Error adding collaborator:', error);
-      toast.error('Failed to add collaborator');
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to add collaborator");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -166,6 +178,23 @@ export function CollaboratorManagement({
   const handleRoleChange = async (userId: string, newRole: string) => {
     setIsLoading(true);
     try {
+      const targetCollaborator = collaborators.find(c => c.userId === userId);
+
+      // Don't allow changing owner's role
+      if (targetCollaborator?.role === 'owner') {
+        throw new Error("Cannot change the owner's role");
+      }
+
+      // Only owner or admin can change roles
+      if (!canManageCollaborators) {
+        throw new Error("You don't have permission to change roles");
+      }
+
+      // Admin cannot promote to owner
+      if (currentUserRole === 'admin' && newRole === 'owner') {
+        throw new Error("Only the owner can transfer ownership");
+      }
+
       const response = await fetch(`/api/lists/${listId}/collaborators/${userId}`, {
         method: "PUT",
         headers: {
@@ -189,7 +218,11 @@ export function CollaboratorManagement({
 
       toast.success("Role updated!");
     } catch (error) {
-      toast.error("Failed to update role");
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to update role");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -204,8 +237,8 @@ export function CollaboratorManagement({
       
       // Only allow removal if:
       // 1. The user is removing themselves, OR
-      // 2. The user is the owner
-      if (!isCurrentUser && !isOwner) {
+      // 2. The user is the owner or admin
+      if (!isCurrentUser && !canManageCollaborators) {
         throw new Error("You don't have permission to remove other collaborators");
       }
 
@@ -237,7 +270,11 @@ export function CollaboratorManagement({
 
       toast.success(isCurrentUser ? "You left the list" : "Collaborator removed!");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to remove collaborator");
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to remove collaborator");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -316,7 +353,7 @@ export function CollaboratorManagement({
               </div>
 
               {/* Invite section */}
-              {(isOwner || collaborators.some(c => c.role === 'admin')) && (
+              {canManageCollaborators && (
                 <>
                   <div className="space-y-2">
                     <UserCombobox
@@ -344,27 +381,26 @@ export function CollaboratorManagement({
                       />
                     </div>
                   ))
-                ) : (
-                  collaborators.map((collaborator) => {
-                    const isCurrentUser = collaborator.userId === userId;
-                    return (
-                      <CollaboratorCard
-                        key={collaborator.userId}
-                        userId={collaborator.userId}
-                        username={collaborator.username}
-                        email={collaborator.email}
-                        role={collaborator.role}
-                        status={collaborator.status}
-                        clerkId={!collaborator._isEmailInvite ? collaborator.userId : undefined}
-                        canManageRoles={isOwner}
-                        isOwner={isOwner}
-                        currentUserRole={isCurrentUser ? collaborator.role : undefined}
-                        onRoleChange={(newRole) => handleRoleChange(collaborator.userId, newRole)}
-                        onRemove={() => handleRemoveCollaborator(collaborator.userId)}
-                      />
-                    );
-                  })
-                )}
+                ) : collaborators.map((collaborator) => {
+                  const isCurrentUser = collaborator.userId === userId;
+                  const canManageRoles = canManageCollaborators && collaborator.role !== 'owner';
+                  return (
+                    <CollaboratorCard
+                      key={collaborator.userId}
+                      userId={collaborator.userId}
+                      username={collaborator.username}
+                      email={collaborator.email}
+                      role={collaborator.role}
+                      status={collaborator.status}
+                      clerkId={!collaborator._isEmailInvite ? collaborator.userId : undefined}
+                      canManageRoles={canManageRoles}
+                      isOwner={isOwner}
+                      currentUserRole={isCurrentUser ? collaborator.role : undefined}
+                      onRoleChange={(newRole) => handleRoleChange(collaborator.userId, newRole)}
+                      onRemove={() => handleRemoveCollaborator(collaborator.userId)}
+                    />
+                  );
+                })}
               </div>
             </div>
           </div>

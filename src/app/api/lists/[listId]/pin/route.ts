@@ -62,7 +62,8 @@ export async function POST(
         title: list.title,
         category: list.category,
         ownerUsername: owner.username
-      }
+      },
+      lastViewedAt: new Date()
     });
 
     // Pin count is automatically incremented by the pre-save hook

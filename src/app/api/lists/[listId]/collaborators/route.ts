@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/lib/db/mongodb";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { getUserModel } from "@/lib/db/models-v2/user";
@@ -33,7 +33,16 @@ export async function GET(
     // Get all collaborators including the owner
     const collaborators = [
       { userId: list.owner.clerkId, role: "owner" as const, status: "accepted" as const },
-      ...(list.collaborators?.map((c: any) => {
+      ...(list.collaborators?.map((c: { 
+        clerkId?: string;
+        email?: string;
+        username?: string;
+        role: string;
+        status: string;
+        _isEmailInvite?: boolean;
+        invitedAt?: Date;
+        acceptedAt?: Date;
+      }) => {
         if (c._isEmailInvite) {
           // Use the data directly from the database
           return {
@@ -105,7 +114,11 @@ export async function POST(
     }
 
     // Only owner can add collaborators
-    if (list.owner.clerkId !== userId) {
+    if (list.owner.clerkId !== userId && !list.collaborators?.some(c => 
+      c.clerkId === userId && 
+      c.status === 'accepted' && 
+      c.role === 'admin'
+    )) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -118,12 +131,14 @@ export async function POST(
     if (email) {
       // Email invite flow
       // Check if email is already a collaborator
-      if (list.collaborators?.some((c: any) => c.email === email || (c._isEmailInvite && c.username === email))) {
+      if (list.collaborators?.some((c: { email?: string; _isEmailInvite?: boolean; username?: string }) => 
+        c.email === email || (c._isEmailInvite && c.username === email)
+      )) {
         return new NextResponse("This email has already been invited", { status: 400 });
       }
 
       // Add email collaborator
-      const updatedList = await ListModel.findByIdAndUpdate(
+      await ListModel.findByIdAndUpdate(
         params.listId,
         {
           $push: {
@@ -173,7 +188,7 @@ export async function POST(
       }
 
       // Add user collaborator
-      const updatedList = await ListModel.findByIdAndUpdate(
+      await ListModel.findByIdAndUpdate(
         params.listId,
         {
           $push: {

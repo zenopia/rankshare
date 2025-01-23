@@ -1,15 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import type { ListCategory } from "@/types/list";
-import { LIST_CATEGORIES } from "@/types/list";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LIST_CATEGORIES, type ListCategory } from "@/types/list";
 
 interface ListSearchControlsProps {
   defaultCategory?: ListCategory;

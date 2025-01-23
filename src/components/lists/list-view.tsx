@@ -10,13 +10,14 @@ import { EditListFAB } from "@/components/lists/edit-list-fab";
 import { UserCard } from "@/components/users/user-card";
 import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
 import { CollaboratorManagement } from "@/components/lists/collaborator-management";
+import { useAuth } from "@clerk/nextjs";
 
 interface ListViewProps {
   list: List;
   isOwner: boolean;
-  _isCollaborator: boolean;
   isPinned: boolean;
   isFollowing: boolean;
+  isCollaborator: boolean;
   showCollaborators: boolean;
   onCollaboratorsClick: () => void;
 }
@@ -24,17 +25,31 @@ interface ListViewProps {
 export function ListView({ 
   list, 
   isOwner, 
-  _isCollaborator,
+  isCollaborator,
   isPinned: initialIsPinned, 
   isFollowing,
   showCollaborators,
   onCollaboratorsClick 
 }: ListViewProps) {
   const [isPinned, setIsPinned] = useState(initialIsPinned);
+  const { userId } = useAuth();
 
   const handlePinChange = (newIsPinned: boolean) => {
     setIsPinned(newIsPinned);
   };
+
+  // Get current user's role from collaborators array
+  const currentUserRole = isOwner ? 'owner' as const : list.collaborators?.find(c => 
+    c.clerkId === userId && 
+    c.status === 'accepted'
+  )?.role;
+
+  // Check if user has edit permissions (owner, admin, or editor)
+  const canEdit = isOwner || (isCollaborator && list.collaborators?.some(c => 
+    c.clerkId === userId && 
+    c.status === 'accepted' && 
+    ['admin', 'editor'].includes(c.role)
+  ));
 
   return (
     <div key="root" className="space-y-8">
@@ -57,6 +72,7 @@ export function ListView({
               onPrivacyChange={(newPrivacy) => {
                 list.privacy = newPrivacy;
               }}
+              currentUserRole={currentUserRole}
             />
           </ErrorBoundaryWrapper>
         </div>
@@ -177,7 +193,7 @@ export function ListView({
         />
       </div>
 
-      {isOwner && (
+      {canEdit && (
         <div key="fab-section" className="fab-section">
           <EditListFAB listId={list.id} />
         </div>

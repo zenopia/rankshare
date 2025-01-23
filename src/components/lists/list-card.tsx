@@ -9,19 +9,26 @@ import type { List } from "@/types/list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUsers } from "@/hooks/use-users";
 import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface ListCardProps {
   list: List;
   showPrivacyBadge?: boolean;
+  lastViewedAt?: Date;
+  _isFollowing?: boolean;
 }
 
 export function ListCard({
   list,
-  showPrivacyBadge = true
+  showPrivacyBadge = true,
+  lastViewedAt,
+  _isFollowing
 }: ListCardProps) {
   const { data: userData } = useUsers([list.owner.clerkId]);
   const ownerData = userData?.[0];
   const currentPath = usePathname();
+
+  const hasUpdates = lastViewedAt && list.editedAt && new Date(list.editedAt) > new Date(lastViewedAt);
 
   return (
     <Link href={`/lists/${list.id}?from=${encodeURIComponent(currentPath)}`}>
@@ -78,6 +85,13 @@ export function ListCard({
                   Math.floor(new Date(list.editedAt).getTime() / 60000) > 
                   Math.floor(new Date(list.createdAt).getTime() / 60000) ? (
                   <div className="flex items-center gap-1">
+                    {hasUpdates && (
+                      <span className={cn(
+                        "w-2 h-2 rounded-full",
+                        "animate-pulse",
+                        "bg-[#801CCC]"
+                      )} />
+                    )}
                     <Pen className="h-3 w-3" />
                     <span>{formatDistanceToNow(new Date(list.editedAt), { addSuffix: true })}</span>
                   </div>

@@ -151,7 +151,6 @@ export function CollaboratorCard({
           </div>
         ) : (
           <UserProfileBase
-            userId={userId}
             username={userData?.username || username || ''}
             firstName={firstName}
             lastName={lastName}

@@ -13,9 +13,18 @@ export interface UserCardProps {
   isFollowing: boolean;
   isOwner?: boolean;
   linkToProfile?: boolean;
+  displayName?: string;
+  imageUrl?: string;
 }
 
-export function UserCard({ username, isFollowing: initialIsFollowing, isOwner = false, linkToProfile = true }: UserCardProps) {
+export function UserCard({ 
+  username, 
+  isFollowing: initialIsFollowing, 
+  isOwner = false, 
+  linkToProfile = true,
+  displayName,
+  imageUrl
+}: UserCardProps) {
   const { data: users, isLoading } = useUsers(username ? [username] : undefined);
   const userData = users?.[0];
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
@@ -60,9 +69,9 @@ export function UserCard({ username, isFollowing: initialIsFollowing, isOwner = 
       <div className="flex items-center gap-3 min-w-0">
         <UserProfileBase
           username={userData?.username || username}
-          firstName={userData?.displayName}
+          firstName={displayName || userData?.displayName}
           lastName={null}
-          imageUrl={userData?.imageUrl}
+          imageUrl={imageUrl || userData?.imageUrl}
           variant="compact"
           hideFollow={true}
           linkToProfile={false}

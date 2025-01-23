@@ -53,8 +53,8 @@ export interface ListCollaborator {
   clerkId: string;
   username: string;
   email?: string;
-  role: string;
-  status: string;
+  role: 'admin' | 'editor' | 'viewer';
+  status: 'pending' | 'accepted' | 'rejected';
   invitedAt: string;
   acceptedAt?: string;
 }

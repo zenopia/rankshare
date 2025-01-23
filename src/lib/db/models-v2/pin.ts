@@ -10,6 +10,7 @@ export interface PinDocument extends Document {
     category: string;
     ownerUsername: string;
   };
+  lastViewedAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,7 +22,8 @@ const pinSchema = new Schema<PinDocument>({
     title: { type: String, required: true },
     category: { type: String, required: true },
     ownerUsername: { type: String, required: true }
-  }
+  },
+  lastViewedAt: { type: Date, default: Date.now }
 }, {
   timestamps: true
 });

@@ -8,6 +8,7 @@ import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { ListPageContent } from "./list-page-content";
 import { Card } from "@/components/ui/card";
 import { Lock } from "lucide-react";
+import { getListViewModel } from "@/lib/db/models-v2/list-view";
 
 interface ListPageProps {
   params: {
@@ -70,6 +71,28 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
       userId ? PinModel.exists({ clerkId: userId, listId: new mongoose.Types.ObjectId(list.id) }) : false,
       userId ? FollowModel.exists({ followerId: userId, followingId: list.owner.clerkId }) : false
     ]);
+
+    // If user has access (owner, collaborator, or pin), update their last view time
+    if (userId) {
+      const isOwner = userId === list.owner.clerkId;
+      const isCollaborator = list.collaborators?.some((c: ListCollaborator) => c.clerkId === userId && c.status === 'accepted');
+      
+      if (isOwner || isCollaborator || isPinned) {
+        const ListViewModel = await getListViewModel();
+        const accessType = isOwner ? 'owner' : (isCollaborator ? 'collaborator' : 'pin');
+        
+        await ListViewModel.updateOne(
+          { clerkId: userId, listId: new mongoose.Types.ObjectId(list.id) },
+          { 
+            $set: { 
+              lastViewedAt: new Date(),
+              accessType
+            }
+          },
+          { upsert: true }
+        );
+      }
+    }
 
     const isOwner = userId === list.owner.clerkId;
     const isCollaborator = list.collaborators?.some((c: ListCollaborator) => c.clerkId === userId && c.status === 'accepted');
