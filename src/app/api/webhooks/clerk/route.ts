@@ -136,5 +136,51 @@ export async function POST(req: Request) {
     }
   }
 
+  if (eventType === 'user.deleted') {
+    const { id } = evt.data;
+    
+    try {
+      await connectToMongoDB();
+      const [UserModel, UserCacheModel, ListModel, FollowModel] = await Promise.all([
+        getUserModel(),
+        getUserCacheModel(),
+        getListModel(),
+        getFollowModel()
+      ]);
+
+      // Get user document to find MongoDB _id
+      const user = await UserModel.findOne({ clerkId: id });
+      if (!user) {
+        return new NextResponse('User not found', { status: 404 });
+      }
+
+      // Delete all user data in parallel
+      await Promise.all([
+        // Delete user records
+        UserModel.deleteOne({ clerkId: id }),
+        UserCacheModel.deleteOne({ clerkId: id }),
+        // Delete lists owned by the user
+        ListModel.deleteMany({ 'owner.clerkId': id }),
+        // Remove user from collaborators in other lists
+        ListModel.updateMany(
+          {},
+          { $pull: { collaborators: { clerkId: id } } }
+        ),
+        // Delete all follow relationships involving the user
+        FollowModel.deleteMany({ 
+          $or: [
+            { followerId: id },
+            { followingId: id }
+          ]
+        })
+      ]);
+
+      return new NextResponse('Success', { status: 200 });
+    } catch (error) {
+      console.error('Error deleting user data:', error);
+      return new NextResponse('Error deleting user data', { status: 500 });
+    }
+  }
+
   return new NextResponse('Success', { status: 200 });
 } 

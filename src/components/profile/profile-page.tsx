@@ -3,7 +3,7 @@
 import { useAuth, useUser, useClerk } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Settings, LogOut, Trash2 } from "lucide-react";
+import { Settings, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import type { User } from "@/types/user";
@@ -22,17 +22,6 @@ import Image from "next/image";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
 import { MainLayout } from "@/components/layout/main-layout";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import Link from "next/link";
 
 // First, let's create a type for the privacy settings keys
@@ -60,7 +49,6 @@ export function ProfilePage() {
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl');
   const [isLoading, setIsLoading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isProfileComplete, setIsProfileComplete] = useState(true);
   const [profileData, setProfileData] = useState<Partial<User>>({
     bio: "",
@@ -123,30 +111,6 @@ export function ProfilePage() {
     } catch (error) {
       console.error('Error during sign out:', error);
       toast.error('Failed to sign out');
-    }
-  };
-
-  // Handle account deletion
-  const handleDeleteAccount = async () => {
-    try {
-      setIsDeleting(true);
-      // Delete user data from MongoDB
-      const response = await fetch('/api/profile', {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete user data');
-      }
-
-      toast.success('Account deleted successfully');
-      // Open Clerk user profile for account deletion
-      openUserProfile();
-    } catch (error) {
-      console.error('Error deleting account:', error);
-      toast.error('Failed to delete account');
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -454,45 +418,6 @@ export function ProfilePage() {
                 </div>
               </div>
             )}
-
-            {/* Delete Account Section */}
-            <div className="py-6">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    className="flex items-center gap-2 w-full sm:w-auto"
-                    disabled={isDeleting}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span>Delete Account</span>
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will:
-                      <ul className="list-disc list-inside mt-2">
-                        <li>Permanently delete your account</li>
-                        <li>Delete all your lists</li>
-                        <li>Remove you from all collaborative lists</li>
-                        <li>Delete all your profile information</li>
-                      </ul>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDeleteAccount}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Delete Account
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
           </div>
         </div>
 
