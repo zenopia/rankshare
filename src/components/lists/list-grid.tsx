@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ListCard } from "@/components/lists/list-card";
 import { ListSearchControls } from "@/components/lists/list-search-controls";
 import type { List, ListCategory } from "@/types/list";
 import { LIST_CATEGORIES } from "@/types/list";
 import { useAuth } from "@clerk/nextjs";
+import { useUsers } from "@/hooks/use-users";
 
 interface ListGridProps {
   lists: List[];
@@ -22,9 +23,21 @@ interface ListGridProps {
 export function ListGrid({ lists, searchParams, showPrivacyBadge, isFollowing, lastViewedMap: initialLastViewedMap }: ListGridProps) {
   const { userId } = useAuth();
   const [lastViewedMap, setLastViewedMap] = useState<Record<string, Date>>(initialLastViewedMap || {});
+  const hasFetchedRef = useRef(false);
+  
+  // Get all unique owner IDs
+  const ownerIds = Array.from(new Set(lists.map(list => list.owner.clerkId)));
+  const { data: userData } = useUsers(ownerIds);
+  
+  // Create a map of user data for quick lookup
+  const userDataMap = userData?.reduce((acc, user) => {
+    acc[user.id] = user;
+    return acc;
+  }, {} as Record<string, typeof userData[0]>) || {};
   
   useEffect(() => {
-    if (!userId) return;
+    // Only fetch once when component mounts
+    if (hasFetchedRef.current || !userId) return;
     
     // Only fetch for lists not already in the map
     const listsToFetch = lists.filter(list => !lastViewedMap[list.id]);
@@ -48,6 +61,7 @@ export function ListGrid({ lists, searchParams, showPrivacyBadge, isFollowing, l
     };
 
     fetchPinData();
+    hasFetchedRef.current = true;
   }, [userId, lists, lastViewedMap]);
 
   const category = searchParams?.category && LIST_CATEGORIES.includes(searchParams.category as ListCategory) 
@@ -77,6 +91,7 @@ export function ListGrid({ lists, searchParams, showPrivacyBadge, isFollowing, l
             showPrivacyBadge={showPrivacyBadge}
             _isFollowing={isFollowing}
             lastViewedAt={lastViewedMap?.[list.id]}
+            ownerData={userDataMap[list.owner.clerkId]}
           />
         ))}
       </div>

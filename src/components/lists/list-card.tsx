@@ -7,7 +7,6 @@ import { CategoryBadge } from "@/components/lists/category-badge";
 import { formatDistanceToNow } from "date-fns";
 import type { List } from "@/types/list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useUsers } from "@/hooks/use-users";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -16,16 +15,21 @@ interface ListCardProps {
   showPrivacyBadge?: boolean;
   lastViewedAt?: Date;
   _isFollowing?: boolean;
+  ownerData?: {
+    id: string;
+    username: string;
+    displayName: string;
+    imageUrl: string | null;
+  };
 }
 
 export function ListCard({
   list,
   showPrivacyBadge = true,
   lastViewedAt,
-  _isFollowing
+  _isFollowing,
+  ownerData
 }: ListCardProps) {
-  const { data: userData } = useUsers([list.owner.clerkId]);
-  const ownerData = userData?.[0];
   const currentPath = usePathname();
 
   const hasUpdates = lastViewedAt && list.editedAt && new Date(list.editedAt) > new Date(lastViewedAt);
@@ -55,7 +59,7 @@ export function ListCard({
             )}
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
               <AvatarImage src={ownerData?.imageUrl || undefined} alt={ownerData?.username || ''} />
               <AvatarFallback>{ownerData?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
