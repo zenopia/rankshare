@@ -104,6 +104,12 @@ export function CollaboratorManagement({
   };
 
   const handleInvite = async (value: { type: 'user', userId: string, username: string } | { type: 'email', email: string }) => {
+    const toastId = toast.loading(
+      value.type === 'user' 
+        ? 'Adding collaborator...' 
+        : 'Sending invitation...'
+    );
+    
     try {
       setIsLoading(true);
 
@@ -131,15 +137,24 @@ export function CollaboratorManagement({
 
       const data = await response.json();
       setCollaborators(prev => [...prev, data]);
-      toast.success(value.type === 'user' 
-        ? 'Collaborator added successfully' 
-        : 'Invitation sent successfully'
+      toast.success(
+        value.type === 'user' 
+          ? 'Collaborator added successfully' 
+          : 'Invitation sent successfully',
+        {
+          id: toastId
+        }
       );
     } catch (error) {
       if (error instanceof Error) {
-        toast.error(error.message);
+        toast.error(error.message, { id: toastId });
       } else {
-        toast.error("Failed to add collaborator");
+        toast.error(
+          value.type === 'user'
+            ? "Failed to add collaborator"
+            : "Failed to send invitation",
+          { id: toastId }
+        );
       }
     } finally {
       setIsLoading(false);
@@ -176,6 +191,7 @@ export function CollaboratorManagement({
   };
 
   const handleRoleChange = async (userId: string, newRole: string) => {
+    const toastId = toast.loading('Updating role...');
     setIsLoading(true);
     try {
       const targetCollaborator = collaborators.find(c => c.userId === userId);
@@ -216,12 +232,12 @@ export function CollaboratorManagement({
         setCollaborators(data);
       }
 
-      toast.success("Role updated!");
+      toast.success("Role updated!", { id: toastId });
     } catch (error) {
       if (error instanceof Error) {
-        toast.error(error.message);
+        toast.error(error.message, { id: toastId });
       } else {
-        toast.error("Failed to update role");
+        toast.error("Failed to update role", { id: toastId });
       }
     } finally {
       setIsLoading(false);
@@ -229,10 +245,12 @@ export function CollaboratorManagement({
   };
 
   const handleRemoveCollaborator = async (collaboratorId: string) => {
+    const isCurrentUser = collaboratorId === userId;
+    const toastId = toast.loading(
+      isCurrentUser ? 'Leaving list...' : 'Removing collaborator...'
+    );
     setIsLoading(true);
     try {
-      // Allow collaborators to remove themselves regardless of role
-      const isCurrentUser = collaboratorId === userId;
       const currentCollaborator = collaborators.find(c => c.userId === collaboratorId);
       
       // Only allow removal if:
@@ -258,6 +276,7 @@ export function CollaboratorManagement({
       // If the user removed themselves, close the sheet
       if (isCurrentUser) {
         handleClose();
+        toast.success("You left the list", { id: toastId });
         return;
       }
 
@@ -268,12 +287,15 @@ export function CollaboratorManagement({
         setCollaborators(data);
       }
 
-      toast.success(isCurrentUser ? "You left the list" : "Collaborator removed!");
+      toast.success("Collaborator removed!", { id: toastId });
     } catch (error) {
       if (error instanceof Error) {
-        toast.error(error.message);
+        toast.error(error.message, { id: toastId });
       } else {
-        toast.error("Failed to remove collaborator");
+        toast.error(
+          isCurrentUser ? "Failed to leave list" : "Failed to remove collaborator",
+          { id: toastId }
+        );
       }
     } finally {
       setIsLoading(false);

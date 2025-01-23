@@ -37,7 +37,8 @@ const userProfileSchema = new Schema<UserProfileDocument>({
   timestamps: true
 });
 
-// Add middleware to automatically update profileComplete
+// Keep the middleware to update profileComplete status
+// This will still track if all fields are filled, but they're not required
 userProfileSchema.pre('save', function(next) {
   this.profileComplete = !!(
     this.location &&
