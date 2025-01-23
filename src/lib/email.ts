@@ -37,7 +37,7 @@ export async function sendCollaborationInviteEmail({
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="text-align: center; margin-bottom: 2em;">
-        <img src="${appUrl}/Favely-logo.png" alt="Favely" style="width: 120px; height: 60px;" />
+        <img src="${appUrl}/Favely-logo.png" alt="Favely" style="width: 387px; height: 60px;" />
       </div>
       <h2>You're invited to collaborate!</h2>
       <p>${inviterName} has invited you to collaborate on the list "${listTitle}" on Favely.net.</p>
