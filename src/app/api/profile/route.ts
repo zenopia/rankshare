@@ -62,12 +62,17 @@ export async function GET() {
       // Get user data from Clerk
       const clerkUser = await clerkClient.users.getUser(userId);
       
+      // Generate a username if none exists (common with SSO)
+      const username = clerkUser.username || clerkUser.emailAddresses[0]?.emailAddress?.split('@')[0] || userId;
+      const displayName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || username;
+      
       // Create new user document
       user = await UserModel.create({
         clerkId: userId,
-        username: clerkUser.username || '',
-        displayName: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || clerkUser.username || '',
-        searchIndex: `${clerkUser.username || ''} ${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.toLowerCase(),
+        username,
+        displayName,
+        searchIndex: `${username} ${displayName}`.toLowerCase(),
+        email: clerkUser.emailAddresses[0]?.emailAddress,
         followersCount: 0,
         followingCount: 0,
         listCount: 0
