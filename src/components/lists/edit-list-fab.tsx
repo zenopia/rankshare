@@ -3,15 +3,21 @@
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 
 interface EditListFABProps {
   listId: string;
+  username: string;
 }
 
-export function EditListFAB({ listId }: EditListFABProps) {
+export function EditListFAB({ listId, username }: EditListFABProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentPath = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
+
   return (
     <Link 
-      href={`/lists/${listId}/edit`}
+      href={`/${username}/lists/${listId}/edit?from=${encodeURIComponent(currentPath)}`}
       className="fixed bottom-20 right-4 z-[60] sm:bottom-8 sm:right-8"
     >
       <Button 

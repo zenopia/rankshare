@@ -27,7 +27,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DraggableListItem } from "@/components/lists/draggable-list-item";
 
@@ -46,13 +45,25 @@ interface ListItem {
 
 export interface ListFormProps {
   mode?: 'create' | 'edit';
+  returnPath?: string;
   defaultValues?: {
     id: string;
     title: string;
     description?: string;
     category: ListCategory;
     privacy: 'public' | 'private';
-    items: ListItem[];
+    items: Array<{
+      id: string;
+      title: string;
+      comment?: string;
+      rank: number;
+      properties?: Array<{
+        id: string;
+        type?: 'text' | 'link';
+        label: string;
+        value: string;
+      }>;
+    }>;
   };
 }
 
@@ -77,7 +88,7 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProps) {
+export function ListFormContent({ defaultValues, mode = 'create', returnPath }: ListFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [items, setItems] = useState<ListItem[]>(() => {
@@ -161,7 +172,14 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
           : "List updated successfully!"
       );
 
-      router.push(`/lists/${responseData.id}`);
+      if (returnPath) {
+        router.push(returnPath);
+      } else {
+        const listPath = mode === 'create' 
+          ? `/lists/${responseData.id}`
+          : `/lists/${defaultValues?.id}`;
+        router.push(listPath);
+      }
       router.refresh();
     } catch (error) {
       console.error('Error saving list:', error);
@@ -250,7 +268,7 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
   };
 
   const removeItem = (id: string) => {
-    const itemIndex = items.findIndex(item => item.id === id);
+    const _itemIndex = items.findIndex(item => item.id === id);
     const oldRanks = items.reduce((acc, item) => {
       acc[item.id] = item.rank;
       return acc;
@@ -275,7 +293,7 @@ export function ListFormContent({ defaultValues, mode = 'create' }: ListFormProp
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="space-y-4">
           <FormField
             control={form.control}

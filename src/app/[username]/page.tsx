@@ -1,17 +1,16 @@
 import { SubLayout } from "@/components/layout/sub-layout";
 import { UserProfile } from "@/components/users/user-profile";
-import { ListSearchControls } from "@/components/lists/list-search-controls";
 import { ListGrid } from "@/components/lists/list-grid";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { connectToMongoDB } from "@/lib/db/client";
 import { serializeUser } from "@/lib/utils";
 import { notFound } from "next/navigation";
-import type { ListCategory } from "@/types/list";
 import type { MongoUserDocument } from "@/types/mongo";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
 import { getEnhancedLists } from "@/lib/actions/lists";
+import type { ListCategory } from "@/types/list";
 
 interface PageProps {
   params: {
@@ -48,21 +47,14 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       notFound();
     }
 
-    // Connect to MongoDB after confirming user exists in Clerk
-    try {
-      await connectToMongoDB();
-    } catch (error) {
-      console.error("MongoDB connection error:", error);
-      throw error;
-    }
-
-    // Get model instances
+    // Connect to MongoDB
+    await connectToMongoDB();
     const UserModel = await getUserModel();
     const UserProfileModel = await getUserProfileModel();
     const FollowModel = await getFollowModel();
 
     // Get user data from MongoDB
-    let mongoUser = (await UserModel.findOne({ 
+    const mongoUser = (await UserModel.findOne({ 
       $or: [
         { clerkId: profileUser.id },
         { username: { $regex: new RegExp(`^${username}$`, 'i') } }
@@ -71,6 +63,19 @@ export default async function UserPage({ params, searchParams }: PageProps) {
 
     // Get user profile data
     const userProfile = await UserProfileModel.findOne({ userId: mongoUser._id }).lean();
+
+    // Build filter for lists
+    const filter = { 
+      $or: [
+        { 'owner.clerkId': profileUser.id },
+        { 'owner.userId': mongoUser._id }
+      ],
+      privacy: 'public',
+      ...(searchParams.category ? { category: searchParams.category } : {})
+    };
+
+    // Get enhanced lists with owner data and last viewed timestamps
+    const { lists, lastViewedMap } = await getEnhancedLists(filter);
 
     // Get follow counts
     const [followerCount, followingCount] = await Promise.all([
@@ -102,19 +107,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       }
     };
 
-    // Build filter for lists
-    const filter = { 
-      $or: [
-        { 'owner.clerkId': profileUser.id },
-        { 'owner.userId': mongoUser._id }
-      ],
-      privacy: 'public',
-      ...(searchParams.category ? { category: searchParams.category } : {})
-    };
-
-    // Get enhanced lists with owner data and last viewed timestamps
-    const { lists, lastViewedMap } = await getEnhancedLists(filter);
-
     return (
       <SubLayout title={username}>
         <div className="px-0 md:px-6 lg:px-8 pb-8">
@@ -134,7 +126,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
               userData={serializedUser}
             />
             
-            <div className="space-y-8">
+            <div className="space-y-4">
               <ListGrid 
                 lists={lists}
                 searchParams={searchParams}

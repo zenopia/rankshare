@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   CompassIcon,
   ListChecks,
-  BookmarkIcon,
   Users2,
   UserPlus,
   Users,
@@ -16,10 +15,12 @@ import {
   ListIcon,
   MessageSquare,
   InfoIcon,
+  Pin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarProfile } from "@/components/layout/sidebar-profile";
 import type { NavItem } from "@/types/nav";
+import { useAuth, useUser } from "@clerk/nextjs";
 
 const menuItems: NavItem[] = [
   {
@@ -43,7 +44,7 @@ const menuItems: NavItem[] = [
     title: "Pinned Lists",
     href: "/pinned",
     public: false,
-    icon: BookmarkIcon,
+    icon: Pin,
     description: "View your pinned lists",
     indent: true
   },
@@ -62,38 +63,6 @@ const menuItems: NavItem[] = [
     icon: Users2,
     description: "View collaborative lists",
     indent: true
-  },
-  {
-    title: "People",
-    href: "/following",
-    public: false,
-    icon: Users,
-    description: "View people",
-    id: "people"
-  },
-  {
-    title: "Following",
-    href: "/following",
-    public: false,
-    icon: Users2,
-    description: "Users you follow",
-    indent: true,
-    id: "following"
-  },
-  {
-    title: "Followers",
-    href: "/followers",
-    public: false,
-    icon: UserPlus,
-    description: "Users following you",
-    indent: true
-  },
-  {
-    title: "Create List",
-    href: "/lists/create",
-    public: false,
-    icon: PlusCircle,
-    description: "Create a new list"
   },
   {
     title: "About",
@@ -121,6 +90,47 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
+  const { userId } = useAuth();
+  const { user } = useUser();
+
+  const peopleItems: NavItem[] = userId && user?.username ? [
+    {
+      title: "People",
+      href: `/${user.username}/following`,
+      public: false,
+      icon: Users,
+      description: "View people",
+      id: "people"
+    }
+  ] : [];
+
+  const followingItems: NavItem[] = userId && user?.username ? [
+    {
+      title: "Following",
+      href: `/${user.username}/following`,
+      public: false,
+      icon: Users2,
+      description: "Users you follow",
+      indent: true,
+      id: "following"
+    },
+    {
+      title: "Followers",
+      href: `/${user.username}/followers`,
+      public: false,
+      icon: UserPlus,
+      description: "Users following you",
+      indent: true
+    },
+    {
+      title: "Create List",
+      href: `/${user.username}/lists/create`,
+      public: false,
+      icon: PlusCircle,
+      description: "Create a new list",
+      primary: true
+    }
+  ] : [];
 
   return (
     <div
@@ -156,7 +166,7 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
         </div>
 
         <div className="flex-1 space-y-1 p-2 overflow-y-auto min-h-0">
-          {menuItems
+          {[...menuItems, ...peopleItems, ...followingItems]
             .filter(item => item.title !== 'Feedback' && item.title !== 'About')
             .map((item, index) => {
               const isActive = pathname === item.href;
@@ -166,7 +176,7 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
                   href={item.href}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent hover:text-accent-foreground",
-                    isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+                    isActive ? "bg-accent text-accent-foreground" : item.primary ? "bg-primary text-primary-foreground hover:bg-primary/90" : "text-muted-foreground",
                     item.indent && !collapsed && "ml-4"
                   )}
                 >

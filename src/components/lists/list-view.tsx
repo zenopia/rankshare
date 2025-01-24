@@ -197,7 +197,10 @@ export function ListView({
 
       {canEdit && (
         <div key="fab-section" className="fab-section">
-          <EditListFAB listId={list.id} />
+          <EditListFAB 
+            listId={list.id} 
+            username={list.owner.username}
+          />
         </div>
       )}
     </div>

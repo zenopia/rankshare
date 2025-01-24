@@ -81,7 +81,7 @@ export function UserCard({
   );
 
   if (linkToProfile) {
-    return <Link href={`/@${username}`}>{content}</Link>;
+    return <Link href={`/${username}`}>{content}</Link>;
   }
 
   return content;

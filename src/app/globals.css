@@ -112,7 +112,7 @@
 
   /* Semi-transparent FAB */
   .fab-button {
-    @apply bg-primary/80 hover:bg-primary/90 transition-colors;
+    @apply bg-primary/70 hover:bg-primary/90 transition-colors;
   }
 }
 

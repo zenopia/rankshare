@@ -9,4 +9,5 @@ export interface NavItem {
   indent?: boolean;
   id?: string;
   showWhenSignedOut?: boolean;
+  primary?: boolean;
 } 
