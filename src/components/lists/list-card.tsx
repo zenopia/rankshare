@@ -5,30 +5,23 @@ import { Lock, Eye, Pin, Plus, Pen } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { CategoryBadge } from "@/components/lists/category-badge";
 import { formatDistanceToNow } from "date-fns";
-import type { List } from "@/types/list";
+import type { EnhancedList } from "@/types/list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 interface ListCardProps {
-  list: List;
+  list: EnhancedList;
   showPrivacyBadge?: boolean;
   lastViewedAt?: Date;
   _isFollowing?: boolean;
-  ownerData?: {
-    id: string;
-    username: string;
-    displayName: string;
-    imageUrl: string | null;
-  };
 }
 
 export function ListCard({
   list,
   showPrivacyBadge = true,
   lastViewedAt,
-  _isFollowing,
-  ownerData
+  _isFollowing
 }: ListCardProps) {
   const currentPath = usePathname();
 
@@ -61,12 +54,12 @@ export function ListCard({
 
           <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
-              <AvatarImage src={ownerData?.imageUrl || undefined} alt={ownerData?.username || ''} />
-              <AvatarFallback>{ownerData?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+              <AvatarImage src={list.owner.imageUrl || undefined} alt={list.owner.username || ''} />
+              <AvatarFallback>{list.owner.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
             </Avatar>
             <div className="flex items-center gap-1.5">
-              <span className="text-foreground">{ownerData?.displayName || ownerData?.username || 'Unknown User'}</span>
-              <span className="text-muted-foreground">@{ownerData?.username || 'unknown'}</span>
+              <span className="text-foreground">{list.owner.displayName || list.owner.username}</span>
+              <span className="text-muted-foreground">@{list.owner.username}</span>
             </div>
           </div>
 

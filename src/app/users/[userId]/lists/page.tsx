@@ -2,12 +2,11 @@ import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 import { SubLayout } from "@/components/layout/sub-layout";
 import { ListGrid } from "@/components/lists/list-grid";
-import { getListModel } from "@/lib/db/models-v2/list";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { connectToMongoDB } from "@/lib/db/client";
-import type { MongoListDocument, MongoUserDocument } from "@/types/mongo";
-import { serializeLists } from "@/lib/utils";
+import type { MongoUserDocument } from "@/types/mongo";
+import { getEnhancedLists } from "@/lib/actions/lists";
 
 interface SearchParams {
   q?: string;
@@ -24,7 +23,6 @@ interface PageProps {
 
 export default async function UserListsPage({ params, searchParams }: PageProps) {
   await connectToMongoDB();
-  const ListModel = await getListModel();
   const FollowModel = await getFollowModel();
   const UserModel = await getUserModel();
 
@@ -70,14 +68,11 @@ export default async function UserListsPage({ params, searchParams }: PageProps)
     ...categoryFilter
   };
 
-  // Get lists
-  const lists = await ListModel.find(filter).lean() as unknown as MongoListDocument[];
-
-  // Serialize lists
-  const serializedLists = serializeLists(lists);
+  // Get enhanced lists with owner data and last viewed timestamps
+  const { lists, lastViewedMap } = await getEnhancedLists(filter);
 
   // Sort lists
-  const sortedLists = [...serializedLists].sort((a, b) => {
+  const sortedLists = [...lists].sort((a, b) => {
     switch (searchParams.sort) {
       case 'views':
         return (b.stats.viewCount || 0) - (a.stats.viewCount || 0);
@@ -100,6 +95,7 @@ export default async function UserListsPage({ params, searchParams }: PageProps)
             lists={sortedLists}
             searchParams={searchParams}
             isFollowing={isFollowing}
+            lastViewedMap={lastViewedMap}
           />
         </div>
       </div>

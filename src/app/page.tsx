@@ -1,10 +1,7 @@
 import { MainLayout } from "@/components/layout/main-layout";
 import { ListGrid } from "@/components/lists/list-grid";
 import { ListTabs } from "@/components/lists/list-tabs";
-import { getListModel } from "@/lib/db/models-v2/list";
-import { connectToDatabase } from "@/lib/db/mongodb";
-import { MongoListDocument } from "@/types/mongo";
-import { serializeLists } from "@/lib/utils";
+import { getEnhancedLists } from "@/lib/actions/lists";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
 import { SessionRedirect } from "@/components/home/session-redirect";
 
@@ -19,9 +16,6 @@ interface PageProps {
 }
 
 export default async function HomePage({ searchParams }: PageProps) {
-  await connectToDatabase();
-  const ListModel = await getListModel();
-
   // Build base query
   const baseQuery = {
     privacy: 'public'
@@ -47,14 +41,11 @@ export default async function HomePage({ searchParams }: PageProps) {
     ...categoryFilter
   };
 
-  // Get lists
-  const lists = await ListModel.find(filter).lean() as unknown as MongoListDocument[];
-
-  // Serialize lists
-  const serializedLists = serializeLists(lists);
+  // Get enhanced lists with owner data and last viewed timestamps
+  const { lists, lastViewedMap } = await getEnhancedLists(filter);
 
   // Sort lists
-  const sortedLists = [...serializedLists].sort((a, b) => {
+  const sortedLists = [...lists].sort((a, b) => {
     switch (searchParams.sort) {
       case 'views':
         return (b.stats.viewCount || 0) - (a.stats.viewCount || 0);
@@ -79,6 +70,7 @@ export default async function HomePage({ searchParams }: PageProps) {
             <ListGrid 
               lists={sortedLists}
               searchParams={searchParams}
+              lastViewedMap={lastViewedMap}
             />
           </div>
         </div>

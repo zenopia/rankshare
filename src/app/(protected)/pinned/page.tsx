@@ -2,12 +2,11 @@ import { auth } from "@clerk/nextjs/server";
 import { MainLayout } from "@/components/layout/main-layout";
 import { ListGrid } from "@/components/lists/list-grid";
 import { ListTabs } from "@/components/lists/list-tabs";
-import { getListModel } from "@/lib/db/models-v2/list";
 import { getPinModel } from "@/lib/db/models-v2/pin";
 import { connectToMongoDB } from "@/lib/db/client";
-import { MongoListDocument } from "@/types/mongo";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
-import { serializeList } from "@/lib/utils";
+import { getEnhancedLists } from "@/lib/actions/lists";
+import { Types } from "mongoose";
 
 interface SearchParams {
   q?: string;
@@ -24,29 +23,19 @@ export default async function PinnedPage({ searchParams }: PageProps) {
   if (!userId) return null;
 
   await connectToMongoDB();
-  const ListModel = await getListModel();
   const PinModel = await getPinModel();
 
   // Get all pins for the user
   const pins = await PinModel.find({ clerkId: userId }).lean();
   const listIds = pins.map(pin => pin.listId);
 
-  // Create a map of list IDs to last viewed timestamps
-  const lastViewedMap = pins.reduce((acc, pin) => {
-    acc[pin.listId.toString()] = pin.lastViewedAt;
-    return acc;
-  }, {} as Record<string, Date>);
-
-  // Get all pinned lists
-  const lists = await ListModel.find({
-    _id: { $in: listIds }
-  }).lean() as unknown as MongoListDocument[];
-
-  // Serialize lists
-  const serializedLists = lists.map(serializeList);
+  // Get enhanced lists with owner data
+  const { lists } = await getEnhancedLists({
+    _id: { $in: listIds.map(id => new Types.ObjectId(id.toString())) }
+  });
 
   // Filter by search query
-  const filteredLists = serializedLists.filter(list => {
+  const filteredLists = lists.filter(list => {
     if (!searchParams.q) return true;
     return list.title.toLowerCase().includes(searchParams.q.toLowerCase());
   });
@@ -72,6 +61,12 @@ export default async function PinnedPage({ searchParams }: PageProps) {
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }
   });
+
+  // Create a map of list IDs to last viewed timestamps
+  const lastViewedMap = pins.reduce((acc, pin) => {
+    acc[pin.listId.toString()] = pin.lastViewedAt;
+    return acc;
+  }, {} as Record<string, Date>);
 
   return (
     <MainLayout>

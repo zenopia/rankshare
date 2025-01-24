@@ -91,3 +91,12 @@ export interface ItemDetails {
     value: string;
   }>;
 }
+
+export interface EnhancedListOwner extends ListOwner {
+  displayName: string;
+  imageUrl: string | null;
+}
+
+export interface EnhancedList extends Omit<List, 'owner'> {
+  owner: EnhancedListOwner;
+}

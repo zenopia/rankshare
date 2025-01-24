@@ -1,12 +1,10 @@
-import { FilterQuery } from 'mongoose';
-import { auth } from "@clerk/nextjs/server";
 import { MainLayout } from "@/components/layout/main-layout";
 import { ListGrid } from "@/components/lists/list-grid";
-import { ListTabs } from "@/components/lists/list-tabs";
+import { SearchTabs } from "@/components/search/search-tabs";
+import { SearchInput } from "@/components/search/search-input";
+import { FilterSheet } from "@/components/search/filter-sheet";
 import { getEnhancedLists } from "@/lib/actions/lists";
 import type { ListCategory } from "@/types/list";
-import type { MongoListDocument } from "@/types/mongo";
-import { CreateListFAB } from "@/components/lists/create-list-fab";
 
 interface SearchParams {
   q?: string;
@@ -18,20 +16,31 @@ interface PageProps {
   searchParams: SearchParams;
 }
 
-export default async function MyListsPage({ searchParams }: PageProps) {
-  const { userId } = auth();
-  if (!userId) {
-    return null;
-  }
-
-  // Build filter
-  const filter: FilterQuery<MongoListDocument> = {
-    'owner.clerkId': userId
+export default async function SearchListsPage({ searchParams }: PageProps) {
+  // Build base query
+  const baseQuery = {
+    privacy: 'public'
   };
 
-  if (searchParams.category) {
-    filter.category = searchParams.category;
-  }
+  // Add search filter if query exists
+  const searchFilter = searchParams.q ? {
+    $or: [
+      { title: { $regex: searchParams.q, $options: 'i' } },
+      { description: { $regex: searchParams.q, $options: 'i' } }
+    ]
+  } : {};
+
+  // Add category filter if specified
+  const categoryFilter = searchParams.category ? {
+    category: searchParams.category
+  } : {};
+
+  // Combine all filters
+  const filter = {
+    ...baseQuery,
+    ...searchFilter,
+    ...categoryFilter
+  };
 
   // Get enhanced lists with owner data and last viewed timestamps
   const { lists, lastViewedMap } = await getEnhancedLists(filter);
@@ -55,17 +64,30 @@ export default async function MyListsPage({ searchParams }: PageProps) {
   return (
     <MainLayout>
       <div className="relative">
-        <ListTabs />
+        <SearchTabs />
         <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
-          <div className="max-w-7xl mx-auto">
+          <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <SearchInput 
+                  placeholder="Search lists..." 
+                  defaultValue={searchParams.q}
+                />
+              </div>
+              <FilterSheet 
+                defaultCategory={searchParams.category}
+                defaultSort={searchParams.sort}
+              />
+            </div>
+
             <ListGrid 
               lists={sortedLists}
               searchParams={searchParams}
+              showPrivacyBadge
               lastViewedMap={lastViewedMap}
             />
           </div>
         </div>
-        <CreateListFAB />
       </div>
     </MainLayout>
   );
