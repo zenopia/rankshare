@@ -24,20 +24,15 @@ export default async function ProtectedLayout({
     return <>{children}</>;
   }
 
-  // Check if profile is complete
+  // Check if user exists
   await connectToMongoDB();
   const UserModel = await getUserModel();
-  const UserProfileModel = await getUserProfileModel();
 
   const user = await UserModel.findOne({ clerkId: userId });
   if (!user) {
     redirect("/sign-in");
   }
 
-  const profile = await UserProfileModel.findOne({ userId: user._id });
-  if (!profile?.profileComplete) {
-    redirect(`/profile?returnUrl=${encodeURIComponent(pathname)}`);
-  }
-
+  // No longer checking for profile completion
   return <>{children}</>;
 } 

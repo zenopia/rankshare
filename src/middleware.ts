@@ -120,7 +120,7 @@ export default authMiddleware({
         const data = await profileRes.json();
         console.log('Profile data:', data);
         
-        // If profile doesn't exist or is not complete, redirect to profile page
+        // If profile doesn't exist, redirect to profile page to create one
         if (!data.profile) {
           console.log('No profile found, redirecting to profile page');
           const profileUrl = new URL('/profile', req.url);
@@ -132,7 +132,7 @@ export default authMiddleware({
           return response;
         }
 
-        // If profile exists, proceed normally regardless of completion status
+        // Always proceed if profile exists, regardless of completion status
         const response = NextResponse.next();
         Object.entries(securityHeaders).forEach(([key, value]) => {
           if (value) response.headers.set(key, value);
