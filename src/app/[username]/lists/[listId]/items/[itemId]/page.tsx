@@ -7,19 +7,20 @@ import { getListViewModel } from "@/lib/db/models-v2/list-view";
 import { connectToMongoDB } from "@/lib/db/client";
 import { notFound } from "next/navigation";
 import type { EnhancedList, ListCategory } from "@/types/list";
-import { ListPageContent } from "./list-page-content";
+import { ItemView } from "@/components/items/item-view";
 
 interface PageProps {
   params: {
     username: string;
     listId: string;
+    itemId: string;
   };
-  searchParams: {
+  _searchParams: {
     from?: string;
   };
 }
 
-export default async function ListPage({ params, searchParams }: PageProps) {
+export default async function ItemPage({ params, _searchParams }: PageProps) {
   try {
     const { userId } = await auth();
 
@@ -62,6 +63,12 @@ export default async function ListPage({ params, searchParams }: PageProps) {
 
     // Verify the list belongs to the requested user
     if (list.owner.clerkId !== profileUser.id) {
+      notFound();
+    }
+
+    // Find the item by rank
+    const item = list.items?.find(item => item.rank === parseInt(params.itemId));
+    if (!item) {
       notFound();
     }
 
@@ -134,38 +141,21 @@ export default async function ListPage({ params, searchParams }: PageProps) {
       }
     };
 
-    // Get follow status if logged in
-    const followStatus = userId ? await FollowModel.findOne({
-      followerId: userId,
-      followingId: profileUser.id
-    }).lean() : null;
-
-    // Check if user is a collaborator
-    const isCollaborator = userId ? enhancedList.collaborators?.some(
-      c => c.clerkId === userId && c.status === 'accepted'
-    ) ?? false : false;
-
-    // Check if list is pinned by current user
-    const pinDoc = userId ? await PinModel.findOne({
-      listId: params.listId,
-      clerkId: userId
-    }).lean() : null;
-
-    // Get return path from query params or default to user's profile
-    const returnPath = searchParams.from || `/${username}`;
+    // Get the enhanced item
+    const enhancedItem = enhancedList.items.find(i => i.rank === parseInt(params.itemId));
+    if (!enhancedItem) {
+      notFound();
+    }
 
     return (
-      <ListPageContent
+      <ItemView
         list={enhancedList}
+        item={enhancedItem}
         isOwner={userId === profileUser.id}
-        isPinned={!!pinDoc}
-        isFollowing={!!followStatus}
-        isCollaborator={isCollaborator}
-        returnPath={returnPath}
       />
     );
   } catch (error) {
-    console.error("Error in ListPage:", error);
+    console.error("Error in ItemPage:", error);
     notFound();
   }
 } 

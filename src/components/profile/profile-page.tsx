@@ -28,10 +28,10 @@ type PrivacySettingKey = 'showBio' | 'showLocation' | 'showDateOfBirth' | 'showG
 
 // Remove validation schema since fields are no longer required
 const profileSchema = z.object({
-  location: z.string(),
-  dateOfBirth: z.date(),
-  gender: z.enum(['male', 'female', 'other', 'prefer-not-to-say']),
-  livingStatus: z.enum(['single', 'couple', 'family', 'shared', 'other']),
+  location: z.string().optional(),
+  dateOfBirth: z.date().optional(),
+  gender: z.enum(['male', 'female', 'other', 'prefer-not-to-say']).optional(),
+  livingStatus: z.enum(['single', 'couple', 'family', 'shared', 'other']).optional(),
 });
 
 export function ProfilePage() {
