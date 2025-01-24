@@ -44,36 +44,7 @@ export function Navbar({ title }: NavbarProps) {
               <MobileNav />
             </div>
             
-            <div className="hidden md:flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "gap-2",
-                  pathname === "/" && "bg-accent"
-                )}
-                asChild
-              >
-                <Link href="/">
-                  <Home className="h-4 w-4" />
-                  Home
-                </Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "gap-2",
-                  pathname.startsWith('/search') && "bg-accent"
-                )}
-                asChild
-              >
-                <Link href="/search/lists">
-                  <Search className="h-4 w-4" />
-                  Search
-                </Link>
-              </Button>
-            </div>
+            
           </div>
 
           <div className="absolute left-1/2 -translate-x-1/2">

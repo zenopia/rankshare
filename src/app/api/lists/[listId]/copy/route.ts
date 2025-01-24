@@ -70,6 +70,7 @@ export async function POST(
 
     return NextResponse.json({
       id: newList._id,
+      username: user.username,
       message: "List copied successfully"
     });
   } catch (error) {

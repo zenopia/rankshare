@@ -293,239 +293,241 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input
-                    placeholder="List title"
-                    className="text-lg font-medium h-12"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="flex items-center justify-between gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="space-y-4">
             <FormField
               control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="movies">Movies</SelectItem>
-                      <SelectItem value="tv-shows">TV Shows</SelectItem>
-                      <SelectItem value="books">Books</SelectItem>
-                      <SelectItem value="restaurants">Restaurants</SelectItem>
-                      <SelectItem value="recipes">Recipes</SelectItem>
-                      <SelectItem value="things-to-do">Things to Do</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="privacy"
+              name="title"
               render={({ field }) => (
                 <FormItem>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="public">Public</SelectItem>
-                      <SelectItem value="private">Private</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <Input
+                      placeholder="List title"
+                      className="text-lg font-medium h-12"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex items-center justify-between gap-4">
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="movies">Movies</SelectItem>
+                        <SelectItem value="tv-shows">TV Shows</SelectItem>
+                        <SelectItem value="books">Books</SelectItem>
+                        <SelectItem value="restaurants">Restaurants</SelectItem>
+                        <SelectItem value="recipes">Recipes</SelectItem>
+                        <SelectItem value="things-to-do">Things to Do</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="privacy"
+                render={({ field }) => (
+                  <FormItem>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="public">Public</SelectItem>
+                        <SelectItem value="private">Private</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Description (optional)"
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
 
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Textarea
-                    placeholder="Description (optional)"
-                    className="resize-none"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="mt-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-medium">Items</h3>
-            <div className="flex gap-2">
-              <Sheet open={quickAddOpen} onOpenChange={setQuickAddOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    Quick Add
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="bottom" className="h-[50vh]">
-                  <SheetHeader>
-                    <SheetTitle>Quick Add Items</SheetTitle>
-                    <SheetDescription>
-                      Enter one item per line
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="mt-4 space-y-4">
-                    <Textarea
-                      className="min-h-[200px]"
-                      placeholder={`Item 1
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-medium">Items</h3>
+              <div className="flex gap-2">
+                <Sheet open={quickAddOpen} onOpenChange={setQuickAddOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      Quick Add
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-[50vh]">
+                    <SheetHeader>
+                      <SheetTitle>Quick Add Items</SheetTitle>
+                      <SheetDescription>
+                        Enter one item per line
+                      </SheetDescription>
+                    </SheetHeader>
+                    <div className="mt-4 space-y-4">
+                      <Textarea
+                        className="min-h-[200px]"
+                        placeholder={`Item 1
 Item 2
 Item 3`}
-                      value={quickAddText}
-                      onChange={(e) => setQuickAddText(e.target.value)}
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => setQuickAddOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={() => quickAddItems(quickAddText)}
-                        disabled={!quickAddText.trim()}
-                      >
-                        Add Items
-                      </Button>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-              
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => addItem()}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Item
-              </Button>
-            </div>
-          </div>
-
-          <DragDropContext onDragEnd={onDragEnd}>
-            <Droppable droppableId="items">
-              {(provided) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="space-y-2"
-                >
-                  {items.map((item, index) => (
-                    <Draggable
-                      key={item.id}
-                      draggableId={item.id}
-                      index={index}
-                    >
-                      {(provided, _snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
+                        value={quickAddText}
+                        onChange={(e) => setQuickAddText(e.target.value)}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setQuickAddOpen(false)}
                         >
-                          <DraggableListItem
-                            item={item}
-                            dragHandleProps={provided.dragHandleProps}
-                            onUpdate={(updates) => updateItem(item.id, updates)}
-                            onRemove={() => removeItem(item.id)}
-                            disabled={isSubmitting}
-                          />
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
-        </div>
-
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
-          <div className="flex items-center justify-between max-w-2xl mx-auto">
-            <div className="flex items-center gap-4">
-              {mode === 'edit' && (
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={() => quickAddItems(quickAddText)}
+                          disabled={!quickAddText.trim()}
+                        >
+                          Add Items
+                        </Button>
+                      </div>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+                
                 <Button
                   type="button"
-                  variant="destructive"
+                  variant="outline"
                   size="sm"
-                  disabled={isSubmitting}
-                  onClick={async () => {
-                    if (!defaultValues?.id) return;
-                    if (!confirm('Are you sure you want to delete this list? This action cannot be undone.')) return;
-
-                    setIsSubmitting(true);
-                    try {
-                      const response = await fetch(`/api/lists/${defaultValues.id}`, {
-                        method: 'DELETE'
-                      });
-
-                      if (!response.ok) {
-                        throw new Error('Failed to delete list');
-                      }
-
-                      toast.success('List deleted successfully');
-                      router.push('/my-lists');
-                      router.refresh();
-                    } catch (error) {
-                      console.error('Error deleting list:', error);
-                      toast.error('Failed to delete list');
-                    } finally {
-                      setIsSubmitting(false);
-                    }
-                  }}
+                  onClick={() => addItem()}
                 >
-                  Delete List
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Item
                 </Button>
-              )}
+              </div>
             </div>
 
-            <Button
-              type="submit"
-              disabled={isSubmitting || items.length === 0}
-              className="min-w-[120px]"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : mode === 'create' ? (
-                'Create List'
-              ) : (
-                'Save Changes'
-              )}
-            </Button>
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="items">
+                {(provided) => (
+                  <div
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="space-y-2"
+                  >
+                    {items.map((item, index) => (
+                      <Draggable
+                        key={item.id}
+                        draggableId={item.id}
+                        index={index}
+                      >
+                        {(provided, _snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                          >
+                            <DraggableListItem
+                              item={item}
+                              dragHandleProps={provided.dragHandleProps}
+                              onUpdate={(updates) => updateItem(item.id, updates)}
+                              onRemove={() => removeItem(item.id)}
+                              disabled={isSubmitting}
+                            />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
+          </div>
+
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
+            <div className="flex items-center justify-between max-w-2xl mx-auto">
+              <div className="flex items-center gap-4">
+                {mode === 'edit' && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    disabled={isSubmitting}
+                    onClick={async () => {
+                      if (!defaultValues?.id) return;
+                      if (!confirm('Are you sure you want to delete this list? This action cannot be undone.')) return;
+
+                      setIsSubmitting(true);
+                      try {
+                        const response = await fetch(`/api/lists/${defaultValues.id}`, {
+                          method: 'DELETE'
+                        });
+
+                        if (!response.ok) {
+                          throw new Error('Failed to delete list');
+                        }
+
+                        toast.success('List deleted successfully');
+                        router.push('/my-lists');
+                        router.refresh();
+                      } catch (error) {
+                        console.error('Error deleting list:', error);
+                        toast.error('Failed to delete list');
+                      } finally {
+                        setIsSubmitting(false);
+                      }
+                    }}
+                  >
+                    Delete List
+                  </Button>
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isSubmitting || items.length === 0}
+                className="min-w-[120px]"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : mode === 'create' ? (
+                  'Create List'
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </form>

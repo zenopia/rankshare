@@ -1,5 +1,6 @@
-import { clerkClient } from "@clerk/nextjs/server";
+import { clerkClient, auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
+import { SubLayout } from "@/components/layout/sub-layout";
 import { MainLayout } from "@/components/layout/main-layout";
 import { UserList } from "@/components/users/user-list";
 import { getEnhancedUsers } from "@/lib/actions/users";
@@ -15,6 +16,7 @@ interface PageProps {
 }
 
 export default async function UserFollowersPage({ params }: PageProps) {
+  const { userId } = auth();
   // Remove @ if present and decode the username
   const username = decodeURIComponent(params.username).replace(/^@/, '');
 
@@ -52,16 +54,27 @@ export default async function UserFollowersPage({ params }: PageProps) {
   // Format display name
   const displayName = formatDisplayName(profileUser.firstName, profileUser.lastName, username);
 
-  return (
-    <MainLayout title={{ text: displayName, subtext: `${follows.length} Followers` }}>
-      <div className="relative">
-        <PeopleTabs username={username} />
-        <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
-          <div className="max-w-2xl mx-auto">
-            <UserList users={users} />
-          </div>
+  // Check if viewing own profile
+  const isOwnProfile = userId === profileUser.id;
+
+  const PageContent = (
+    <div className="relative">
+      <PeopleTabs username={username} />
+      <div className="px-4 md:px-6 lg:px-8 pt-4">
+        <div className="max-w-2xl mx-auto">
+          <UserList users={users} />
         </div>
       </div>
+    </div>
+  );
+
+  return isOwnProfile ? (
+    <MainLayout>
+      {PageContent}
     </MainLayout>
+  ) : (
+    <SubLayout title={displayName} subtext={`${follows.length} Followers`}>
+      {PageContent}
+    </SubLayout>
   );
 } 

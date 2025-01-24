@@ -67,47 +67,51 @@ export function ListSearchControls({ defaultCategory, defaultSort, showSearch = 
   return (
     <div>
       <div className="flex gap-4 items-center">
-        <Select
-          defaultValue={defaultCategory}
-          onValueChange={onCategoryChange}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {LIST_CATEGORIES.map((category) => (
-              <SelectItem key={category} value={category}>
-                {category === 'tv-shows' ? 'TV Shows' : 
-                 category === 'things-to-do' ? 'Things to do' :
-                 category.charAt(0).toUpperCase() + category.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex-1">
+          <Select
+            defaultValue={defaultCategory}
+            onValueChange={onCategoryChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {LIST_CATEGORIES.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category === 'tv-shows' ? 'TV Shows' : 
+                   category === 'things-to-do' ? 'Things to do' :
+                   category.charAt(0).toUpperCase() + category.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select
-          defaultValue={defaultSort}
-          onValueChange={onSortChange}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex-1">
+          <Select
+            defaultValue={defaultSort}
+            onValueChange={onSortChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         {showSearch && (
           <Button
             variant="outline"
             size="icon"
             onClick={toggleSearch}
-            className="ml-auto h-10 w-10 border-2"
+            className="h-10 w-10 border-2 shrink-0"
             aria-label="Toggle search"
           >
             <Search className="h-4 w-4" />

@@ -27,10 +27,11 @@ function FeedbackButton() {
 interface SubLayoutProps {
   children: React.ReactNode;
   title?: string;
+  subtext?: string;
   hideBottomNav?: boolean;
 }
 
-export function SubLayout({ children, title = "Page", hideBottomNav }: SubLayoutProps) {
+export function SubLayout({ children, title = "Page", subtext, hideBottomNav }: SubLayoutProps) {
   const router = useRouter();
 
   return (
@@ -45,13 +46,22 @@ export function SubLayout({ children, title = "Page", hideBottomNav }: SubLayout
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          {title && <h1 className="text-lg font-semibold">{title}</h1>}
+          {title && (
+            <div>
+              <h1 className="text-lg font-semibold leading-tight">{title}</h1>
+              {subtext && (
+                <p className="text-sm text-muted-foreground leading-tight">
+                  {subtext}
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <FeedbackButton />
         </div>
       </div>
-      <main className="flex-1 px-4 md:px-6 lg:px-8 py-8">
+      <main className="flex-1">
         {children}
       </main>
       {!hideBottomNav && <ConditionalBottomNav />}

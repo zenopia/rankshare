@@ -109,7 +109,7 @@ export default async function UserPage({ params, searchParams }: PageProps) {
 
     return (
       <SubLayout title={username}>
-        <div className="px-0 md:px-6 lg:px-8 pb-8">
+        <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
           <div className="max-w-4xl mx-auto space-y-8">
             <UserProfile 
               username={profileUser.username || ""}

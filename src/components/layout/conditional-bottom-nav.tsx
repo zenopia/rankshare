@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Search, Users } from 'lucide-react';
+import { Home, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser } from '@clerk/nextjs';
 
@@ -14,7 +14,6 @@ export function ConditionalBottomNav() {
   // Consider these paths as "home" routes
   const isHomeRoute = ['/', '/pinned', '/my-lists', '/collab'].includes(pathname);
   const isPeopleRoute = pathname.includes('/following') || pathname.includes('/followers');
-  const isSearchRoute = pathname.startsWith('/search');
 
   // Hide bottom nav on list view pages, profile, auth pages, and other pages with their own bottom nav
   if (
@@ -26,7 +25,7 @@ export function ConditionalBottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] sm:hidden">
-      <div className="grid h-full grid-cols-3">
+      <div className="grid h-full grid-cols-2">
         <Link
           href="/"
           className={cn(
@@ -50,18 +49,6 @@ export function ConditionalBottomNav() {
         >
           <Users className="h-5 w-5" />
           <span className="text-xs">People</span>
-        </Link>
-        <Link
-          href="/search/lists"
-          className={cn(
-            "flex flex-col items-center justify-center gap-1 border-t-2",
-            isSearchRoute
-              ? "text-primary border-primary"
-              : "text-muted-foreground border-transparent"
-          )}
-        >
-          <Search className="h-5 w-5" />
-          <span className="text-xs">Search</span>
         </Link>
       </div>
     </nav>

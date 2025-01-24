@@ -28,13 +28,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 // Additional nav items only for mobile
 const mobileOnlyNavItems: NavItem[] = [
   {
-    title: "Search",
-    href: "/search",
-    public: true,
-    icon: Search,
-    description: "Search for lists"
-  },
-  {
     title: "Lists",
     href: "/",
     public: true,
@@ -168,12 +161,6 @@ export function MobileNav() {
       href: "/",
       icon: Home,
       description: "View your feed",
-    },
-    {
-      title: "Search",
-      href: "/search",
-      icon: Search,
-      description: "Search for lists",
     },
     {
       title: "Pinned",
