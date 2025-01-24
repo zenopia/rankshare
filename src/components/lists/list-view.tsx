@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { List, ListItem } from "@/types/list";
+import { EnhancedList, ListItem } from "@/types/list";
 import { CategoryBadge } from "@/components/lists/category-badge";
 import ListActionBar from "@/components/lists/list-action-bar";
 import { Eye, Pin, Copy, Lock, Pen, Plus } from "lucide-react";
@@ -13,7 +13,7 @@ import { CollaboratorManagement } from "@/components/lists/collaborator-manageme
 import { useAuth } from "@clerk/nextjs";
 
 interface ListViewProps {
-  list: List;
+  list: EnhancedList;
   isOwner: boolean;
   isPinned: boolean;
   isFollowing: boolean;
@@ -55,7 +55,9 @@ export function ListView({
     <div key="root" className="space-y-8">
       <div key="user-section" className="user-section">
         <UserCard
-          username={list.owner.clerkId}
+          username={list.owner.username}
+          displayName={list.owner.displayName}
+          imageUrl={list.owner.imageUrl}
           isFollowing={isFollowing}
           isOwner={isOwner}
         />
@@ -195,7 +197,10 @@ export function ListView({
 
       {canEdit && (
         <div key="fab-section" className="fab-section">
-          <EditListFAB listId={list.id} />
+          <EditListFAB 
+            listId={list.id} 
+            username={list.owner.username}
+          />
         </div>
       )}
     </div>

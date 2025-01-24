@@ -1,49 +1,30 @@
 "use client";
 
-import dynamic from 'next/dynamic';
-import type { ListCategory } from '@/types/list';
+import { List } from "@/types/list";
+import { ListFormContent } from "./list-form-content";
 
-export interface ListFormProps {
-  mode?: 'create' | 'edit';
-  defaultValues?: {
-    id: string;
-    title: string;
-    description?: string;
-    category: ListCategory;
-    privacy: 'public' | 'private';
-    items: Array<{
-      id: string;
-      title: string;
-      comment?: string;
-      rank: number;
-      properties?: Array<{
-        type?: 'text' | 'link';
-        label: string;
-        value: string;
-      }>;
-    }>;
-  };
+interface ListFormProps {
+  mode: 'create' | 'edit';
+  defaultValues?: List;
+  returnPath?: string;
 }
 
-const LoadingForm = () => (
-  <div className="space-y-6 animate-pulse">
-    <div className="space-y-4">
-      <div className="h-10 bg-gray-200 rounded"></div>
-      <div className="h-10 bg-gray-200 rounded"></div>
-      <div className="h-10 bg-gray-200 rounded"></div>
-      <div className="h-32 bg-gray-200 rounded"></div>
-    </div>
-    <div className="space-y-4">
-      <div className="h-10 bg-gray-200 rounded"></div>
-      <div className="h-10 bg-gray-200 rounded"></div>
-    </div>
-  </div>
-);
+export function ListForm({ mode, defaultValues, returnPath }: ListFormProps) {
+  // Only pass the form-relevant fields to ListFormContent
+  const formValues = defaultValues && {
+    id: defaultValues.id,
+    title: defaultValues.title,
+    description: defaultValues.description,
+    category: defaultValues.category,
+    privacy: defaultValues.privacy,
+    items: defaultValues.items || []
+  };
 
-export const ListForm = dynamic<ListFormProps>(
-  () => import('./list-form-content').then((mod) => mod.ListFormContent),
-  {
-    ssr: false,
-    loading: () => <LoadingForm />
-  }
-); 
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <ListFormContent mode={mode} defaultValues={formValues} returnPath={returnPath} />
+    </div>
+  );
+}
+
+export default ListForm; 

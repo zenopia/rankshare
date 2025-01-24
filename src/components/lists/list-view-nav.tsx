@@ -53,9 +53,9 @@ export function ListViewNav({
 
   const handleBack = () => {
     if (returnPath) {
-      router.push(returnPath)
+      router.push(decodeURIComponent(returnPath))
     } else {
-      router.push('/')
+      router.back()
     }
   }
 

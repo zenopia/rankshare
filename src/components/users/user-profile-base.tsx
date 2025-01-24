@@ -120,13 +120,13 @@ export function UserProfileBase({
             {showStats && stats && (
               <div className="flex gap-4 mt-2">
                 {stats.followers !== undefined && (
-                  <Link href={`/@${username}/followers`} className="text-sm">
+                  <Link href={`/${username}/followers`} className="text-sm">
                     <span className="font-semibold">{stats.followers}</span>{" "}
                     <span className="text-muted-foreground">Followers</span>
                   </Link>
                 )}
                 {stats.following !== undefined && (
-                  <Link href={`/@${username}/following`} className="text-sm">
+                  <Link href={`/${username}/following`} className="text-sm">
                     <span className="font-semibold">{stats.following}</span>{" "}
                     <span className="text-muted-foreground">Following</span>
                   </Link>
@@ -203,7 +203,7 @@ export function UserProfileBase({
   if (linkToProfile) {
     return (
       <Link
-        href={variant === "compact" ? "/profile" : `/@${username}`}
+        href={variant === "compact" ? "/profile" : `/${username}`}
         className={cn(
           "block",
           onClick && "cursor-pointer",

@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getListModel, ListDocument, ListCollaborator } from "@/lib/db/models-v2/list";
+import { getEnhancedLists } from "@/lib/actions/lists";
+import { Types } from "mongoose";
 
 interface ListItem {
   title: string;
@@ -68,44 +70,18 @@ export async function GET(
     }
 
     // Only increment view count if viewer is not the owner
-    let updatedList;
     if (list.owner.clerkId !== requestUserId) {
-      const updated = await ListModel.findByIdAndUpdate(
+      await ListModel.findByIdAndUpdate(
         listId,
-        { $inc: { 'stats.viewCount': 1 } },
-        { new: true }
+        { $inc: { 'stats.viewCount': 1 } }
       ).lean();
-
-      if (!updated) {
-        return NextResponse.json(
-          { error: "Failed to update view count" },
-          { status: 500 }
-        );
-      }
-      updatedList = updated;
-    } else {
-      updatedList = list;
     }
 
-    // Convert _id to string for the response
-    const { _id, ...rest } = updatedList;
-    const responseList = {
-      ...rest,
-      id: _id.toString(),
-      createdAt: updatedList.createdAt?.toISOString(),
-      updatedAt: updatedList.updatedAt?.toISOString(),
-      editedAt: updatedList.editedAt?.toISOString(),
-      owner: {
-        ...updatedList.owner,
-        id: updatedList.owner.userId?.toString()
-      },
-      collaborators: updatedList.collaborators?.map((c: { _id?: { toString(): string } } & Record<string, unknown>) => ({
-        ...c,
-        id: c._id?.toString()
-      }))
-    };
+    // Get enhanced list with owner data
+    const { lists } = await getEnhancedLists({ _id: new Types.ObjectId(listId) });
+    const enhancedList = lists[0];
 
-    return NextResponse.json(responseList);
+    return NextResponse.json(enhancedList);
   } catch (error) {
     console.error('Error fetching list:', error);
     return NextResponse.json(

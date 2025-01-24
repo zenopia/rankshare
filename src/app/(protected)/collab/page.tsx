@@ -2,9 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { MainLayout } from "@/components/layout/main-layout";
 import { ListGrid } from "@/components/lists/list-grid";
 import { ListTabs } from "@/components/lists/list-tabs";
-import { getListModel } from "@/lib/db/models-v2/list";
-import { connectToMongoDB } from "@/lib/db/client";
-import { serializeLists } from "@/lib/utils";
+import { getEnhancedLists } from "@/lib/actions/lists";
 import type { ListCategory } from "@/types/list";
 import type { MongoListDocument } from "@/types/mongo";
 import { FilterQuery } from "mongoose";
@@ -25,9 +23,6 @@ export default async function CollabPage({ searchParams }: PageProps) {
   if (!userId) {
     return null;
   }
-
-  await connectToMongoDB();
-  const ListModel = await getListModel();
 
   // Build filter
   const filter: FilterQuery<MongoListDocument> = {
@@ -65,11 +60,8 @@ export default async function CollabPage({ searchParams }: PageProps) {
       sort.createdAt = -1; // fallback for items without lastEditedAt
   }
 
-  const lists = (await ListModel.find(filter)
-    .sort(sort)
-    .lean()) as unknown as MongoListDocument[];
-
-  const serializedLists = serializeLists(lists);
+  // Get enhanced lists with owner data and last viewed timestamps
+  const { lists, lastViewedMap } = await getEnhancedLists(filter, { sort });
 
   return (
     <MainLayout>
@@ -78,9 +70,10 @@ export default async function CollabPage({ searchParams }: PageProps) {
         <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
           <div className="max-w-7xl mx-auto">
             <ListGrid 
-              lists={serializedLists}
+              lists={lists}
               searchParams={searchParams}
               showPrivacyBadge
+              lastViewedMap={lastViewedMap}
             />
           </div>
         </div>

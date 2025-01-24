@@ -1,19 +1,16 @@
 import { SubLayout } from "@/components/layout/sub-layout";
 import { UserProfile } from "@/components/users/user-profile";
-import { ListSearchControls } from "@/components/lists/list-search-controls";
-import { ListCard } from "@/components/lists/list-card";
+import { ListGrid } from "@/components/lists/list-grid";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { getListModel } from "@/lib/db/models-v2/list";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { connectToMongoDB } from "@/lib/db/client";
-import { serializeLists, serializeUser } from "@/lib/utils";
+import { serializeUser } from "@/lib/utils";
 import { notFound } from "next/navigation";
-import type { ListCategory } from "@/types/list";
-import type { MongoListDocument, MongoUserDocument } from "@/types/mongo";
+import type { MongoUserDocument } from "@/types/mongo";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
-import { SortOrder } from "mongoose";
-import { MongoError } from 'mongodb';
+import { getEnhancedLists } from "@/lib/actions/lists";
+import type { ListCategory } from "@/types/list";
 
 interface PageProps {
   params: {
@@ -50,95 +47,49 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       notFound();
     }
 
-    // Connect to MongoDB after confirming user exists in Clerk
-    try {
-      await connectToMongoDB();
-    } catch (error) {
-      console.error("MongoDB connection error:", error);
-      throw error;
-    }
-
-    // Get model instances
+    // Connect to MongoDB
+    await connectToMongoDB();
     const UserModel = await getUserModel();
     const UserProfileModel = await getUserProfileModel();
-    const ListModel = await getListModel();
     const FollowModel = await getFollowModel();
 
     // Get user data from MongoDB
-    let mongoUser = (await UserModel.findOne({ 
+    const mongoUser = (await UserModel.findOne({ 
       $or: [
         { clerkId: profileUser.id },
         { username: { $regex: new RegExp(`^${username}$`, 'i') } }
       ]
     }).lean()) as unknown as MongoUserDocument;
 
-    if (!mongoUser) {
-      try {
-        // If user exists in Clerk but not in MongoDB, create them
-        const newUser = await UserModel.create({
-          clerkId: profileUser.id,
-          username: profileUser.username || '',
-          displayName: `${profileUser.firstName || ''} ${profileUser.lastName || ''}`.trim() || profileUser.username || '',
-          searchIndex: `${profileUser.username || ''} ${profileUser.firstName || ''} ${profileUser.lastName || ''}`.toLowerCase(),
-          followersCount: 0,
-          followingCount: 0,
-          listCount: 0,
-          privacySettings: {
-            showDateOfBirth: false,
-            showGender: true,
-            showLivingStatus: true
-          }
-        });
-        mongoUser = newUser.toObject() as unknown as MongoUserDocument;
-      } catch (error) {
-        console.error("Error creating MongoDB user:", error);
-        if ((error as MongoError).code === 11000) {
-          // If we hit a duplicate key error, try to find the user again
-          mongoUser = (await UserModel.findOne({ 
-            username: { $regex: new RegExp(`^${username}$`, 'i') }
-          }).lean()) as unknown as MongoUserDocument;
-          
-          if (!mongoUser) {
-            console.error("Username conflict - user not found after creation attempt");
-            notFound();
-          }
-        } else {
-          throw error;
-        }
-      }
-    }
+    // Get user profile data
+    const userProfile = await UserProfileModel.findOne({ userId: mongoUser._id }).lean();
 
-    if (mongoUser && mongoUser.clerkId !== profileUser.id) {
-      // If we found a user but the clerkId doesn't match, update it
-      mongoUser = (await UserModel.findOneAndUpdate(
-        { _id: mongoUser._id },
-        { 
-          $set: { 
-            clerkId: profileUser.id,
-            displayName: `${profileUser.firstName || ''} ${profileUser.lastName || ''}`.trim() || profileUser.username || '',
-            searchIndex: `${profileUser.username || ''} ${profileUser.firstName || ''} ${profileUser.lastName || ''}`.toLowerCase(),
-          }
-        },
-        { new: true }
-      ).lean()) as unknown as MongoUserDocument;
+    // Build filter for lists
+    const filter = { 
+      $or: [
+        { 'owner.clerkId': profileUser.id },
+        { 'owner.userId': mongoUser._id }
+      ],
+      privacy: 'public',
+      ...(searchParams.category ? { category: searchParams.category } : {})
+    };
 
-      if (!mongoUser) {
-        console.error("Failed to update user with new clerkId");
-        notFound();
-      }
-    }
+    // Get enhanced lists with owner data and last viewed timestamps
+    const { lists, lastViewedMap } = await getEnhancedLists(filter);
 
-    // Get remaining data after we have mongoUser
-    const [userProfile, followStatus, followerCount, followingCount] = await Promise.all([
-      UserProfileModel.findOne({ userId: mongoUser._id }).lean(),
-      userId ? FollowModel.findOne({ 
-        followerId: userId,
-        followingId: profileUser.id 
-      }) : null,
-      FollowModel.countDocuments({ followingId: profileUser.id }),
-      FollowModel.countDocuments({ followerId: profileUser.id }),
+    // Get follow counts
+    const [followerCount, followingCount] = await Promise.all([
+      FollowModel.countDocuments({ followingId: profileUser.id, status: 'accepted' }),
+      FollowModel.countDocuments({ followerId: profileUser.id, status: 'accepted' })
     ]);
 
+    // Get follow status if logged in
+    const followStatus = userId ? await FollowModel.findOne({
+      followerId: userId,
+      followingId: profileUser.id
+    }).lean() : null;
+
+    // Serialize user data
     const baseUser = serializeUser(mongoUser);
     const serializedUser = {
       ...baseUser,
@@ -156,37 +107,6 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       }
     };
 
-    // Build filter for lists
-    const filter = { 
-      $or: [
-        { 'owner.clerkId': profileUser.id },
-        { 'owner.userId': mongoUser._id }
-      ],
-      privacy: 'public',
-      ...(searchParams.category ? { category: searchParams.category } : {})
-    };
-
-    // Build sort
-    const sort: Record<string, SortOrder> = {};
-    switch (searchParams.sort) {
-      case 'oldest':
-        sort.createdAt = 1;
-        break;
-      case 'most-viewed':
-        sort['stats.viewCount'] = -1;
-        break;
-      case 'newest':
-      default:
-        sort.createdAt = -1;
-    }
-
-    // Get user's filtered public lists
-    const lists = await ListModel.find(filter)
-      .sort(sort)
-      .lean() as unknown as MongoListDocument[];
-
-    const serializedLists = serializeLists(lists);
-
     return (
       <SubLayout title={username}>
         <div className="px-0 md:px-6 lg:px-8 pb-8">
@@ -199,28 +119,20 @@ export default async function UserPage({ params, searchParams }: PageProps) {
               stats={{
                 followers: followerCount,
                 following: followingCount,
-                lists: serializedLists.length,
+                lists: lists.length,
               }}
               isFollowing={!!followStatus}
               hideFollow={userId === profileUser.id}
               userData={serializedUser}
             />
             
-            <div className="space-y-8">
-              <ListSearchControls 
-                defaultCategory={searchParams.category as ListCategory}
-                defaultSort={searchParams.sort}
+            <div className="space-y-4">
+              <ListGrid 
+                lists={lists}
+                searchParams={searchParams}
+                showPrivacyBadge
+                lastViewedMap={lastViewedMap}
               />
-
-              <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {serializedLists.map((list) => (
-                  <ListCard 
-                    key={list.id}
-                    list={list}
-                    showPrivacyBadge
-                  />
-                ))}
-              </div>
             </div>
           </div>
         </div>

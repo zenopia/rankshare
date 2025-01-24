@@ -98,9 +98,8 @@ export function PeopleResults() {
       {users.map((user) => (
         <UserCard
           key={user._id}
-          username={user.username}
+          username={user.clerkId}
           displayName={user.displayName}
-          imageUrl={user.imageUrl}
           isFollowing={user.isFollowing ?? false}
         />
       ))}

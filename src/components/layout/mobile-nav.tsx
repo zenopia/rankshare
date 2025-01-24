@@ -7,18 +7,18 @@ import {
   Menu,
   Home,
   Search,
-  PlusCircle,
   ListChecks,
   CompassIcon,
-  Bookmark,
   Users2,
   UserPlus,
   Users,
   MessageSquare,
-  Info
+  Info,
+  Pin,
+  Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import type { NavItem } from "@/types/nav";
 import { SidebarProfile } from "./sidebar-profile";
 import { cn } from "@/lib/utils";
@@ -57,7 +57,7 @@ const navItems: NavItem[] = [
     title: "Pinned Lists",
     href: "/pinned",
     public: false,
-    icon: Bookmark,
+    icon: Pin,
     description: "View your pinned lists",
     indent: true
   },
@@ -76,39 +76,7 @@ const navItems: NavItem[] = [
     icon: Users2,
     description: "View collaborative lists",
     indent: true
-  },
-  {
-    title: "People",
-    href: "/following",
-    public: false,
-    icon: Users,
-    description: "View people",
-    id: "people"
-  },
-  {
-    title: "Following",
-    href: "/following",
-    public: false,
-    icon: Users2,
-    description: "Users you follow",
-    indent: true,
-    id: "following"
-  },
-  {
-    title: "Followers",
-    href: "/followers",
-    public: false,
-    icon: UserPlus,
-    description: "Users following you",
-    indent: true
-  },
-  {
-    title: "Create List",
-    href: "/lists/create",
-    public: false,
-    icon: PlusCircle,
-    description: "Create a new list"
-  },
+  }
 ];
 
 function FeedbackButton({ onClose }: { onClose: () => void }) {
@@ -130,9 +98,49 @@ function FeedbackButton({ onClose }: { onClose: () => void }) {
 
 export function MobileNav() {
   const [open, setOpen] = useState(false);
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, userId } = useAuth();
+  const { user } = useUser();
 
   const handleClose = () => setOpen(false);
+
+  const peopleItems: NavItem[] = userId && user?.username ? [
+    {
+      title: "People",
+      href: `/${user.username}/following`,
+      public: false,
+      icon: Users,
+      description: "View people",
+      id: "people"
+    }
+  ] : [];
+
+  const followingItems: NavItem[] = userId && user?.username ? [
+    {
+      title: "Following",
+      href: `/${user.username}/following`,
+      public: false,
+      icon: Users2,
+      description: "Users you follow",
+      indent: true,
+      id: "following"
+    },
+    {
+      title: "Followers",
+      href: `/${user.username}/followers`,
+      public: false,
+      icon: UserPlus,
+      description: "Users following you",
+      indent: true
+    },
+    {
+      title: "Create List",
+      href: `/${user.username}/lists/create`,
+      public: false,
+      icon: Plus,
+      description: "Create a new list",
+      primary: true
+    }
+  ] : [];
 
   const renderNavLink = (item: NavItem, index: number) => {
     const Icon = item.icon;
@@ -142,7 +150,8 @@ export function MobileNav() {
         href={item.href}
         onClick={() => setOpen(false)}
         className={cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
+          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+          item.primary ? "bg-primary text-primary-foreground hover:bg-primary/90" : "hover:bg-accent",
           item.indent && "ml-4"
         )}
         aria-label={item.description}
@@ -152,6 +161,39 @@ export function MobileNav() {
       </Link>
     );
   };
+
+  const _menuItems: NavItem[] = [
+    {
+      title: "Home",
+      href: "/",
+      icon: Home,
+      description: "View your feed",
+    },
+    {
+      title: "Search",
+      href: "/search",
+      icon: Search,
+      description: "Search for lists",
+    },
+    {
+      title: "Pinned",
+      href: "/pinned",
+      icon: Pin,
+      description: "View your pinned lists",
+    },
+    {
+      title: "My Lists",
+      href: "/my-lists",
+      icon: ListChecks,
+      description: "View your lists",
+    },
+    {
+      title: "People",
+      href: userId && user?.username ? `/${user.username}/following` : "/sign-in",
+      icon: Users,
+      description: "View people",
+    }
+  ];
 
   return (
     <>
@@ -210,7 +252,7 @@ export function MobileNav() {
               {mobileOnlyNavItems.map((item, index) =>
                 ((item.public || isSignedIn) || (!isSignedIn && item.showWhenSignedOut)) && renderNavLink(item, index)
               )}
-              {isSignedIn && navItems.map((item, index) => renderNavLink(item, index))}
+              {isSignedIn && [...navItems, ...peopleItems, ...followingItems].map((item, index) => renderNavLink(item, index))}
               
               {!isSignedIn && (
                 <>

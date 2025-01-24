@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { List } from "@/types/list";
 import { ListView } from "@/components/lists/list-view";
 import { ListViewNav } from "@/components/lists/list-view-nav";
 import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import type { EnhancedList } from "@/types/list";
 
 interface ListPageContentProps {
-  list: List;
+  list: EnhancedList;
   isOwner: boolean;
   isPinned: boolean;
   isFollowing: boolean;

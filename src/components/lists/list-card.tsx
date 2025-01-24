@@ -5,14 +5,13 @@ import { Lock, Eye, Pin, Plus, Pen } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { CategoryBadge } from "@/components/lists/category-badge";
 import { formatDistanceToNow } from "date-fns";
-import type { List } from "@/types/list";
+import type { EnhancedList } from "@/types/list";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useUsers } from "@/hooks/use-users";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 interface ListCardProps {
-  list: List;
+  list: EnhancedList;
   showPrivacyBadge?: boolean;
   lastViewedAt?: Date;
   _isFollowing?: boolean;
@@ -24,8 +23,6 @@ export function ListCard({
   lastViewedAt,
   _isFollowing
 }: ListCardProps) {
-  const { data: userData } = useUsers([list.owner.clerkId]);
-  const ownerData = userData?.[0];
   const currentPath = usePathname();
 
   const hasUpdates = lastViewedAt && list.editedAt && new Date(list.editedAt) > new Date(lastViewedAt);
@@ -55,14 +52,14 @@ export function ListCard({
             )}
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
-              <AvatarImage src={ownerData?.imageUrl || undefined} alt={ownerData?.username || ''} />
-              <AvatarFallback>{ownerData?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+              <AvatarImage src={list.owner.imageUrl || undefined} alt={list.owner.username || ''} />
+              <AvatarFallback>{list.owner.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
             </Avatar>
             <div className="flex items-center gap-1.5">
-              <span className="text-foreground">{ownerData?.displayName || ownerData?.username || 'Unknown User'}</span>
-              <span className="text-muted-foreground">@{ownerData?.username || 'unknown'}</span>
+              <span className="text-foreground">{list.owner.displayName || list.owner.username}</span>
+              <span className="text-muted-foreground">@{list.owner.username}</span>
             </div>
           </div>
 

@@ -1,28 +1,18 @@
 'use client';
 
-import type { List, ItemProperty, ItemDetails } from "@/types/list";
+import type { EnhancedList, ListItem } from "@/types/list";
 import { ItemCard } from "@/components/items/item-card";
 import { Link2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CategoryBadge } from "@/components/lists/category-badge";
 import { toast } from "sonner";
-import { ItemDetailsOverlay } from "@/components/lists/item-details-overlay";
+import { ItemDetailsOverlay } from "@/components/items/item-details-overlay";
 import { useState } from "react";
 
 interface ItemViewProps {
-  list: List;
-  item: {
-    title: string;
-    comment?: string;
-    link?: string;
-    rank: number;
-    _id: string;
-    properties?: ItemProperty[];
-  };
+  list: EnhancedList;
+  item: ListItem;
   isOwner: boolean;
-  isFollowing: boolean;
-  ownerUsername?: string;
-  ownerName: string;
 }
 
 export function ItemView({ 
@@ -32,9 +22,9 @@ export function ItemView({
 }: ItemViewProps) {
   const [showDetails, setShowDetails] = useState(false);
 
-  const handleDetailsUpdate = async (details: ItemDetails) => {
+  const handleDetailsUpdate = async (details: { title: string; comment?: string; properties?: Array<{ type?: 'text' | 'link'; label: string; value: string; }> }) => {
     try {
-      const response = await fetch(`/api/lists/${list.id}/items/${item.rank}`, {
+      const response = await fetch(`/api/${list.owner.username}/lists/${list.id}/items/${item.rank}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -55,7 +45,6 @@ export function ItemView({
 
   return (
     <div className="max-w-3xl mx-auto px-0">
-
       <div className="space-y-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
@@ -78,65 +67,59 @@ export function ItemView({
           )}
         </div>
 
-        <div className="mt-8 space-y-4">
-          <ItemCard
-            listId={list.id}
-            item={{
-              rank: item.rank,
-              title: item.title,
-              comment: item.comment,
-              properties: item.properties
-            }}
-            clickable={false}
-          />
-          
-          {/* Updated custom properties styling */}
-          {item.properties && item.properties.length > 0 && (
-            <div className="divide-y divide-border">
-              {item.properties.map(prop => (
-                <div key={prop.id} className="py-4">
-                  <h3 className="font-medium mb-2">{prop.label}</h3>
-                  {prop.type === 'link' ? (
-                    <a 
-                      href={prop.value}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline break-all inline-flex items-center gap-1"
-                    >
-                      {prop.value}
-                      <Link2 className="h-3 w-3" />
-                    </a>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">{prop.value}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Item #{item.rank}</h2>
+            {isOwner && (
+              <button
+                onClick={() => setShowDetails(true)}
+                className="text-sm text-primary hover:underline"
+              >
+                Edit
+              </button>
+            )}
+          </div>
+
+          <div className="rounded-lg border bg-card p-4">
+            <div className="font-medium">{item.title}</div>
+            {item.comment && (
+              <div className="mt-1 text-sm text-muted-foreground">{item.comment}</div>
+            )}
+            {Array.isArray(item.properties) && item.properties.length > 0 && (
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {item.properties.map(prop => (
+                  <li key={prop.id} className="text-sm text-muted-foreground">
+                    {prop.type === 'link' ? (
+                      <a
+                        href={prop.value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {prop.value}
+                      </a>
+                    ) : (
+                      <span>{prop.value}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
 
-      {isOwner && (
-        <>
-          <Button
-            variant="outline"
-            onClick={() => setShowDetails(true)}
-            className="mt-4"
-          >
-            Edit Details
-          </Button>
-
-          <ItemDetailsOverlay
-            isOpen={showDetails}
-            onClose={() => setShowDetails(false)}
-            onSave={handleDetailsUpdate}
-            initialDetails={{
-              title: item.title,
-              comment: item.comment,
-              properties: item.properties || []
-            }}
-          />
-        </>
+      {showDetails && (
+        <ItemDetailsOverlay
+          isOpen={showDetails}
+          onClose={() => setShowDetails(false)}
+          onSave={handleDetailsUpdate}
+          initialDetails={{
+            title: item.title,
+            comment: item.comment,
+            properties: item.properties || []
+          }}
+        />
       )}
     </div>
   );

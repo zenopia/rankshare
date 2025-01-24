@@ -1,18 +1,10 @@
 "use client";
 
 import { UserCard } from "@/components/users/user-card";
-
-interface User {
-  id: string;
-  clerkId: string;
-  username: string;
-  displayName: string;
-  bio?: string;
-  isFollowing: boolean;
-}
+import type { EnhancedUser } from "@/lib/actions/users";
 
 interface UserListProps {
-  users: User[];
+  users: EnhancedUser[];
 }
 
 export function UserList({ users }: UserListProps) {
@@ -29,7 +21,9 @@ export function UserList({ users }: UserListProps) {
       {users.map((user) => (
         <UserCard
           key={user.id}
-          username={user.clerkId}
+          username={user.username}
+          displayName={user.displayName}
+          imageUrl={user.imageUrl}
           isFollowing={user.isFollowing}
         />
       ))}

@@ -168,7 +168,7 @@ export function CollaboratorCard({
   );
 
   if (linkToProfile && userData && !isEmailInvite && username) {
-    return <Link href={`/@${userData.username || username}`}>{content}</Link>;
+    return <Link href={`/${userData.username || username}`}>{content}</Link>;
   }
 
   return content;

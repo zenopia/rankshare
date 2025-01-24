@@ -2,16 +2,20 @@
 
 import { TabNavigation } from "@/components/ui/tab-navigation";
 
-export function PeopleTabs() {
+interface PeopleTabsProps {
+  username: string;
+}
+
+export function PeopleTabs({ username }: PeopleTabsProps) {
   const tabs = [
     {
       label: "Following",
-      href: "/following",
+      href: `/${username}/following`,
       value: "following",
     },
     {
       label: "Followers",
-      href: "/followers",
+      href: `/${username}/followers`,
       value: "followers",
     },
   ];
