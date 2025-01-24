@@ -2,9 +2,7 @@ import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { List } from "@/types/list";
 import type { MongoListDocument, MongoUserDocument } from "@/types/mongo";
-import type { UserDocument } from "@/lib/db/models-v2/user";
 import type { UserProfileDocument } from "@/lib/db/models-v2/user-profile";
-import type { Document, Types } from "mongoose";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -73,7 +71,7 @@ export function serializeLists(lists: MongoListDocument[]): List[] {
   return lists.map(serializeList);
 }
 
-export function serializeUser(user: any) {
+export function serializeUser(user: MongoUserDocument | null) {
   if (!user) return null;
 
   return {
@@ -99,4 +97,9 @@ export function isProfileComplete(profile: Partial<UserProfileDocument> | null):
   
   const requiredFields = ['location', 'dateOfBirth', 'gender', 'livingStatus'];
   return requiredFields.every(field => profile[field as keyof typeof profile] !== undefined && profile[field as keyof typeof profile] !== null && profile[field as keyof typeof profile] !== '');
+}
+
+export function formatDisplayName(firstName: string | null | undefined, lastName: string | null | undefined, username: string): string {
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
+  return fullName || username;
 } 

@@ -9,7 +9,14 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
-export function Navbar() {
+interface NavbarProps {
+  title?: {
+    text: string;
+    subtext?: string;
+  };
+}
+
+export function Navbar({ title }: NavbarProps) {
   const pathname = usePathname();
   
   const getPageTitle = () => {
@@ -70,7 +77,18 @@ export function Navbar() {
           </div>
 
           <div className="absolute left-1/2 -translate-x-1/2">
-            {getPageTitle() ? (
+            {title ? (
+              <div className="text-center">
+                <h1 className="text-xl font-semibold leading-tight">
+                  {title.text}
+                </h1>
+                {title.subtext && (
+                  <p className="text-sm text-muted-foreground leading-tight">
+                    {title.subtext}
+                  </p>
+                )}
+              </div>
+            ) : getPageTitle() ? (
               <h1 className="text-xl font-semibold">
                 {getPageTitle()}
               </h1>

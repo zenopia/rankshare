@@ -23,6 +23,7 @@ interface ListGridProps {
     category?: string;
     sort?: string;
   };
+  showSearch?: boolean;
 }
 
 // Add this CSS keyframe animation at the top of the file
@@ -48,7 +49,8 @@ export function ListGrid({
   showPrivacyBadge = true, 
   _isFollowing, 
   lastViewedMap: initialViewedMap = {},
-  searchParams 
+  searchParams,
+  showSearch = false
 }: ListGridProps) {
   const currentPath = usePathname();
   const [viewedMap, setViewedMap] = useState<Record<string, Date>>(initialViewedMap);
@@ -71,6 +73,7 @@ export function ListGrid({
         <ListSearchControls 
           defaultCategory={category}
           defaultSort={searchParams?.sort}
+          showSearch={showSearch}
         />
 
         {lists.length === 0 ? (
