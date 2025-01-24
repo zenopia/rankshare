@@ -13,9 +13,11 @@ export function Navbar() {
   const pathname = usePathname();
   
   const getPageTitle = () => {
+    if (pathname.startsWith('/search')) {
+      return 'Search';
+    }
+    
     switch (pathname) {
-      case '/search':
-        return 'Search';
       case '/dashboard':
         return 'Dashboard';
       case '/following':
@@ -55,11 +57,11 @@ export function Navbar() {
                 size="sm"
                 className={cn(
                   "gap-2",
-                  pathname === "/search" && "bg-accent"
+                  pathname.startsWith('/search') && "bg-accent"
                 )}
                 asChild
               >
-                <Link href="/search">
+                <Link href="/search/lists">
                   <Search className="h-4 w-4" />
                   Search
                 </Link>

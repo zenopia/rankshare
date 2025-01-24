@@ -94,7 +94,7 @@ export default async function UserListsPage({ params, searchParams }: PageProps)
           <ListGrid 
             lists={sortedLists}
             searchParams={searchParams}
-            isFollowing={isFollowing}
+            _isFollowing={isFollowing}
             lastViewedMap={lastViewedMap}
           />
         </div>

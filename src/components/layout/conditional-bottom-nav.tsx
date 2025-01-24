@@ -11,6 +11,7 @@ export function ConditionalBottomNav() {
   // Consider these paths as "home" routes
   const isHomeRoute = ['/', '/pinned', '/my-lists', '/collab'].includes(pathname);
   const isPeopleRoute = ['/following', '/followers'].includes(pathname);
+  const isSearchRoute = pathname.startsWith('/search');
 
   // Hide bottom nav on list view pages, profile, auth pages, and other pages with their own bottom nav
   if (
@@ -48,10 +49,10 @@ export function ConditionalBottomNav() {
           <span className="text-xs">People</span>
         </Link>
         <Link
-          href="/search"
+          href="/search/lists"
           className={cn(
             "flex flex-col items-center justify-center gap-1 border-t-2",
-            pathname === "/search"
+            isSearchRoute
               ? "text-primary border-primary"
               : "text-muted-foreground border-transparent"
           )}
