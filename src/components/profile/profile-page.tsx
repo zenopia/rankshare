@@ -271,7 +271,11 @@ export function ProfilePage() {
                       ? new Date(profileData.dateOfBirth).toISOString().split('T')[0] 
                       : ''
                     }
-                    onChange={(e) => handleChange('dateOfBirth', new Date(e.target.value))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      handleChange('dateOfBirth', value ? new Date(value) : undefined);
+                    }}
+                    className="[&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:grayscale [&::-webkit-calendar-picker-indicator]:invert"
                   />
                 </div>
 
