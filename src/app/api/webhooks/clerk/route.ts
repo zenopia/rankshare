@@ -48,6 +48,48 @@ export async function POST(req: Request) {
   // Handle the webhook
   const eventType = evt.type;
 
+  if (eventType === 'user.created') {
+    const { id, username, first_name, last_name, image_url, email_addresses } = evt.data;
+    const primaryEmail = email_addresses?.find(email => email.id === evt.data.primary_email_address_id)?.email_address;
+
+    try {
+      await connectToMongoDB();
+      const [UserModel, UserCacheModel] = await Promise.all([
+        getUserModel(),
+        getUserCacheModel()
+      ]);
+
+      // Create the main user record
+      const displayName = `${first_name || ''} ${last_name || ''}`.trim() || username || '';
+      const searchIndex = `${username || ''} ${displayName}`.toLowerCase();
+      
+      await UserModel.create({
+        clerkId: id,
+        username: username || '',
+        displayName,
+        searchIndex,
+        email: primaryEmail,
+        followersCount: 0,
+        followingCount: 0,
+        listCount: 0
+      });
+
+      // Create user cache entry
+      await UserCacheModel.create({
+        clerkId: id,
+        username: username || '',
+        displayName,
+        imageUrl: image_url,
+        lastSynced: new Date()
+      });
+
+      return new NextResponse('Success', { status: 200 });
+    } catch (error) {
+      console.error('Error creating user data:', error);
+      return new NextResponse('Error creating user data', { status: 500 });
+    }
+  }
+
   if (eventType === 'user.updated') {
     const { id, username, first_name, last_name, image_url, email_addresses } = evt.data;
     const primaryEmail = email_addresses?.find(email => email.id === evt.data.primary_email_address_id)?.email_address;
