@@ -125,6 +125,7 @@ export async function POST(request: Request) {
     const responseList = {
       ...updatedList,
       id: updatedList._id.toString(),
+      username: user.username,
       _id: undefined
     };
 

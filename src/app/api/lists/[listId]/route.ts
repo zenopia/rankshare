@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getListModel, ListDocument, ListCollaborator } from "@/lib/db/models-v2/list";
 import { getEnhancedLists } from "@/lib/actions/lists";
+import { getUserModel } from "@/lib/db/models-v2/user";
 import { Types } from "mongoose";
 
 interface ListItem {
@@ -106,6 +107,7 @@ export async function PUT(
     const { title, description, category, privacy, items } = data;
 
     const ListModel = await getListModel();
+    const UserModel = await getUserModel();
 
     const list = await ListModel.findById(listId).lean();
 
@@ -121,6 +123,15 @@ export async function PUT(
       return NextResponse.json(
         { error: "Not authorized to edit this list" },
         { status: 403 }
+      );
+    }
+
+    // Get user for username
+    const user = await UserModel.findOne({ clerkId: list.owner.clerkId }).lean();
+    if (!user) {
+      return NextResponse.json(
+        { error: "List owner not found" },
+        { status: 404 }
       );
     }
 
@@ -164,6 +175,7 @@ export async function PUT(
     const responseList = {
       ...rest,
       id: _id.toString(),
+      username: user.username,
       createdAt: updatedList.createdAt?.toISOString(),
       updatedAt: updatedList.updatedAt?.toISOString(),
       editedAt: updatedList.editedAt?.toISOString(),
