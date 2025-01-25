@@ -5,7 +5,8 @@ export type ListCategory =
   | 'restaurants' 
   | 'recipes' 
   | 'things-to-do' 
-  | 'other';
+  | 'other' 
+  | 'all';
 
 export const LIST_CATEGORIES: ListCategory[] = [
   'movies',

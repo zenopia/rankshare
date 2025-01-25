@@ -3,13 +3,14 @@ import { cn } from "@/lib/utils";
 import type { ListCategory } from "@/types/list";
 
 const categoryStyles: Record<ListCategory, { color: string }> = {
-  "movies": { color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200" },
-  "tv-shows": { color: "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200" },
-  "books": { color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200" },
-  "restaurants": { color: "bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200" },
-  "recipes": { color: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200" },
-  "things-to-do": { color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200" },
-  "other": { color: "bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200" }
+  "movies": { color: "bg-indigo-500 text-white dark:bg-indigo-500 dark:text-white" },
+  "tv-shows": { color: "bg-violet-500 text-white dark:bg-violet-500 dark:text-white" },
+  "books": { color: "bg-stone-500 text-white dark:bg-stone-500 dark:text-white" },
+  "restaurants": { color: "bg-rose-500 text-white dark:bg-rose-500 dark:text-white" },
+  "recipes": { color: "bg-orange-500 text-white dark:bg-orange-500 dark:text-white" },
+  "things-to-do": { color: "bg-emerald-500 text-white dark:bg-emerald-500 dark:text-white" },
+  "other": { color: "bg-slate-500 text-white dark:bg-slate-500 dark:text-white" },
+  "all": { color: "bg-gray-500 text-white dark:bg-gray-500 dark:text-white" }
 };
 
 interface CategoryBadgeProps {

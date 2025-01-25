@@ -7,6 +7,7 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/search/search-input";
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface ListSearchControlsProps {
   defaultCategory?: ListCategory;
@@ -76,12 +77,30 @@ export function ListSearchControls({ defaultCategory, defaultSort, showSearch = 
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">
+                All Categories
+              </SelectItem>
               {LIST_CATEGORIES.map((category) => (
                 <SelectItem key={category} value={category}>
-                  {category === 'tv-shows' ? 'TV Shows' : 
-                   category === 'things-to-do' ? 'Things to do' :
-                   category.charAt(0).toUpperCase() + category.slice(1)}
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "h-3.5 w-3.5 rounded-full shrink-0",
+                      {
+                        'bg-indigo-500': category === 'movies',
+                        'bg-violet-500': category === 'tv-shows',
+                        'bg-stone-500': category === 'books',
+                        'bg-rose-500': category === 'restaurants',
+                        'bg-orange-500': category === 'recipes',
+                        'bg-emerald-500': category === 'things-to-do',
+                        'bg-slate-500': category === 'other'
+                      }
+                    )} />
+                    <span>
+                      {category === 'tv-shows' ? 'TV Shows' : 
+                       category === 'things-to-do' ? 'Things to do' :
+                       category.charAt(0).toUpperCase() + category.slice(1)}
+                    </span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>

@@ -68,7 +68,7 @@ export function ListGrid({
 
   return (
     <>
-      <style>{pulseAnimation}</style>
+      {lists.length > 0 && <style>{pulseAnimation}</style>}
       <div className="space-y-8">
         <ListSearchControls 
           defaultCategory={category}

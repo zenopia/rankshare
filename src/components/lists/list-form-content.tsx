@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import * as z from "zod";
 import { Loader2, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import {
   Form,
@@ -88,6 +89,16 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+const FORM_CATEGORIES = [
+  "movies",
+  "tv-shows",
+  "books",
+  "restaurants",
+  "recipes",
+  "things-to-do",
+  "other"
+] as const;
+
 export function ListFormContent({ defaultValues, mode = 'create', returnPath }: ListFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,7 +121,7 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: defaultValues?.title || "",
-      category: defaultValues?.category || "movies",
+      category: (defaultValues?.category === 'all' ? 'movies' : defaultValues?.category) || "movies",
       description: defaultValues?.description || "",
       privacy: defaultValues?.privacy || "public",
     },
@@ -323,17 +334,34 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="movies">Movies</SelectItem>
-                        <SelectItem value="tv-shows">TV Shows</SelectItem>
-                        <SelectItem value="books">Books</SelectItem>
-                        <SelectItem value="restaurants">Restaurants</SelectItem>
-                        <SelectItem value="recipes">Recipes</SelectItem>
-                        <SelectItem value="things-to-do">Things to Do</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+
+                        {FORM_CATEGORIES.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            <div className="flex items-center gap-2">
+                              <div className={cn(
+                                "h-3.5 w-3.5 rounded-full shrink-0",
+                                {
+                                  'bg-indigo-500': category === 'movies',
+                                  'bg-violet-500': category === 'tv-shows',
+                                  'bg-stone-500': category === 'books',
+                                  'bg-rose-500': category === 'restaurants',
+                                  'bg-orange-500': category === 'recipes',
+                                  'bg-emerald-500': category === 'things-to-do',
+                                  'bg-slate-500': category === 'other'
+                                }
+                              )} />
+                              <span>
+                                {category === 'tv-shows' ? 'TV Shows' : 
+                                category === 'things-to-do' ? 'Things to do' :
+                                category.charAt(0).toUpperCase() + category.slice(1)}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
