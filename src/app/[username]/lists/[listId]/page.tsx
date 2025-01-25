@@ -68,11 +68,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         siteName: 'Favely',
         type: 'article',
         authors: [displayName],
+        images: [{
+          url: `${siteUrl}/Favely-logo.png`,
+          width: 120,
+          height: 30,
+          alt: 'Favely'
+        }]
       },
       twitter: {
         card: 'summary',
         title: `${list.title} by ${displayName}`,
         description: list.description || `Check out ${displayName}'s list on Favely`,
+        images: [`${siteUrl}/Favely-logo.png`]
       }
     };
   } catch (error) {
