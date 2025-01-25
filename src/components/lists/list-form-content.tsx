@@ -343,7 +343,7 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
                 onChange={setEditorContent}
                 onListTypeChange={handleListTypeChange}
                 defaultListType={defaultValues?.listType || 'ordered'}
-                placeholder="List"
+                placeholder=""
                 className="min-h-[200px]"
               />
             </div>

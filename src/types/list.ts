@@ -8,6 +8,8 @@ export type ListCategory =
   | 'other' 
   | 'all';
 
+export type ListPrivacy = 'public' | 'private';
+
 export const LIST_CATEGORIES: ListCategory[] = [
   'movies',
   'tv-shows',

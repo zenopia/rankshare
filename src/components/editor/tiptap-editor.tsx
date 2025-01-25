@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ListOrdered, List } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { TextSelection } from 'prosemirror-state'
 import './tiptap-editor.css'
 
 interface TiptapEditorProps {
@@ -104,16 +105,36 @@ export function TiptapEditor({
         const { selection } = state
         const { empty, $head } = selection
 
+        // Handle Enter key
+        if (event.key === 'Enter' && !event.shiftKey) {
+          // If we're in an empty list item
+          if (empty && $head.parent.textContent === '') {
+            return true // Prevent default behavior (lifting out of list)
+          }
+        }
+
         // Handle Backspace key
         if (event.key === 'Backspace' && empty) {
           // If we're at the start of a list item
           if ($head.parentOffset === 0) {
             const listNode = $head.node(-2) // Get the parent list node
             const listItemNode = $head.node(-1) // Get the current list item node
+            const listItemPos = $head.before(-1) // Get position before current list item
             
             // If this is the last item in the list and it's empty
             if (listNode.childCount === 1 && listItemNode.textContent === '') {
               return true // Prevent deletion to keep at least one item
+            }
+
+            // If we're not the first item and we're empty
+            if (listItemPos > 0 && listItemNode.textContent === '') {
+              // Delete current item and move to end of previous item
+              const tr = state.tr.delete(listItemPos, listItemPos + listItemNode.nodeSize)
+              const prevNode = $head.node(-2).child($head.index(-2) - 1)
+              const prevPos = listItemPos - prevNode.nodeSize
+              tr.setSelection(TextSelection.create(tr.doc, prevPos + prevNode.nodeSize - 2))
+              view.dispatch(tr)
+              return true
             }
           }
         }
