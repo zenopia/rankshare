@@ -1,0 +1,52 @@
+.ProseMirror {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  min-height: 150px;
+  outline: none;
+}
+
+.ProseMirror > * + * {
+  margin-top: 0.75em;
+}
+
+/* Basic list styles */
+.ProseMirror ul,
+.ProseMirror ol {
+  padding: 0 1.2rem;
+  margin: 0.5rem 0;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror li {
+  position: relative;
+  margin: 0.2rem 0;
+  padding: 0.2rem 0;
+}
+
+.ProseMirror li > p {
+  margin: 0;
+  min-height: 1.5em;
+}
+
+/* Placeholder styles */
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Ensure list markers are visible */
+.ProseMirror ul li::marker,
+.ProseMirror ol li::marker {
+  color: #64748b;
+} 

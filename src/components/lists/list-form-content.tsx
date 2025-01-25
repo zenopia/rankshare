@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import * as z from "zod";
 import { Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TiptapEditor } from "@/components/editor/tiptap-editor";
+import { useAuth } from "@clerk/nextjs";
 
 import {
   Form,
@@ -27,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { DraggableListItem } from "@/components/lists/draggable-list-item";
 
@@ -101,21 +102,39 @@ const FORM_CATEGORIES = [
 
 export function ListFormContent({ defaultValues, mode = 'create', returnPath }: ListFormProps) {
   const router = useRouter();
+  const { userId } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [items, setItems] = useState<ListItem[]>(() => {
-    const existingItems = defaultValues?.items || [];
-    return existingItems.map((item, index) => ({
-      ...item,
-      rank: index + 1,
-      properties: (item.properties || []).map(prop => ({
-        ...prop,
-        id: prop.id || Math.random().toString(36).substr(2, 9)
-      }))
-    }));
+  const [username, setUsername] = useState<string | null>(null);
+  const [editorContent, setEditorContent] = useState(() => {
+    if (defaultValues?.items) {
+      // Convert existing items to HTML list
+      const itemsHtml = defaultValues.items
+        .sort((a, b) => a.rank - b.rank)
+        .map(item => `<li>${item.title}</li>`)
+        .join('');
+      return `<ol>${itemsHtml}</ol>`;
+    }
+    return '';
   });
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-  const [quickAddText, setQuickAddText] = useState('');
+
+  // Fetch username when component mounts
+  useEffect(() => {
+    const fetchUsername = async () => {
+      if (!userId) return;
+      
+      try {
+        const response = await fetch('/api/profile');
+        const data = await response.json();
+        if (response.ok && data.username) {
+          setUsername(data.username);
+        }
+      } catch (error) {
+        console.error('Error fetching username:', error);
+      }
+    };
+
+    fetchUsername();
+  }, [userId]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -127,16 +146,13 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
     },
   });
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
-    return null;
-  }
-
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    if (items.length === 0) {
+    // Parse the editor content to get list items
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(editorContent, 'text/html');
+    const listItems = Array.from(doc.querySelectorAll('li'));
+    
+    if (listItems.length === 0) {
       toast.error("Please add at least one item to your list");
       return;
     }
@@ -146,15 +162,9 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
     try {
       const payload = {
         ...data,
-        items: items.map((item, index) => ({
-          title: item.title,
+        items: listItems.map((item, index) => ({
+          title: item.textContent || '',
           rank: index + 1,
-          comment: item.comment,
-          properties: item.properties?.map(prop => ({
-            type: prop.type || 'text',
-            label: prop.label,
-            value: prop.value
-          }))
         }))
       };
 
@@ -185,10 +195,10 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
 
       if (returnPath) {
         router.push(returnPath);
-      } else {
+      } else if (username) {
         const listPath = mode === 'create' 
-          ? `/lists/${responseData.id}`
-          : `/lists/${defaultValues?.id}`;
+          ? `/${username}/lists/${responseData.id}`
+          : `/${username}/lists/${defaultValues?.id}`;
         router.push(listPath);
       }
       router.refresh();
@@ -204,359 +214,120 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
     }
   };
 
-  const onDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-
-    const reorderedItems = Array.from(items);
-    const [removed] = reorderedItems.splice(result.source.index, 1);
-    reorderedItems.splice(result.destination.index, 0, removed);
-
-    const oldRanks = items.reduce((acc, item) => {
-      acc[item.id] = item.rank;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const updatedItems = reorderedItems.map((item, index) => ({
-      ...item,
-      rank: index + 1
-    }));
-
-    const finalItems = updatedItems.map(item => {
-      if (oldRanks[item.id] !== item.rank) {
-        return { ...item };
-      }
-      return item;
-    });
-
-    setItems(finalItems);
-  };
-
-  const addItem = (title: string = "") => {
-    const newItem: ListItem = {
-      id: Math.random().toString(36).substr(2, 9),
-      title,
-      rank: items.length + 1,
-      properties: [] as Array<{
-        id: string;
-        type?: 'text' | 'link';
-        label: string;
-        value: string;
-      }>
-    };
-
-    setItems([...items, newItem]);
-  };
-
-  const quickAddItems = (text: string) => {
-    if (!text.trim()) return;
-    
-    const newItems: ListItem[] = text
-      .split('\n')
-      .filter(line => line.trim())
-      .map((line, index) => ({
-        id: Math.random().toString(36).substr(2, 9),
-        title: line.trim(),
-        rank: items.length + index + 1,
-        properties: []
-      }));
-
-    setItems([...items, ...newItems]);
-    setQuickAddText('');
-    setQuickAddOpen(false);
-  };
-
-  const updateItem = (id: string, updates: Partial<ListItem>) => {
-    if (updates.properties) {
-      updates.properties = updates.properties.map(prop => ({
-        ...prop,
-        id: prop.id || Math.random().toString(36).substr(2, 9)
-      }));
-    }
-
-    setItems(items.map(item => 
-      item.id === id ? { ...item, ...updates } : item
-    ));
-  };
-
-  const removeItem = (id: string) => {
-    const _itemIndex = items.findIndex(item => item.id === id);
-    const oldRanks = items.reduce((acc, item) => {
-      acc[item.id] = item.rank;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const filteredItems = items
-      .filter(item => item.id !== id)
-      .map((item, index) => ({
-        ...item,
-        rank: index + 1
-      }));
-
-    const updatedItems = filteredItems.map(item => {
-      if (oldRanks[item.id] !== item.rank) {
-        return { ...item };
-      }
-      return item;
-    });
-
-    setItems(updatedItems);
-  };
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      placeholder="List title"
-                      className="text-lg font-medium h-12"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="container max-w-4xl mx-auto px-4 py-8 space-y-8">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Input 
+                  placeholder="List title" 
+                  className="text-xl font-medium h-12"
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <div className="flex items-center justify-between gap-4">
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FORM_CATEGORIES.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            <div className="flex items-center gap-2">
-                              <div className={cn(
-                                "h-3.5 w-3.5 rounded-full shrink-0",
-                                {
-                                  'bg-[var(--category-movies)]': category === 'movies',
-                                  'bg-[var(--category-tv)]': category === 'tv-shows',
-                                  'bg-[var(--category-books)]': category === 'books',
-                                  'bg-[var(--category-restaurants)]': category === 'restaurants',
-                                  'bg-[var(--category-recipes)]': category === 'recipes',
-                                  'bg-[var(--category-activities)]': category === 'things-to-do',
-                                  'bg-[var(--category-other)]': category === 'other'
-                                }
-                              )} />
-                              <span>
-                                {category === 'tv-shows' ? 'TV Shows' : 
-                                category === 'things-to-do' ? 'Things to do' :
-                                category.charAt(0).toUpperCase() + category.slice(1)}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="privacy"
-                render={({ field }) => (
-                  <FormItem>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <SelectTrigger className="w-[140px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="public">Public</SelectItem>
-                        <SelectItem value="private">Private</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Description (optional)"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="mt-6">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-lg font-medium">Items</h3>
-              <div className="flex gap-2">
-                <Sheet open={quickAddOpen} onOpenChange={setQuickAddOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      Quick Add
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[50vh]">
-                    <SheetHeader>
-                      <SheetTitle>Quick Add Items</SheetTitle>
-                      <SheetDescription>
-                        Enter one item per line
-                      </SheetDescription>
-                    </SheetHeader>
-                    <div className="mt-4 space-y-4">
-                      <Textarea
-                        className="min-h-[200px]"
-                        placeholder={`Item 1
-                                      Item 2
-                                      Item 3`}
-                        value={quickAddText}
-                        onChange={(e) => setQuickAddText(e.target.value)}
-                      />
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => setQuickAddOpen(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={() => quickAddItems(quickAddText)}
-                          disabled={!quickAddText.trim()}
-                        >
-                          Add Items
-                        </Button>
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
-                
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addItem()}
+        <div className="flex items-center gap-4">
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Item
-                </Button>
-              </div>
-            </div>
-
-            <DragDropContext onDragEnd={onDragEnd}>
-              <Droppable droppableId="items">
-                {(provided) => (
-                  <div
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    className="space-y-2"
-                  >
-                    {items.map((item, index) => (
-                      <Draggable
-                        key={item.id}
-                        draggableId={item.id}
-                        index={index}
-                      >
-                        {(provided, _snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                          >
-                            <DraggableListItem
-                              item={item}
-                              dragHandleProps={provided.dragHandleProps}
-                              onUpdate={(updates) => updateItem(item.id, updates)}
-                              onRemove={() => removeItem(item.id)}
-                              disabled={isSubmitting}
-                            />
-                          </div>
-                        )}
-                      </Draggable>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {FORM_CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </SelectItem>
                     ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="privacy"
+            render={({ field }) => (
+              <FormItem>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Privacy" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Input 
+                  placeholder="Description (optional)" 
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium">List Items</h3>
           </div>
 
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
-            <div className="flex items-center justify-between max-w-2xl mx-auto">
-              <div className="flex items-center gap-4">
-                {mode === 'edit' && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    disabled={isSubmitting}
-                    onClick={async () => {
-                      if (!defaultValues?.id) return;
-                      if (!confirm('Are you sure you want to delete this list? This action cannot be undone.')) return;
-
-                      setIsSubmitting(true);
-                      try {
-                        const response = await fetch(`/api/lists/${defaultValues.id}`, {
-                          method: 'DELETE'
-                        });
-
-                        if (!response.ok) {
-                          throw new Error('Failed to delete list');
-                        }
-
-                        toast.success('List deleted successfully');
-                        router.push('/my-lists');
-                        router.refresh();
-                      } catch (error) {
-                        console.error('Error deleting list:', error);
-                        toast.error('Failed to delete list');
-                      } finally {
-                        setIsSubmitting(false);
-                      }
-                    }}
-                  >
-                    Delete List
-                  </Button>
-                )}
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isSubmitting || items.length === 0}
-                className="min-w-[120px]"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : mode === 'create' ? (
-                  'Create List'
-                ) : (
-                  'Save Changes'
-                )}
-              </Button>
+          <div className="space-y-6">
+            <div className="border rounded-lg p-4 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Type or paste your items below. Use numbers (1.) or bullets (-) to create a list.
+                Press Enter to add new items. You can reorder items by dragging them.
+              </p>
+              <TiptapEditor
+                content={editorContent}
+                onChange={setEditorContent}
+                placeholder="Start typing your list items..."
+                className="min-h-[300px]"
+              />
             </div>
           </div>
         </div>
+
+        <Button type="submit" disabled={isSubmitting} className="w-full">
+          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {mode === 'create' ? 'Create List' : 'Update List'}
+        </Button>
       </form>
     </Form>
   );
