@@ -338,20 +338,19 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-
                         {FORM_CATEGORIES.map((category) => (
                           <SelectItem key={category} value={category}>
                             <div className="flex items-center gap-2">
                               <div className={cn(
                                 "h-3.5 w-3.5 rounded-full shrink-0",
                                 {
-                                  'bg-indigo-500': category === 'movies',
-                                  'bg-violet-500': category === 'tv-shows',
-                                  'bg-stone-500': category === 'books',
-                                  'bg-rose-500': category === 'restaurants',
-                                  'bg-orange-500': category === 'recipes',
-                                  'bg-emerald-500': category === 'things-to-do',
-                                  'bg-slate-500': category === 'other'
+                                  'bg-[var(--category-movies)]': category === 'movies',
+                                  'bg-[var(--category-tv)]': category === 'tv-shows',
+                                  'bg-[var(--category-books)]': category === 'books',
+                                  'bg-[var(--category-restaurants)]': category === 'restaurants',
+                                  'bg-[var(--category-recipes)]': category === 'recipes',
+                                  'bg-[var(--category-activities)]': category === 'things-to-do',
+                                  'bg-[var(--category-other)]': category === 'other'
                                 }
                               )} />
                               <span>
@@ -431,8 +430,8 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
                       <Textarea
                         className="min-h-[200px]"
                         placeholder={`Item 1
-Item 2
-Item 3`}
+                                      Item 2
+                                      Item 3`}
                         value={quickAddText}
                         onChange={(e) => setQuickAddText(e.target.value)}
                       />

@@ -34,6 +34,17 @@
     --ring: 222.2 84% 4.9%;
  
     --radius: 0.5rem;
+
+    /* Category Colors */
+    --category-movies: #E63946;
+    --category-tv: #4A90E2;
+    --category-books: #6FBF73;
+    --category-restaurants: #F4B400;
+    --category-recipes: #F28C66;
+    --category-activities: #A084CA;
+    --category-other: #BDC3C7;
+    --category-badge-text: #2D2D2D; /* dark gray for badge text */
+
   }
 
   /* Development styles */
@@ -78,6 +89,15 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+
+    /* Category Colors - slightly adjusted for dark mode */
+    --category-movies: #E50914;
+    --category-tv: #1F75FE;
+    --category-books: #228B22;
+    --category-restaurants: #FFD700;
+    --category-recipes: #FFA500;
+    --category-activities: #87CEEB;
+    --category-other: #808080;
   }
 }
  

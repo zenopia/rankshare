@@ -3,14 +3,14 @@ import { cn } from "@/lib/utils";
 import type { ListCategory } from "@/types/list";
 
 const categoryStyles: Record<ListCategory, { color: string }> = {
-  "movies": { color: "bg-indigo-500 text-white dark:bg-indigo-500 dark:text-white" },
-  "tv-shows": { color: "bg-violet-500 text-white dark:bg-violet-500 dark:text-white" },
-  "books": { color: "bg-stone-500 text-white dark:bg-stone-500 dark:text-white" },
-  "restaurants": { color: "bg-rose-500 text-white dark:bg-rose-500 dark:text-white" },
-  "recipes": { color: "bg-orange-500 text-white dark:bg-orange-500 dark:text-white" },
-  "things-to-do": { color: "bg-emerald-500 text-white dark:bg-emerald-500 dark:text-white" },
-  "other": { color: "bg-slate-500 text-white dark:bg-slate-500 dark:text-white" },
-  "all": { color: "bg-gray-500 text-white dark:bg-gray-500 dark:text-white" }
+  "movies": { color: "bg-[var(--category-movies)] text-[var(--category-badge-text)]" },
+  "tv-shows": { color: "bg-[var(--category-tv)] text-[var(--category-badge-text)]" },
+  "books": { color: "bg-[var(--category-books)] text-[var(--category-badge-text)]" },
+  "restaurants": { color: "bg-[var(--category-restaurants)] text-[var(--category-badge-text)]" },
+  "recipes": { color: "bg-[var(--category-recipes)] text-[var(--category-badge-text)]" },
+  "things-to-do": { color: "bg-[var(--category-activities)] text-[var(--category-badge-text)]" },
+  "other": { color: "bg-[var(--category-other)] text-[var(--category-badge-text)]" },
+  "all": { color: "bg-[var(--category-other)] text-[var(--category-badge-text)]" }
 };
 
 interface CategoryBadgeProps {
