@@ -7,6 +7,7 @@ import { Types } from "mongoose";
 interface ListItem {
   title: string;
   comment?: string;
+  completed?: boolean;
   properties?: Array<{
     type?: string;
     label: string;
@@ -103,7 +104,7 @@ export async function PUT(
 
     const { listId } = params;
     const data = await request.json();
-    const { title, description, category, privacy, items } = data;
+    const { title, description, category, privacy, listType, items } = data;
 
     const ListModel = await getListModel();
 
@@ -125,10 +126,10 @@ export async function PUT(
     }
 
     // Process items to ensure they have valid structure
-    const processedItems = items.map((item: ListItem, index: number) => ({
+    const processedItems = items.map((item: ListItem) => ({
       title: item.title,
-      rank: index + 1,
       comment: item.comment,
+      completed: item.completed ?? false,
       properties: (item.properties || []).map(prop => ({
         type: prop.type || 'text',
         label: prop.label || '',
@@ -144,6 +145,7 @@ export async function PUT(
         description,
         category,
         privacy,
+        listType,
         items: processedItems,
         editedAt: new Date()
       },

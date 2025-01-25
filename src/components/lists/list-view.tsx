@@ -11,6 +11,8 @@ import { UserCard } from "@/components/users/user-card";
 import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
 import { CollaboratorManagement } from "@/components/lists/collaborator-management";
 import { useAuth } from "@clerk/nextjs";
+import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ListViewProps {
   list: EnhancedList;
@@ -100,24 +102,39 @@ export function ListView({
       <div className="items-section space-y-4">
         <h2 className="text-xl font-semibold">Items</h2>
         {Array.isArray(list.items) && list.items.length > 0 ? (
-          <ul className="space-y-2">
-            {list.items.map((item: ListItem, index: number) => {
+          <ul>
+            {list.items.map((item, index) => {
               const itemKey = `item-${item.id}-${index}`;
               return (
-                <li key={itemKey} className="flex items-stretch rounded-lg border bg-card">
+                <li key={itemKey} className="flex items-stretch rounded-lg border bg-card mb-2">
                   <div className="flex items-center justify-center min-w-[3rem] bg-muted rounded-l-lg">
-                    <span className="text-base font-medium text-muted-foreground">
-                      {index + 1}
-                    </span>
+                    {list.listType === 'task' ? (
+                      <Checkbox
+                        checked={item.completed}
+                        disabled={!isOwner && !isCollaborator}
+                        className="ml-2"
+                      />
+                    ) : list.listType === 'bullet' ? (
+                      <div className="w-2 h-2 rounded-full bg-muted-foreground" />
+                    ) : (
+                      <span className="text-base font-medium text-muted-foreground">
+                        {index + 1}
+                      </span>
+                    )}
                   </div>
                   <div className="flex-1 p-4">
-                    <div className="font-medium">{item.title}</div>
+                    <div className={cn(
+                      "font-medium",
+                      item.completed && "line-through text-muted-foreground"
+                    )}>
+                      {item.title}
+                    </div>
                     {item.comment && (
                       <div className="mt-1 text-sm text-muted-foreground">{item.comment}</div>
                     )}
                     {Array.isArray(item.properties) && item.properties.length > 0 && (
                       <ul className="mt-2 flex flex-wrap gap-2">
-                        {item.properties.map((prop: { id: string; type?: 'text' | 'link'; label: string; value: string; }) => {
+                        {item.properties.map((prop) => {
                           const propKey = `${itemKey}-prop-${prop.id}`;
                           return (
                             <li key={propKey} className="text-sm text-muted-foreground">

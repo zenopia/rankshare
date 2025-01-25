@@ -163,11 +163,12 @@ export default async function ListPage({ params, searchParams }: PageProps) {
       description: list.description,
       category: list.category as ListCategory,
       privacy: list.privacy,
+      listType: list.listType,
       items: list.items?.map(item => ({
         id: Math.random().toString(36).slice(2),
         title: item.title,
         comment: item.comment,
-        rank: item.rank,
+        completed: item.completed,
         properties: item.properties?.map(prop => ({
           id: Math.random().toString(36).slice(2),
           type: prop.type,

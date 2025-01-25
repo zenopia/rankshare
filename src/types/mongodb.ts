@@ -6,6 +6,7 @@ export interface MongoListDocument {
   description?: string;
   category: ListCategory;
   privacy: 'public' | 'private';
+  listType: 'ordered' | 'bullet' | 'task';
   owner: {
     userId: string;
     clerkId: string;
@@ -15,7 +16,7 @@ export interface MongoListDocument {
   items: Array<{
     title: string;
     comment?: string;
-    rank: number;
+    completed?: boolean;
     properties?: Array<{
       type?: 'text' | 'link';
       label: string;

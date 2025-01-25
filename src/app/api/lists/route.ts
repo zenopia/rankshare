@@ -41,7 +41,14 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json();
-    const { title, description, category, privacy = 'private', items = [] } = data;
+    const { 
+      title, 
+      description, 
+      category, 
+      privacy = 'private', 
+      listType = 'ordered',
+      items = [] 
+    } = data;
 
     if (!title || !category) {
       return NextResponse.json(
@@ -53,11 +60,20 @@ export async function POST(request: Request) {
     const ListModel = await getListModel();
     const UserModel = await getUserModel();
 
+    // First get the user to ensure we have their details
+    const user = await UserModel.findOne({ clerkId: userId });
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
     // Process items to ensure they have valid structure
-    const processedItems = items.map((item: ListItem, index: number) => ({
+    const processedItems = items.map((item: ListItem) => ({
       title: item.title,
-      rank: index + 1,
       comment: item.comment,
+      completed: false,
       properties: (item.properties || []).map((prop: ListProperty) => ({
         type: prop.type || 'text',
         label: prop.label || '',
@@ -65,66 +81,38 @@ export async function POST(request: Request) {
       }))
     }));
 
-    // Combine operations: find/update user and create list
-    const [user, list] = await Promise.all([
-      // Find or update user in one operation
-      UserModel.findOneAndUpdate(
-        { clerkId: userId },
-        { $inc: { listCount: 1 } },
-        { 
-          new: true,  // Return updated document
-          select: '_id username displayName'
-        }
-      ) as Promise<UserDocument | null>,
-      // Create list (will be executed in parallel)
-      ListModel.create({
-        title,
-        description,
-        category,
-        privacy,
-        owner: {
-          userId: new mongoose.Types.ObjectId(), // Initialize with temporary ObjectId
-          clerkId: userId,
-          username: '', // Will update this after user operation
-          joinedAt: new Date()
-        },
-        collaborators: [],
-        items: processedItems,
-        stats: {
-          viewCount: 0,
-          pinCount: 0,
-          copyCount: 0
-        }
-      })
-    ]);
-
-    if (!user || !user._id) {
-      // Rollback list creation if user not found
-      await ListModel.findByIdAndDelete(list._id);
-      return NextResponse.json(
-        { error: "User not found or invalid user ID" },
-        { status: 404 }
-      );
-    }
-
-    // Update the list with the user's details and get the updated list
-    const updatedList = await ListModel.findByIdAndUpdate(
-      list._id,
-      {
-        'owner.userId': user._id,
-        'owner.username': user.username
+    // Create list with user details
+    const list = await ListModel.create({
+      title,
+      description,
+      category,
+      privacy,
+      listType,
+      owner: {
+        userId: user._id,
+        clerkId: userId,
+        username: user.username,
+        joinedAt: new Date()
       },
-      { new: true }
-    ).lean();
+      collaborators: [],
+      items: processedItems,
+      stats: {
+        viewCount: 0,
+        pinCount: 0,
+        copyCount: 0
+      }
+    });
 
-    if (!updatedList) {
-      throw new Error('Failed to update list with user details');
-    }
+    // Increment user's list count
+    await UserModel.findOneAndUpdate(
+      { clerkId: userId },
+      { $inc: { listCount: 1 } }
+    );
 
     // Convert _id to string for the response
     const responseList = {
-      ...updatedList,
-      id: updatedList._id.toString(),
+      ...list.toObject(),
+      id: (list._id as { toString(): string }).toString(),
       _id: undefined
     };
 

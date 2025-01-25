@@ -40,9 +40,9 @@ export async function PATCH(
       );
     }
 
-    // Find the item by rank
-    const itemIndex = list.items?.findIndex(item => item.rank === parseInt(params.itemId));
-    if (itemIndex === -1 || itemIndex === undefined) {
+    // Find the item by index
+    const itemIndex = parseInt(params.itemId);
+    if (isNaN(itemIndex) || !list.items?.[itemIndex]) {
       return NextResponse.json(
         { error: "Item not found" },
         { status: 404 }
@@ -81,7 +81,6 @@ export async function PATCH(
       id: Math.random().toString(36).slice(2),
       title: updatedItem.title,
       comment: updatedItem.comment,
-      rank: updatedItem.rank,
       properties: updatedItem.properties?.map(prop => ({
         id: Math.random().toString(36).slice(2),
         type: prop.type,

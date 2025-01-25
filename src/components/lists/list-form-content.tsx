@@ -3,15 +3,14 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { ListCategory } from "@/types/list";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import * as z from "zod";
-import { Loader2, Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 import { TiptapEditor } from "@/components/editor/tiptap-editor";
-import { useAuth } from "@clerk/nextjs";
+import type { ListType } from "@/components/editor/tiptap-editor";
+import { useAuth, useUser } from "@clerk/nextjs";
 
 import {
   Form,
@@ -22,6 +21,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -29,21 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { DraggableListItem } from "@/components/lists/draggable-list-item";
-
-interface ListItem {
-  id: string;
-  title: string;
-  comment?: string;
-  rank: number;
-  properties?: Array<{
-    id: string;
-    type?: 'text' | 'link';
-    label: string;
-    value: string;
-  }>;
-}
 
 export interface ListFormProps {
   mode?: 'create' | 'edit';
@@ -54,11 +39,12 @@ export interface ListFormProps {
     description?: string;
     category: ListCategory;
     privacy: 'public' | 'private';
+    listType: 'ordered' | 'bullet' | 'task';
     items: Array<{
       id: string;
       title: string;
       comment?: string;
-      rank: number;
+      completed?: boolean;
       properties?: Array<{
         id: string;
         type?: 'text' | 'link';
@@ -86,6 +72,7 @@ const formSchema = z.object({
     .max(500, "Description cannot exceed 500 characters")
     .optional(),
   privacy: z.enum(["public", "private"] as const),
+  listType: z.enum(["ordered", "bullet", "task"] as const),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -102,39 +89,20 @@ const FORM_CATEGORIES = [
 
 export function ListFormContent({ defaultValues, mode = 'create', returnPath }: ListFormProps) {
   const router = useRouter();
-  const { userId } = useAuth();
+  const { isSignedIn } = useAuth();
+  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
   const [editorContent, setEditorContent] = useState(() => {
     if (defaultValues?.items) {
-      // Convert existing items to HTML list
+      // Convert existing items to HTML list with correct list type
+      const listTag = defaultValues.listType === 'bullet' ? 'ul' : 'ol';
       const itemsHtml = defaultValues.items
-        .sort((a, b) => a.rank - b.rank)
-        .map(item => `<li>${item.title}</li>`)
+        .map(item => `<li><p>${item.title}</p></li>`)
         .join('');
-      return `<ol>${itemsHtml}</ol>`;
+      return `<${listTag}>${itemsHtml}</${listTag}>`;
     }
     return '';
   });
-
-  // Fetch username when component mounts
-  useEffect(() => {
-    const fetchUsername = async () => {
-      if (!userId) return;
-      
-      try {
-        const response = await fetch('/api/profile');
-        const data = await response.json();
-        if (response.ok && data.username) {
-          setUsername(data.username);
-        }
-      } catch (error) {
-        console.error('Error fetching username:', error);
-      }
-    };
-
-    fetchUsername();
-  }, [userId]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -143,10 +111,16 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
       category: (defaultValues?.category === 'all' ? 'movies' : defaultValues?.category) || "movies",
       description: defaultValues?.description || "",
       privacy: defaultValues?.privacy || "public",
+      listType: defaultValues?.listType || "ordered",
     },
   });
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    if (!isSignedIn || !user?.username) {
+      toast.error("Please sign in to create a list");
+      return;
+    }
+
     // Parse the editor content to get list items
     const parser = new DOMParser();
     const doc = parser.parseFromString(editorContent, 'text/html');
@@ -164,7 +138,7 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
         ...data,
         items: listItems.map((item, index) => ({
           title: item.textContent || '',
-          rank: index + 1,
+          completed: false, // Always include completed status, defaulting to false
         }))
       };
 
@@ -195,10 +169,10 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
 
       if (returnPath) {
         router.push(returnPath);
-      } else if (username) {
+      } else {
         const listPath = mode === 'create' 
-          ? `/${username}/lists/${responseData.id}`
-          : `/${username}/lists/${defaultValues?.id}`;
+          ? `/${user.username}/lists/${responseData.id}`
+          : `/${user.username}/lists/${defaultValues?.id}`;
         router.push(listPath);
       }
       router.refresh();
@@ -214,9 +188,59 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
     }
   };
 
+  const handleListTypeChange = (type: ListType) => {
+    form.setValue('listType', type)
+  }
+
+  const handleDelete = async () => {
+    if (!defaultValues?.id || !isSignedIn || !user?.username) return;
+    
+    if (!confirm('Are you sure you want to delete this list? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/lists/${defaultValues.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete list');
+      }
+
+      toast.success('List deleted successfully');
+      router.push(`/${user.username}`);
+      router.refresh();
+    } catch (error) {
+      console.error('Error deleting list:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete list');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="container max-w-4xl mx-auto px-4 py-8 space-y-8">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="container max-w-4xl mx-auto px-4 py-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">{mode === 'create' ? 'Create List' : 'Edit List'}</h1>
+          {mode === 'edit' && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Delete List'
+              )}
+            </Button>
+          )}
+        </div>
+
         <FormField
           control={form.control}
           name="title"
@@ -293,7 +317,7 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <Input 
+                <Textarea 
                   placeholder="Description (optional)" 
                   {...field} 
                 />
@@ -309,16 +333,18 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
           </div>
 
           <div className="space-y-6">
-            <div className="border rounded-lg p-4 space-y-4">
+            <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Type or paste your items below. Use numbers (1.) or bullets (-) to create a list.
+                Type or paste your items below.
                 Press Enter to add new items. You can reorder items by dragging them.
               </p>
               <TiptapEditor
                 content={editorContent}
                 onChange={setEditorContent}
-                placeholder="Start typing your list items..."
-                className="min-h-[300px]"
+                onListTypeChange={handleListTypeChange}
+                defaultListType={defaultValues?.listType || 'ordered'}
+                placeholder="List"
+                className="min-h-[200px]"
               />
             </div>
           </div>

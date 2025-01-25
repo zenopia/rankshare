@@ -22,7 +22,7 @@ export interface ListCollaborator {
 interface ListItem {
   title: string;
   comment?: string;
-  rank: number;
+  completed?: boolean;
   properties?: Array<{
     type: 'text' | 'link';
     label: string;
@@ -35,6 +35,7 @@ export interface ListDocument extends Document {
   description?: string;
   category: string;
   privacy: 'public' | 'private';
+  listType: 'ordered' | 'bullet' | 'task';
   owner: ListOwner;
   collaborators: ListCollaborator[];
   items: ListItem[];
@@ -53,6 +54,7 @@ const listSchema = new Schema<ListDocument>({
   description: { type: String },
   category: { type: String, enum: LIST_CATEGORIES, required: true },
   privacy: { type: String, enum: ['public', 'private'], default: 'public' },
+  listType: { type: String, enum: ['ordered', 'bullet', 'task'], default: 'ordered' },
   owner: {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     clerkId: { type: String, required: true }
@@ -71,7 +73,7 @@ const listSchema = new Schema<ListDocument>({
   items: [{
     title: { type: String, required: true },
     comment: { type: String },
-    rank: { type: Number, required: true },
+    completed: { type: Boolean, default: false },
     properties: [{
       type: { type: String, enum: ['text', 'link'], default: 'text' },
       label: { type: String, required: true },

@@ -3,11 +3,13 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 export function CreateListFAB() {
   const router = useRouter();
-  const { userId, isSignedIn } = useAuth();
+  const { isSignedIn } = useAuth();
+  const { user } = useUser();
 
   const handleClick = () => {
     if (!isSignedIn) {
@@ -15,7 +17,12 @@ export function CreateListFAB() {
       return;
     }
 
-    router.push(`/${userId}/lists/create`);
+    if (!user?.username) {
+      toast.error("Could not load profile information");
+      return;
+    }
+
+    router.push(`/${user.username}/lists/create`);
   };
 
   return (

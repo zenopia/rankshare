@@ -45,11 +45,19 @@ export async function POST(
       description: originalList.description,
       category: originalList.category,
       privacy: 'private', // Always start as private
+      listType: originalList.listType || 'ordered', // Copy the list type or default to ordered
       owner: {
         userId: user._id,
-        clerkId: userId
+        clerkId: userId,
+        username: user.username,
+        joinedAt: new Date()
       },
-      items: originalList.items,
+      items: originalList.items.map(item => ({
+        title: item.title,
+        comment: item.comment,
+        completed: item.completed || false,
+        properties: item.properties
+      })),
       stats: {
         viewCount: 0,
         pinCount: 0,

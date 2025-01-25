@@ -33,7 +33,7 @@ export interface ListItem {
   id: string;
   title: string;
   comment?: string;
-  rank: number;
+  completed?: boolean;
   properties?: Array<{
     id: string;
     type?: 'text' | 'link';
@@ -72,6 +72,7 @@ export interface List {
   description?: string;
   category: ListCategory;
   privacy: 'public' | 'private';
+  listType: 'ordered' | 'bullet' | 'task';
   owner: ListOwner;
   items?: ListItem[];
   stats: ListStats;
