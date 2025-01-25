@@ -59,7 +59,6 @@ export default async function EditListPage({ params, searchParams }: PageProps) 
       id: Math.random().toString(36).slice(2),
       title: item.title,
       comment: item.comment,
-      rank: item.rank,
       properties: item.properties?.map(prop => ({
         id: Math.random().toString(36).slice(2),
         type: prop.type,
@@ -67,6 +66,7 @@ export default async function EditListPage({ params, searchParams }: PageProps) 
         value: prop.value
       }))
     })),
+    listType: list.listType || 'ordered',
     owner: {
       id: list.owner.userId.toString(),
       clerkId: list.owner.clerkId,

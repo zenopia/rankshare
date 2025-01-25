@@ -29,18 +29,6 @@ export function TiptapEditor({
 }: TiptapEditorProps) {
   const [currentListType, setCurrentListType] = useState<ListType>(defaultListType)
 
-  const getListTag = (type: ListType) => {
-    switch (type) {
-      case 'bullet':
-        return 'ul';
-      case 'ordered':
-      case 'task':
-        return 'ol';
-      default:
-        return 'ol';
-    }
-  }
-
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -62,6 +50,35 @@ export function TiptapEditor({
     content,
     editable,
     immediatelyRender: false,
+    onCreate: ({ editor }) => {
+      if (!content) {
+        // For new content, create an empty list
+        editor
+          .chain()
+          .setContent(`<ol><li>${placeholder}</li></ol>`)
+          .focus()
+          .run()
+      } else {
+        // For existing content, ensure it's in a list
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = content
+        const items = Array.from(tempDiv.querySelectorAll('li'))
+        const itemsHtml = items
+          .map(item => `<li>${item.textContent || placeholder}</li>`)
+          .join('')
+        
+        editor
+          .chain()
+          .setContent(`<ol>${itemsHtml}</ol>`)
+          .run()
+      }
+
+      // Set the list type based on defaultListType
+      if (defaultListType === 'bullet') {
+        editor.chain().toggleBulletList().run()
+      }
+      setCurrentListType(defaultListType)
+    },
     onUpdate: ({ editor }) => {
       // Check if editor is completely empty (no list structure)
       if (editor.isEmpty) {
@@ -104,56 +121,12 @@ export function TiptapEditor({
         return false
       },
     },
-    onCreate: ({ editor }) => {
-      // First set empty content if needed
-      if (!content) {
-        editor.commands.setContent(`<li><p>${placeholder}</p></li>`)
-      }
-      
-      // Ensure we're starting with a clean slate
-      editor.commands.liftListItem('listItem')
-      
-      // Then set the correct list type
-      if (defaultListType === 'bullet') {
-        editor.commands.toggleBulletList()
-      } else {
-        editor.commands.toggleOrderedList()
-      }
-
-      if (!content) {
-        editor.commands.focus()
-      }
-    },
     autofocus: 'end',
   })
 
-  useEffect(() => {
-    if (editor && defaultListType) {
-      const content = editor.getHTML()
-      const hasItems = content.includes('<li>')
-
-      if (hasItems) {
-        const tempDiv = document.createElement('div')
-        tempDiv.innerHTML = content
-        const items = Array.from(tempDiv.querySelectorAll('li'))
-        const itemsContent = items.map(item => item.textContent || placeholder).filter(text => text.trim())
-
-        editor
-          .chain()
-          .setContent(
-            `<${getListTag(defaultListType)}>` +
-            itemsContent.map(text => `<li><p>${text}</p></li>`).join('') +
-            `</${getListTag(defaultListType)}>`
-          )
-          .run()
-      }
-      setCurrentListType(defaultListType)
-    }
-  }, [editor, defaultListType]);
-
   const setListType = (type: ListType) => {
     if (!editor) return
-
+    
     setCurrentListType(type)
     if (onListTypeChange) {
       onListTypeChange(type)
@@ -161,7 +134,7 @@ export function TiptapEditor({
 
     // First ensure we're in a list
     if (editor.isEmpty) {
-      editor.chain().setContent(`<li><p>${placeholder}</p></li>`).focus().run()
+      editor.chain().setContent(`<li>${placeholder}</li>`).focus().run()
     }
     
     // Toggle the appropriate list type
@@ -174,7 +147,21 @@ export function TiptapEditor({
 
   const isListType = (type: ListType): boolean => {
     if (!editor) return type === currentListType
-    return type === currentListType
+    return type === 'bullet' 
+      ? editor.isActive('bulletList')
+      : editor.isActive('orderedList')
+  }
+
+  const getListTag = (type: ListType) => {
+    switch (type) {
+      case 'bullet':
+        return 'ul';
+      case 'ordered':
+      case 'task':
+        return 'ol';
+      default:
+        return 'ol';
+    }
   }
 
   return (
