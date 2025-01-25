@@ -53,6 +53,9 @@ export interface ListFormProps {
     description?: string;
     category: ListCategory;
     privacy: 'public' | 'private';
+    owner: {
+      username: string;
+    };
     items: Array<{
       id: string;
       title: string;
@@ -187,8 +190,8 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
         router.push(returnPath);
       } else {
         const listPath = mode === 'create' 
-          ? `/lists/${responseData.id}`
-          : `/lists/${defaultValues?.id}`;
+          ? `/${responseData.username}/lists/${responseData.id}`
+          : `/${defaultValues?.owner.username}/lists/${defaultValues?.id}`;
         router.push(listPath);
       }
       router.refresh();
@@ -430,8 +433,8 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
                       <Textarea
                         className="min-h-[200px]"
                         placeholder={`Item 1
-                                      Item 2
-                                      Item 3`}
+Item 2
+Item 3`}
                         value={quickAddText}
                         onChange={(e) => setQuickAddText(e.target.value)}
                       />

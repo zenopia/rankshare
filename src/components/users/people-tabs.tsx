@@ -1,7 +1,7 @@
 "use client";
 
 import { TabNavigation } from "@/components/ui/tab-navigation";
-import { useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 interface PeopleTabsProps {
   username: string;
@@ -11,7 +11,6 @@ interface PeopleTabsProps {
 
 export function PeopleTabs({ username, followerCount, followingCount }: PeopleTabsProps) {
   const searchParams = useSearchParams();
-  const pathname = usePathname();
   const fromParam = searchParams.get('from');
 
   const tabs = [
