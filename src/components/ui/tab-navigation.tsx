@@ -25,7 +25,10 @@ export function TabNavigation({ tabs, useSearchParam, className }: TabNavigation
       const currentValue = searchParams?.get(useSearchParam) || tabs[0].value;
       return currentValue === tab.value;
     }
-    return pathname === tab.href;
+    if (tab.value) {
+      return pathname === tab.value;
+    }
+    return pathname === tab.href.split('?')[0];
   };
 
   return (

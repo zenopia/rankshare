@@ -8,6 +8,7 @@ import { connectToMongoDB } from "@/lib/db/client";
 import { notFound } from "next/navigation";
 import type { EnhancedList, ListCategory } from "@/types/list";
 import { ListPageContent } from "./list-page-content";
+import { Metadata } from "next";
 
 interface PageProps {
   params: {
@@ -17,6 +18,67 @@ interface PageProps {
   searchParams: {
     from?: string;
   };
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  try {
+    // Remove @ if present and decode the username
+    const username = decodeURIComponent(params.username).replace(/^@/, '');
+
+    // Get user from Clerk first
+    let profileUser;
+    try {
+      const users = await clerkClient.users.getUserList({
+        username: [username]
+      });
+      profileUser = users[0];
+    } catch (error) {
+      console.error('Error fetching user from Clerk:', error);
+      return {};
+    }
+
+    if (!profileUser) {
+      return {};
+    }
+
+    // Connect to MongoDB
+    await connectToMongoDB();
+    const ListModel = await getListModel();
+
+    // Get list
+    const list = await ListModel.findOne({ 
+      _id: params.listId
+    }).lean() as ListDocument & { _id: { toString(): string } };
+
+    if (!list) {
+      return {};
+    }
+
+    const displayName = `${profileUser.firstName || ''} ${profileUser.lastName || ''}`.trim() || profileUser.username;
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const listUrl = `${siteUrl}/${username}/lists/${list._id.toString()}`;
+
+    return {
+      title: `${list.title} by ${displayName}`,
+      description: list.description || `Check out ${displayName}'s list on Favely`,
+      openGraph: {
+        title: `${list.title} by ${displayName}`,
+        description: list.description || `Check out ${displayName}'s list on Favely`,
+        url: listUrl,
+        siteName: 'Favely',
+        type: 'article',
+        authors: [displayName],
+      },
+      twitter: {
+        card: 'summary',
+        title: `${list.title} by ${displayName}`,
+        description: list.description || `Check out ${displayName}'s list on Favely`,
+      }
+    };
+  } catch (error) {
+    console.error("Error generating metadata:", error);
+    return {};
+  }
 }
 
 export default async function ListPage({ params, searchParams }: PageProps) {

@@ -52,6 +52,12 @@ export default async function UserFollowingPage({ params, searchParams }: PagePr
     status: 'accepted'
   }).lean();
 
+  // Get follower count
+  const followerCount = await FollowModel.countDocuments({
+    followingId: profileUser.id,
+    status: 'accepted'
+  });
+
   // Build search filter based on whether there's a search query
   const filter: FilterQuery<MongoUserDocument> = searchParams.q ? {
     // When searching, look through all users
@@ -75,8 +81,12 @@ export default async function UserFollowingPage({ params, searchParams }: PagePr
 
   const PageContent = (
     <div className="relative">
-      <PeopleTabs username={username} />
-      <div className="px-4 md:px-6 lg:px-8 pt-4">
+      <PeopleTabs 
+        username={username} 
+        followerCount={followerCount} 
+        followingCount={follows.length} 
+      />
+      <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
         <div className="max-w-2xl mx-auto space-y-6">
           <SearchInput 
             placeholder="Search people..." 
@@ -93,7 +103,7 @@ export default async function UserFollowingPage({ params, searchParams }: PagePr
       {PageContent}
     </MainLayout>
   ) : (
-    <SubLayout title={displayName} subtext={`${follows.length} Following`}>
+    <SubLayout title={displayName}>
       {PageContent}
     </SubLayout>
   );

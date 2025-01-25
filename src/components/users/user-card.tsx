@@ -6,6 +6,7 @@ import { Check } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import { usePathname } from "next/navigation";
 
 export interface UserCardProps {
   username: string;
@@ -26,6 +27,7 @@ export function UserCard({
 }: UserCardProps) {
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isLoadingFollow, setIsLoadingFollow] = useState(false);
+  const pathname = usePathname();
 
   const handleFollowClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -81,7 +83,8 @@ export function UserCard({
   );
 
   if (linkToProfile) {
-    return <Link href={`/${username}`}>{content}</Link>;
+    const relativePath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+    return <Link href={`/${username}?from=${relativePath}`}>{content}</Link>;
   }
 
   return content;

@@ -46,6 +46,12 @@ export default async function UserFollowersPage({ params }: PageProps) {
     status: 'accepted'
   }).lean();
 
+  // Get following count
+  const followingCount = await FollowModel.countDocuments({
+    followerId: profileUser.id,
+    status: 'accepted'
+  });
+
   // Get enhanced user data for all followers
   const users = await getEnhancedUsers({
     clerkId: { $in: follows.map(follow => follow.followerId) }
@@ -59,8 +65,12 @@ export default async function UserFollowersPage({ params }: PageProps) {
 
   const PageContent = (
     <div className="relative">
-      <PeopleTabs username={username} />
-      <div className="px-4 md:px-6 lg:px-8 pt-4">
+      <PeopleTabs 
+        username={username} 
+        followerCount={follows.length} 
+        followingCount={followingCount} 
+      />
+      <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
         <div className="max-w-2xl mx-auto">
           <UserList users={users} />
         </div>
@@ -73,7 +83,7 @@ export default async function UserFollowersPage({ params }: PageProps) {
       {PageContent}
     </MainLayout>
   ) : (
-    <SubLayout title={displayName} subtext={`${follows.length} Followers`}>
+    <SubLayout title={displayName}>
       {PageContent}
     </SubLayout>
   );

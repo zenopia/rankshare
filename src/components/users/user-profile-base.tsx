@@ -5,6 +5,7 @@ import { FollowButton } from "@/components/users/follow-button";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { MapPin, Calendar, Users } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
 
 export interface UserProfileBaseProps {
   // Core user data
@@ -81,6 +82,9 @@ export function UserProfileBase({
   onClick,
 }: UserProfileBaseProps) {
   const displayName = formatDisplayName(firstName, lastName, username);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const fromParam = searchParams.get('from');
   
   const content = (
     <div className={cn(
@@ -120,13 +124,13 @@ export function UserProfileBase({
             {showStats && stats && (
               <div className="flex gap-4 mt-2">
                 {stats.followers !== undefined && (
-                  <Link href={`/${username}/followers`} className="text-sm">
+                  <Link href={`/${username}/followers${fromParam ? `?from=${fromParam}` : ''}`} className="text-sm">
                     <span className="font-semibold">{stats.followers}</span>{" "}
                     <span className="text-muted-foreground">Followers</span>
                   </Link>
                 )}
                 {stats.following !== undefined && (
-                  <Link href={`/${username}/following`} className="text-sm">
+                  <Link href={`/${username}/following${fromParam ? `?from=${fromParam}` : ''}`} className="text-sm">
                     <span className="font-semibold">{stats.following}</span>{" "}
                     <span className="text-muted-foreground">Following</span>
                   </Link>
@@ -201,9 +205,10 @@ export function UserProfileBase({
   );
 
   if (linkToProfile) {
+    const relativePath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
     return (
       <Link
-        href={variant === "compact" ? "/profile" : `/${username}`}
+        href={variant === "compact" ? "/profile" : `/${username}?from=${relativePath}`}
         className={cn(
           "block",
           onClick && "cursor-pointer",

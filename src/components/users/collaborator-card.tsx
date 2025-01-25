@@ -14,6 +14,7 @@ import { ChevronDown, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { usePathname } from "next/navigation";
 
 export interface CollaboratorCardProps {
   userId: string;
@@ -47,6 +48,7 @@ export function CollaboratorCard({
   const isEmailInvite = !clerkId;
   const { data: users, isLoading } = useUsers([userId]);
   const userData = isEmailInvite ? null : users?.[0];
+  const pathname = usePathname();
 
   if (isLoading) {
     return (
@@ -168,7 +170,8 @@ export function CollaboratorCard({
   );
 
   if (linkToProfile && userData && !isEmailInvite && username) {
-    return <Link href={`/${userData.username || username}`}>{content}</Link>;
+    const relativePath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+    return <Link href={`/${userData.username || username}?from=${relativePath}`}>{content}</Link>;
   }
 
   return content;
