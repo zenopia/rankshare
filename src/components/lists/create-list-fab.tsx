@@ -12,7 +12,8 @@ export function CreateListFAB() {
 
   const handleClick = () => {
     if (!isSignedIn) {
-      router.push('/sign-in?return_to=/lists/create');
+      sessionStorage.setItem('returnTo', '/lists/create');
+      router.push('/sign-in');
       return;
     }
 

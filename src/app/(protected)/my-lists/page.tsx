@@ -2,7 +2,7 @@ import { FilterQuery } from 'mongoose';
 import { auth } from "@clerk/nextjs/server";
 import { MainLayout } from "@/components/layout/main-layout";
 import { ListGrid } from "@/components/lists/list-grid";
-import { ListTabs } from "@/components/lists/list-tabs";
+import { ListTabsWrapper } from "@/components/lists/list-tabs-wrapper";
 import { getEnhancedLists } from "@/lib/actions/lists";
 import type { ListCategory } from "@/types/list";
 import type { MongoListDocument } from "@/types/mongo";
@@ -55,7 +55,7 @@ export default async function MyListsPage({ searchParams }: PageProps) {
   return (
     <MainLayout>
       <div className="relative">
-        <ListTabs />
+        <ListTabsWrapper />
         <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
           <div className="max-w-7xl mx-auto">
             <ListGrid 
