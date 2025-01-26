@@ -1,9 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import mongoose from 'mongoose';
 import { getListModel } from "@/lib/db/models-v2/list";
 import { getUserModel } from "@/lib/db/models-v2/user";
-import type { UserDocument } from "@/lib/db/models-v2/user";
 
 const TEST_USER_ID = process.env.TEST_USER_ID;
 const TEST_TOKEN = process.env.TEST_TOKEN;
@@ -82,7 +80,7 @@ export async function POST(request: Request) {
     }));
 
     // Create list with user details
-    const list = await ListModel.create({
+    const newList = await ListModel.create({
       title,
       description,
       category,
@@ -103,19 +101,25 @@ export async function POST(request: Request) {
       }
     });
 
+    // Get the list as a plain object
+    const list = await ListModel.findById(newList._id).lean();
+    if (!list) {
+      throw new Error('List not found after creation');
+    }
+
+    // Convert _id to string for the response
+    const responseList = {
+      ...list,
+      id: list._id.toString(),
+      username: user.username,
+      _id: undefined
+    };
+
     // Increment user's list count
     await UserModel.findOneAndUpdate(
       { clerkId: userId },
       { $inc: { listCount: 1 } }
     );
-
-    // Convert _id to string for the response
-    const responseList = {
-      ...updatedList,
-      id: updatedList._id.toString(),
-      username: user.username,
-      _id: undefined
-    };
 
     return NextResponse.json(responseList, { status: 201 });
   } catch (error) {

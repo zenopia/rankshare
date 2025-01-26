@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ListCategory } from "@/types/list";
@@ -136,7 +136,7 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
     try {
       const payload = {
         ...data,
-        items: listItems.map((item, index) => ({
+        items: listItems.map(item => ({
           title: item.textContent || '',
           completed: false, // Always include completed status, defaulting to false
         }))

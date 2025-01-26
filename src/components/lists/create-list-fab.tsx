@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useAuth, useUser } from "@clerk/nextjs";
-import { toast } from "sonner";
 
 export function CreateListFAB() {
   const router = useRouter();
@@ -17,7 +16,8 @@ export function CreateListFAB() {
       return;
     }
 
-    router.push(`/${userId}/lists/create`);
+    if (!user?.username) return;
+    router.push(`/${user.username}/lists/create`);
   };
 
   return (
