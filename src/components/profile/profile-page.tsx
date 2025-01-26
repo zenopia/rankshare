@@ -35,7 +35,7 @@ const profileSchema = z.object({
 });
 
 export function ProfilePage() {
-  const { signOut } = useAuth();
+  const { signOut, getToken } = useAuth();
   const { user: clerkUser } = useUser();
   const { openUserProfile } = useClerk();
   const router = useRouter();
@@ -62,7 +62,13 @@ export function ProfilePage() {
   useEffect(() => {
     async function checkProfile() {
       try {
-        const response = await fetch('/api/profile');
+        const token = await getToken();
+        const response = await fetch('/api/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
         if (!response.ok) throw new Error('Failed to fetch profile');
         
         const { user, profile } = await response.json();
@@ -94,7 +100,7 @@ export function ProfilePage() {
     if (clerkUser) {
       checkProfile();
     }
-  }, [clerkUser]);
+  }, [clerkUser, getToken]);
 
   // Handle normal sign out
   const handleSignOut = async () => {
@@ -118,9 +124,13 @@ export function ProfilePage() {
         livingStatus: profileData.livingStatus,
       });
 
+      const token = await getToken();
       const response = await fetch('/api/profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json' 
+        },
         body: JSON.stringify(profileData),
       });
 

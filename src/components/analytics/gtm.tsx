@@ -5,12 +5,6 @@ interface GTMProps {
 }
 
 export function GoogleTagManager({ gtmId }: GTMProps) {
-  const isEnabled = process.env.NEXT_PUBLIC_GTM_ENABLED !== 'false';
-  
-  if (!isEnabled) {
-    return null;
-  }
-
   return (
     <>
       <Script
@@ -18,17 +12,6 @@ export function GoogleTagManager({ gtmId }: GTMProps) {
         strategy="afterInteractive"
         src={`https://www.googletagmanager.com/gtm.js?id=${gtmId}`}
       />
-      <Script
-        id="gtm-init"
-        strategy="afterInteractive"
-      >
-        {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', '${gtmId}');
-        `}
-      </Script>
       <noscript>
         <iframe
           src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}

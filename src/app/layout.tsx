@@ -13,6 +13,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID?.replace(/"/g, '');
+  const isGtmEnabled = process.env.NEXT_PUBLIC_GTM_ENABLED !== 'false';
 
   return (
     <html 
@@ -21,18 +22,20 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              window.dataLayer.push({
-                'gtm.start': new Date().getTime(),
-                event: 'gtm.js'
-              });
-            `,
-          }}
-        />
-        {gtmId && <GoogleTagManager gtmId={gtmId} />}
+        {isGtmEnabled && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                window.dataLayer = window.dataLayer || [];
+                window.dataLayer.push({
+                  'gtm.start': new Date().getTime(),
+                  event: 'gtm.js'
+                });
+              `,
+            }}
+          />
+        )}
+        {isGtmEnabled && gtmId && <GoogleTagManager gtmId={gtmId} />}
       </head>
       <body className="min-h-screen font-sans antialiased">
         <Providers>
