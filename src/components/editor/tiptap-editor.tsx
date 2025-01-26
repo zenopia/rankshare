@@ -120,10 +120,16 @@ export function TiptapEditor({
             const listNode = $head.node(-2) // Get the parent list node
             const listItemNode = $head.node(-1) // Get the current list item node
             const listItemPos = $head.before(-1) // Get position before current list item
+            const isFirstItem = $head.index(-2) === 0 // Check if this is the first item
             
             // If this is the last item in the list and it's empty
             if (listNode.childCount === 1 && listItemNode.textContent === '') {
               return true // Prevent deletion to keep at least one item
+            }
+
+            // If this is the first item, prevent exiting list format
+            if (isFirstItem) {
+              return true
             }
 
             // If we're not the first item and we're empty
@@ -137,6 +143,11 @@ export function TiptapEditor({
               return true
             }
           }
+        }
+
+        // Prevent exiting list format with Enter+Shift
+        if (event.key === 'Enter' && event.shiftKey) {
+          return true
         }
 
         return false
