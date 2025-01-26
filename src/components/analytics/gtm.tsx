@@ -5,6 +5,12 @@ interface GTMProps {
 }
 
 export function GoogleTagManager({ gtmId }: GTMProps) {
+  const isEnabled = process.env.NEXT_PUBLIC_GTM_ENABLED !== 'false';
+  
+  if (!isEnabled) {
+    return null;
+  }
+
   return (
     <>
       <Script
