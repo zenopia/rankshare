@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { MainLayout } from "@/components/layout/main-layout";
 import { ListGrid } from "@/components/lists/list-grid";
-import { ListTabsWrapper } from "@/components/lists/list-tabs-wrapper";
+import { ListTabs } from "@/components/lists/list-tabs";
 import { getPinModel } from "@/lib/db/models-v2/pin";
 import { connectToMongoDB } from "@/lib/db/client";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
@@ -71,7 +71,7 @@ export default async function PinnedPage({ searchParams }: PageProps) {
   return (
     <MainLayout>
       <div className="relative">
-        <ListTabsWrapper />
+        <ListTabs />
         <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
           <div className="max-w-7xl mx-auto">
             <ListGrid 
