@@ -3,11 +3,12 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 
 export function CreateListFAB() {
   const router = useRouter();
-  const { userId, isSignedIn } = useAuth();
+  const { isSignedIn } = useAuth();
+  const { user } = useUser();
 
   const handleClick = () => {
     if (!isSignedIn) {
@@ -15,7 +16,8 @@ export function CreateListFAB() {
       return;
     }
 
-    router.push(`/${userId}/lists/create`);
+    if (!user?.username) return;
+    router.push(`/${user.username}/lists/create`);
   };
 
   return (
