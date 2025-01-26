@@ -2,9 +2,10 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface SearchInputProps {
   placeholder?: string;
@@ -27,6 +28,10 @@ export function SearchInput({ placeholder = "Search...", defaultValue = "" }: Se
     router.push(`?${params.toString()}`);
   }, [debouncedValue, router, searchParams]);
 
+  const handleClear = () => {
+    setValue("");
+  };
+
   return (
     <div className="relative">
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -34,8 +39,18 @@ export function SearchInput({ placeholder = "Search...", defaultValue = "" }: Se
         placeholder={placeholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="pl-10 h-12 sm:h-10 text-base sm:text-sm"
+        className="pl-10 pr-10 h-12 sm:h-10 text-base sm:text-sm"
       />
+      {value && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          onClick={handleClear}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 } 

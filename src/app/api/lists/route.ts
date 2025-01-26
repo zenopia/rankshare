@@ -111,8 +111,9 @@ export async function POST(request: Request) {
 
     // Convert _id to string for the response
     const responseList = {
-      ...list.toObject(),
-      id: (list._id as { toString(): string }).toString(),
+      ...updatedList,
+      id: updatedList._id.toString(),
+      username: user.username,
       _id: undefined
     };
 

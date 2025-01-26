@@ -17,12 +17,7 @@ export function CreateListFAB() {
       return;
     }
 
-    if (!user?.username) {
-      toast.error("Could not load profile information");
-      return;
-    }
-
-    router.push(`/${user.username}/lists/create`);
+    router.push(`/${userId}/lists/create`);
   };
 
   return (

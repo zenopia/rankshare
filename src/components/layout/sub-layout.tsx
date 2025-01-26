@@ -41,6 +41,12 @@ export function SubLayout({ children, title = "Page", subtext, hideBottomNav }: 
   const handleBack = () => {
     const from = searchParams.get('from');
     
+    // If we're on a sign-in or sign-up page
+    if (pathname.includes('/sign-in') || pathname.includes('/sign-up')) {
+      router.back();
+      return;
+    }
+
     // If we're on a following/followers page
     if (pathname.includes('/following') || pathname.includes('/followers')) {
       // Extract the username from the path
