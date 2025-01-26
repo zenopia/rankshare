@@ -3,7 +3,7 @@ import StarterKit from '@tiptap/starter-kit'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ListOrdered, List } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { TextSelection } from 'prosemirror-state'
 import './tiptap-editor.css'
 
@@ -158,6 +158,10 @@ export function TiptapEditor({
 
   const setListType = (type: ListType) => {
     if (!editor) return
+    
+    // Don't do anything if trying to toggle the current type
+    if (type === 'bullet' && editor.isActive('bulletList')) return
+    if (type === 'ordered' && editor.isActive('orderedList')) return
     
     setCurrentListType(type)
     if (onListTypeChange) {
