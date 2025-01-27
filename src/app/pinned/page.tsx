@@ -2,13 +2,10 @@ import { auth } from "@clerk/nextjs/server";
 import { getEnhancedLists } from "@/lib/actions/lists";
 import { getPinModel } from "@/lib/db/models-v2/pin";
 import { PinnedListsLayout } from "@/components/lists/pinned-lists-layout";
-import { notFound } from "next/navigation";
 
 export default async function PinnedListsPage() {
   const { userId } = auth();
-  if (!userId) {
-    notFound();
-  }
+  if (!userId) return null;
 
   // Get pinned list IDs
   const pinModel = await getPinModel();
