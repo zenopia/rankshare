@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
-import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
+
 
 export default async function ProtectedLayout({
   children,
