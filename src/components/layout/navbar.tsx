@@ -4,8 +4,6 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { UserNav } from "@/components/layout/user-nav";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { useState, useEffect } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface NavbarProps {
   title?: {
@@ -14,38 +12,8 @@ interface NavbarProps {
   };
 }
 
-function NavbarSkeleton() {
-  return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-14 items-center px-4">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-8 w-8" />
-          </div>
-          <div className="absolute left-1/2 -translate-x-1/2">
-            <Skeleton className="h-8 w-24" />
-          </div>
-          <div className="flex items-center">
-            <Skeleton className="h-8 w-20" />
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-}
-
 export function Navbar({ title }: NavbarProps) {
   const pathname = usePathname();
-  const [shouldShowSkeleton, setShouldShowSkeleton] = useState(false);
-  
-  // Only show skeleton after a delay
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShouldShowSkeleton(true);
-    }, 200); // Small delay to prevent flash
-
-    return () => clearTimeout(timer);
-  }, []);
 
   const getPageTitle = () => {
     if (pathname.startsWith('/search')) {
@@ -62,11 +30,6 @@ export function Navbar({ title }: NavbarProps) {
         return null;
     }
   };
-
-  // Show skeleton during initial load
-  if (shouldShowSkeleton) {
-    return <NavbarSkeleton />;
-  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
