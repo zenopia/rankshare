@@ -32,7 +32,7 @@ interface SubLayoutProps {
   hideBottomNav?: boolean;
 }
 
-export function SubLayout({ children, title = "Page", subtext, hideBottomNav }: SubLayoutProps) {
+export function SubLayout({ children, title = "Page", hideBottomNav }: SubLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -85,11 +85,6 @@ export function SubLayout({ children, title = "Page", subtext, hideBottomNav }: 
           {title && (
             <div>
               <h1 className="text-lg font-semibold leading-tight">{title}</h1>
-              {subtext && (
-                <p className="text-sm text-muted-foreground leading-tight">
-                  {subtext}
-                </p>
-              )}
             </div>
           )}
         </div>

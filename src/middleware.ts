@@ -33,10 +33,14 @@ export const config = {
     "/((?!.+\\.[\\w]+$|_next|_vercel|[\\w-]+\\.\\w+).*)",
     "/(api|trpc)(.*)",
     "/@:username*",
-    "/profile",
-    "/pinned",
-    "/my-lists",
-    "/collab"
+    "/:username/profile",
+    "/:username/pinned",
+    "/:username/my-lists",
+    "/:username/collab",
+    "/@:username/profile",
+    "/@:username/pinned",
+    "/@:username/my-lists",
+    "/@:username/collab"
   ]
 };
 
@@ -66,7 +70,59 @@ export default authMiddleware({
     "/:username/following",
     "/:username/followers",
     "/@:username/following",
-    "/@:username/followers"
+    "/@:username/followers",
+    // Add protected user routes
+    "/:username/profile",
+    "/:username/pinned",
+    "/:username/my-lists",
+    "/:username/collab",
+    "/@:username/profile",
+    "/@:username/pinned",
+    "/@:username/my-lists",
+    "/@:username/collab"
   ],
-  debug: process.env.NODE_ENV === 'development'
+  async afterAuth(auth: AuthObject, req: NextRequest) {
+    const url = req.nextUrl;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+      `https://${req.headers.get('host') || 'favely.net'}`;
+
+    // If not signed in and trying to access protected routes, redirect to sign in
+    if (!auth.userId && !auth.isPublicRoute) {
+      return NextResponse.redirect(new URL('/sign-in', baseUrl));
+    }
+
+    // If the user is signed in and trying to access auth pages, redirect to home
+    if (auth.userId && ['/sign-in', '/sign-up'].some(path => url.pathname.startsWith(path))) {
+      return NextResponse.redirect(new URL('/', baseUrl));
+    }
+
+    // Handle profile route redirects
+    if (url.pathname === '/profile' || url.pathname === '/pinned' || url.pathname === '/my-lists' || url.pathname === '/collab') {
+      if (auth.userId) {
+        // Get user from Clerk
+        const clerkUrl = `${process.env.CLERK_API_URL}/users/${auth.userId}`;
+        const response = await fetch(clerkUrl, {
+          headers: {
+            'Authorization': `Bearer ${process.env.CLERK_SECRET_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const user = await response.json();
+        if (user.username) {
+          // Redirect to /@username/profile
+          const path = url.pathname.slice(1);
+          return NextResponse.redirect(new URL(`/@${user.username}/${path}`, req.url));
+        }
+      }
+      // If not signed in or no username, redirect to sign in
+      return NextResponse.redirect(new URL('/sign-in', req.url));
+    }
+
+    // Apply security headers to all responses
+    const response = NextResponse.next();
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+      if (value) response.headers.set(key, value);
+    });
+    return response;
+  }
 });
