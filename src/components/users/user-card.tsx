@@ -8,6 +8,7 @@ import { Check } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { usePathname } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface UserCardProps {
   username: string;
@@ -18,16 +19,35 @@ interface UserCardProps {
   hideFollow?: boolean;
 }
 
+function UserCardSkeleton() {
+  return (
+    <div className="flex items-center justify-between p-4 rounded-lg border bg-card animate-pulse">
+      <div className="flex items-center gap-3 min-w-0">
+        <Skeleton className="h-8 w-8 rounded-full" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-3 w-16" />
+        </div>
+      </div>
+      <Skeleton className="h-8 w-20" />
+    </div>
+  );
+}
+
 export function UserCard({ username, firstName, lastName, imageUrl, isFollowing: initialIsFollowing = false, hideFollow = false }: UserCardProps) {
   const { isSignedIn, getToken, isLoaded, isReady } = useAuthGuard();
   const [isLoading, setIsLoading] = useState(false);
   const [isFollowing, setIsFollowing] = useState<boolean | null>(null);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   const pathname = usePathname();
 
   // Check follow status when component mounts and auth is ready
   useEffect(() => {
     const checkFollowStatus = async () => {
-      if (!isSignedIn || !isReady) return;
+      if (!isSignedIn || !isReady) {
+        setIsCheckingStatus(false);
+        return;
+      }
       
       try {
         const token = await getToken();
@@ -45,6 +65,8 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
         console.error("Error checking follow status:", error);
         // Fall back to prop value if API call fails
         setIsFollowing(initialIsFollowing);
+      } finally {
+        setIsCheckingStatus(false);
       }
     };
 
@@ -52,6 +74,7 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
       checkFollowStatus();
     } else {
       setIsFollowing(initialIsFollowing);
+      setIsCheckingStatus(false);
     }
   }, [username, isSignedIn, isReady, getToken, initialIsFollowing]);
 
@@ -94,33 +117,9 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
     }
   };
 
-  // Show loading state while auth is initializing or follow status is being checked
-  if (!isLoaded || isFollowing === null) {
-    return (
-      <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
-        <div className="flex items-center gap-3 min-w-0">
-          <UserProfileBase
-            username={username}
-            firstName={firstName}
-            lastName={lastName}
-            imageUrl={imageUrl}
-            variant="compact"
-            hideFollow={true}
-            linkToProfile={false}
-          />
-        </div>
-        {!hideFollow && isSignedIn && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-shrink-0"
-            disabled={true}
-          >
-            Loading...
-          </Button>
-        )}
-      </div>
-    );
+  // Show skeleton while loading
+  if (!isLoaded || isCheckingStatus) {
+    return <UserCardSkeleton />;
   }
 
   return (

@@ -7,7 +7,8 @@ import { SubLayout } from "@/components/layout/sub-layout";
 import { PeopleTabs } from "@/components/users/people-tabs";
 import { SearchInput } from "@/components/search/search-input";
 import { UserList } from "@/components/users/user-list";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PeoplePageLayoutProps {
   profileUserId: string;
@@ -17,6 +18,19 @@ interface PeoplePageLayoutProps {
   followingCount: number;
   users: EnhancedUser[];
   searchQuery?: string;
+}
+
+function LoadingLayout() {
+  return (
+    <div className="space-y-4 p-4">
+      <Skeleton className="h-10 w-full" />
+      <div className="space-y-4">
+        {[...Array(6)].map((_, i) => (
+          <Skeleton key={i} className="h-24 w-full" />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function PeoplePageLayout({
@@ -50,7 +64,9 @@ export function PeoplePageLayout({
             placeholder="Search people..." 
             defaultValue={searchQuery}
           />
-          <UserList users={users} />
+          <Suspense fallback={<LoadingLayout />}>
+            <UserList users={users} />
+          </Suspense>
         </div>
       </div>
     </div>
@@ -60,7 +76,7 @@ export function PeoplePageLayout({
   if (!isLoaded || isOwnProfile === null) {
     return (
       <SubLayout title={displayName}>
-        {PageContent}
+        <LoadingLayout />
       </SubLayout>
     );
   }
