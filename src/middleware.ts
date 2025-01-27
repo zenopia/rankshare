@@ -36,122 +36,33 @@ export default authMiddleware({
     "/search",
     "/lists/:path*",
     "/api/lists/:path*",
-    "/:username*",
-    "/@:username*",
-    "/users/:path*/lists",
+    "/api/users/:path*",
     "/api/webhooks/clerk",
     "/api/webhooks/user",
     "/manifest.json",
     "/api/health",
     "/:path*/_rsc",
-    "/@:username*/_rsc",
+    "/@:path*/_rsc",
+    // Only allow public access to user list pages
+    "/:username/lists/:listId",
+    "/@:username/lists/:listId",
+    // Add protected routes as public
+    "/my-lists",
+    "/pinned",
+    "/collab"
   ],
   async afterAuth(auth: AuthObject, req: NextRequest) {
-    // If the user is not signed in and the route is not public, redirect to sign-in
-    if (!auth.userId && !auth.isPublicRoute) {
-      const signInUrl = new URL('/sign-in', req.url);
-      signInUrl.searchParams.set('returnUrl', req.url);
-      return NextResponse.redirect(signInUrl);
-    }
+    const url = req.nextUrl;
 
     // If the user is signed in and trying to access auth pages, redirect to home
-    if (auth.userId && (req.nextUrl.pathname === '/sign-in' || req.nextUrl.pathname === '/sign-up')) {
-      return NextResponse.redirect(new URL('/', req.url));
+    if (auth.userId && (url.pathname === '/sign-in' || url.pathname === '/sign-up')) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+        `https://${req.headers.get('host') || 'favely.net'}`;
+      return NextResponse.redirect(new URL('/', baseUrl));
     }
 
-    // Get the pathname and full URL
-    const pathname = req.nextUrl.pathname;
-    const fullUrl = req.nextUrl.href;
-
-    // Skip profile check for the profile page itself and public routes
-    if (pathname === '/profile' || auth.isPublicRoute) {
-      const response = NextResponse.next();
-      // Apply security headers
-      Object.entries(securityHeaders).forEach(([key, value]) => {
-        if (value) response.headers.set(key, value);
-      });
-      return response;
-    }
-
-    // If the user is signed in and not on a public route, check their profile
-    if (auth.userId && !auth.isPublicRoute) {
-      try {
-        // Get the origin from the request URL
-        const origin = new URL(req.url).origin;
-        // Construct the profile API URL using the request's origin
-        const profileApiUrl = `${origin}/api/profile`;
-        
-        console.log('Checking profile at:', profileApiUrl);
-        
-        // Fetch the user's profile with proper headers
-        const profileRes = await fetch(profileApiUrl, {
-          method: 'GET',
-          headers: {
-            'Cookie': req.headers.get('cookie') || '',
-            'Authorization': `Bearer ${auth.userId}`,
-            'Content-Type': 'application/json',
-            // Pass through the host header to ensure correct routing
-            'Host': req.headers.get('host') || '',
-            // Pass through x-forwarded headers if they exist
-            ...(req.headers.get('x-forwarded-proto') ? { 'x-forwarded-proto': req.headers.get('x-forwarded-proto') || '' } : {}),
-            ...(req.headers.get('x-forwarded-host') ? { 'x-forwarded-host': req.headers.get('x-forwarded-host') || '' } : {}),
-            ...(req.headers.get('x-forwarded-for') ? { 'x-forwarded-for': req.headers.get('x-forwarded-for') || '' } : {})
-          },
-          credentials: 'include',
-        });
-
-        console.log('Profile response status:', profileRes.status);
-
-        if (!profileRes.ok) {
-          const errorText = await profileRes.text();
-          console.error('Profile fetch failed:', {
-            status: profileRes.status,
-            statusText: profileRes.statusText,
-            error: errorText
-          });
-          // Instead of throwing, let's proceed normally
-          const response = NextResponse.next();
-          Object.entries(securityHeaders).forEach(([key, value]) => {
-            if (value) response.headers.set(key, value);
-          });
-          return response;
-        }
-
-        const data = await profileRes.json();
-        console.log('Profile data:', data);
-        
-        // If profile doesn't exist, redirect to profile page to create one
-        if (!data.profile) {
-          console.log('No profile found, redirecting to profile page');
-          const profileUrl = new URL('/profile', req.url);
-          profileUrl.searchParams.set('returnUrl', encodeURIComponent(fullUrl));
-          const response = NextResponse.redirect(profileUrl);
-          Object.entries(securityHeaders).forEach(([key, value]) => {
-            if (value) response.headers.set(key, value);
-          });
-          return response;
-        }
-
-        // Always proceed if profile exists, regardless of completion status
-        const response = NextResponse.next();
-        Object.entries(securityHeaders).forEach(([key, value]) => {
-          if (value) response.headers.set(key, value);
-        });
-        return response;
-
-      } catch (error) {
-        console.error('Error checking profile:', error);
-        // On error, proceed normally instead of redirecting
-        const response = NextResponse.next();
-        Object.entries(securityHeaders).forEach(([key, value]) => {
-          if (value) response.headers.set(key, value);
-        });
-        return response;
-      }
-    }
-
-    const response = NextResponse.next();
     // Apply security headers to all responses
+    const response = NextResponse.next();
     Object.entries(securityHeaders).forEach(([key, value]) => {
       if (value) response.headers.set(key, value);
     });
