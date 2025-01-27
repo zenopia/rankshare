@@ -45,13 +45,17 @@ export default authMiddleware({
     "/@:path*/_rsc",
     // Only allow public access to user list pages
     "/:username/lists/:listId",
-    "/@:username/lists/:listId"
+    "/@:username/lists/:listId",
+    // Add auth-related routes
+    "/sso-callback",
+    "/sign-in/*",
+    "/sign-up/*"
   ],
   async afterAuth(auth: AuthObject, req: NextRequest) {
     const url = req.nextUrl;
 
     // If the user is signed in and trying to access auth pages, redirect to home
-    if (auth.userId && (url.pathname === '/sign-in' || url.pathname === '/sign-up')) {
+    if (auth.userId && ['/sign-in', '/sign-up'].some(path => url.pathname.startsWith(path))) {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
         `https://${req.headers.get('host') || 'favely.net'}`;
       return NextResponse.redirect(new URL('/', baseUrl));

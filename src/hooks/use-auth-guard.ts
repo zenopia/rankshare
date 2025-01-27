@@ -18,7 +18,16 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
   const router = useRouter();
   const pathname = usePathname();
 
+  // Auth pages should be immediately ready
+  const isAuthPage = pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up');
+  
   useEffect(() => {
+    // Auth pages are always ready and don't need token validation
+    if (isAuthPage) {
+      setIsReady(true);
+      return;
+    }
+
     // Reset ready state when session changes
     if (!isLoaded || !sessionId) {
       setIsReady(false);
@@ -57,10 +66,10 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
     };
 
     checkAuth();
-  }, [isLoaded, isSignedIn, sessionId, isProtected, redirectIfAuthed, pathname, router, getToken]);
+  }, [isLoaded, isSignedIn, sessionId, isProtected, redirectIfAuthed, pathname, router, getToken, isAuthPage]);
 
   return {
-    isReady: isLoaded && isReady,
+    isReady: isAuthPage || (isLoaded && isReady),
     isSignedIn,
     isLoaded,
     getToken
