@@ -45,12 +45,7 @@ export default authMiddleware({
     "/@:path*/_rsc",
     // Only allow public access to user list pages
     "/:username/lists/:listId",
-    "/@:username/lists/:listId",
-    // Add protected routes as public
-    "/my-lists",
-    "/pinned",
-    "/collab",
-    "/profile"
+    "/@:username/lists/:listId"
   ],
   async afterAuth(auth: AuthObject, req: NextRequest) {
     const url = req.nextUrl;

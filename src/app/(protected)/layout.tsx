@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { MainLayout } from "@/components/layout/main-layout";
 
 export default function ProtectedLayout({
   children,
@@ -10,7 +11,13 @@ export default function ProtectedLayout({
   const { isReady } = useAuthGuard({ protected: true });
 
   if (!isReady) {
-    return null;
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        </div>
+      </MainLayout>
+    );
   }
 
   return <>{children}</>;
