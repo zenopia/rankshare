@@ -1,36 +1,19 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { getEnhancedLists } from "@/lib/actions/lists";
 import { CollabListsLayout } from "@/components/lists/collab-lists-layout";
 import { getCollaboratorModel } from "@/lib/db/models/collaborator";
 import { Collaborator } from "@/types/collaborator";
 import { connectToDatabase } from "@/lib/db";
-import { notFound } from "next/navigation";
 
 export default async function CollabListsPage() {
   const { userId } = auth();
-
-  // Get user data
-  let user;
-  try {
-    if (!userId) {
-      notFound();
-    }
-    user = await clerkClient.users.getUser(userId);
-  } catch (error) {
-    console.error('Error fetching user from Clerk:', error);
-    notFound();
-  }
-
-  if (!user) {
-    notFound();
-  }
 
   // Ensure database connection
   await connectToDatabase();
 
   // Get lists where user is a collaborator
   const collaboratorModel = await getCollaboratorModel();
-  const collabs = await collaboratorModel.find({ clerkId: userId });
+  const collabs = await collaboratorModel.find({ clerkId: userId || '' });
   const listIds = collabs.map(collab => (collab as unknown as Collaborator).listId);
 
   // Get lists that have collaborators where either:
@@ -43,7 +26,7 @@ export default async function CollabListsPage() {
       // And either user is owner or user is a collaborator
       {
         $or: [
-          { 'owner.clerkId': userId },
+          { 'owner.clerkId': userId || '' },
           { _id: { $in: listIds } }
         ]
       }
