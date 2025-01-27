@@ -23,6 +23,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { MainLayout } from "@/components/layout/main-layout";
 import { z } from "zod";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // First, let's create a type for the privacy settings keys
 type PrivacySettingKey = 'showBio' | 'showLocation' | 'showDateOfBirth' | 'showGender' | 'showLivingStatus';
@@ -35,12 +36,55 @@ const profileSchema = z.object({
   livingStatus: z.enum(['single', 'couple', 'family', 'shared', 'other']).optional(),
 });
 
-export function ProfilePage() {
+interface ProfilePageProps {
+  initialUser: {
+    id: string;
+    username: string | null;
+    fullName: string | null;
+    imageUrl: string;
+  };
+}
+
+function ProfileSkeleton() {
+  return (
+    <MainLayout>
+      <div className="flex flex-col min-h-screen">
+        <div className="flex-1">
+          {/* Profile Header Skeleton */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-6 px-4 sm:px-6 lg:px-8 gap-4 border-b">
+            <div className="flex items-center gap-6">
+              <Skeleton className="h-16 w-16 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-24" />
+            </div>
+          </div>
+
+          {/* Profile Sections Skeleton */}
+          <div className="px-4 sm:px-6 lg:px-8">
+            <div className="py-6 space-y-4">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </MainLayout>
+  );
+}
+
+export function ProfilePage({ initialUser }: ProfilePageProps) {
   const { isReady, getToken } = useAuthGuard({ protected: true });
   const { user: clerkUser } = useUser();
   const { openUserProfile, signOut } = useClerk();
   const [isLoading, setIsLoading] = useState(false);
   const [isProfileComplete, setIsProfileComplete] = useState(true);
+  const [shouldShowSkeleton, setShouldShowSkeleton] = useState(false);
   const [profileData, setProfileData] = useState<Partial<User>>({
     bio: "",
     location: "",
@@ -55,6 +99,17 @@ export function ProfilePage() {
       showLivingStatus: true,
     },
   });
+
+  // Only show skeleton after a delay if still loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isReady || !clerkUser) {
+        setShouldShowSkeleton(true);
+      }
+    }, 200); // Small delay to prevent flash
+
+    return () => clearTimeout(timer);
+  }, [isReady, clerkUser]);
 
   // Check if profile is complete
   useEffect(() => {
@@ -174,9 +229,18 @@ export function ProfilePage() {
     }));
   };
 
+  // Show skeleton after delay if still loading
+  if (shouldShowSkeleton && (!isReady || !clerkUser)) {
+    return <ProfileSkeleton />;
+  }
+
+  // Show nothing during initial load to prevent flash
   if (!isReady || !clerkUser) {
     return null;
   }
+
+  // Use initialUser if clerkUser is not available yet
+  const user = clerkUser || initialUser;
 
   return (
     <MainLayout>
@@ -185,22 +249,22 @@ export function ProfilePage() {
           {/* Profile Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between py-6 px-4 sm:px-6 lg:px-8 gap-4 border-b">
             <Link 
-              href={`/${clerkUser?.username}`}
+              href={`/${user?.username}`}
               className="flex items-center gap-6 hover:opacity-80 transition-opacity"
             >
               <Image
-                src={clerkUser.imageUrl}
-                alt={clerkUser.username || "Profile"}
+                src={user.imageUrl}
+                alt={user.username || "Profile"}
                 width={64}
                 height={64}
                 className="rounded-full"
               />
               <div>
                 <h2 className="text-xl font-semibold">
-                  {clerkUser.fullName || clerkUser.username}
+                  {user.fullName || user.username}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  @{clerkUser.username}
+                  @{user.username}
                 </p>
               </div>
             </Link>
