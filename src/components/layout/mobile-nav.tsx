@@ -6,7 +6,6 @@ import { Portal } from "@radix-ui/react-portal";
 import { 
   Menu,
   Home,
-  Search,
   ListChecks,
   CompassIcon,
   Users2,
