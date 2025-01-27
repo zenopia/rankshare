@@ -293,7 +293,7 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
           <div className="px-4 sm:px-6 lg:px-8">
             {/* Bio Section */}
             <div className="py-6 border-b">
-              <h3 className="text-lg font-semibold mb-1">Bio. (Optional)</h3>
+              <h3 className="text-lg font-semibold mb-1">Bio</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 {!isProfileComplete 
                   ? "Optional - You can add this later" 
