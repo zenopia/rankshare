@@ -24,7 +24,10 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const pathname = usePathname();
 
-  const handleFollowClick = async () => {
+  const handleFollowClick = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation when clicking the button
+    e.stopPropagation(); // Stop event from bubbling up
+
     if (!isSignedIn) {
       toast.error("Please sign in to follow users");
       return;
@@ -34,7 +37,7 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
     try {
       const token = await getToken();
       const response = await fetch(`/api/users/${username}/follow`, {
-        method: "POST",
+        method: isFollowing ? "DELETE" : "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
@@ -42,22 +45,25 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
       });
 
       if (!response.ok) {
-        throw new Error("Failed to follow user");
+        throw new Error(isFollowing ? "Failed to unfollow user" : "Failed to follow user");
       }
 
-      setIsFollowing(true);
-      toast.success("Successfully followed user");
+      setIsFollowing(!isFollowing);
+      toast.success(isFollowing ? "Successfully unfollowed user" : "Successfully followed user");
     } catch (error) {
-      console.error("Error following user:", error);
-      toast.error("Failed to follow user");
+      console.error(isFollowing ? "Error unfollowing user:" : "Error following user:", error);
+      toast.error(isFollowing ? "Failed to unfollow user" : "Failed to follow user");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const content = (
+  return (
     <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-      <div className="flex items-center gap-3 min-w-0">
+      <Link 
+        href={`/${username}?from=${pathname.startsWith('/') ? pathname.slice(1) : pathname}`}
+        className="flex items-center gap-3 min-w-0"
+      >
         <UserProfileBase
           username={username}
           firstName={firstName}
@@ -67,7 +73,7 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
           hideFollow={true}
           linkToProfile={false}
         />
-      </div>
+      </Link>
       {!hideFollow && (
         <Button
           variant={isFollowing ? "outline" : "default"}
@@ -86,11 +92,4 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
       )}
     </div>
   );
-
-  if (pathname) {
-    const relativePath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
-    return <Link href={`/${username}?from=${relativePath}`}>{content}</Link>;
-  }
-
-  return content;
 } 
