@@ -48,8 +48,8 @@ export default authMiddleware({
     "/@:username/lists/:listId",
     // Add auth-related routes
     "/sso-callback",
-    "/sign-in/*",
-    "/sign-up/*"
+    "/sign-in/(.*)",
+    "/sign-up/(.*)"
   ],
   async afterAuth(auth: AuthObject, req: NextRequest) {
     const url = req.nextUrl;
