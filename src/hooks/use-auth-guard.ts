@@ -9,20 +9,26 @@ interface UseAuthGuardProps {
 
 export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed = false }: UseAuthGuardProps = {}) {
   const { 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    isLoaded, isSignedIn, getToken 
+    isLoaded, 
+    isSignedIn, 
+    getToken,
+    sessionId 
   } = useAuth();
   const [isReady, setIsReady] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!isLoaded) return;
+    // Reset ready state when session changes
+    if (!isLoaded || !sessionId) {
+      setIsReady(false);
+      return;
+    }
 
     const checkAuth = async () => {
       try {
-        // Get fresh token
-        const _token = await getToken();
+        // Get fresh token to validate session
+        const token = await getToken();
         
         if (isProtected && !isSignedIn) {
           // Redirect to sign in if trying to access protected route while not signed in
@@ -37,9 +43,13 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
           return;
         }
 
-        setIsReady(true);
+        // Only set ready if we have a valid token and session
+        if (token && sessionId) {
+          setIsReady(true);
+        }
       } catch (error) {
         console.error('Auth check failed:', error);
+        setIsReady(false);
         if (isProtected) {
           router.push('/sign-in');
         }
@@ -47,10 +57,10 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
     };
 
     checkAuth();
-  }, [isLoaded, isSignedIn, isProtected, redirectIfAuthed, pathname, router, getToken]);
+  }, [isLoaded, isSignedIn, sessionId, isProtected, redirectIfAuthed, pathname, router, getToken]);
 
   return {
-    isReady,
+    isReady: isLoaded && isReady,
     isSignedIn,
     isLoaded,
     getToken
