@@ -49,16 +49,28 @@ export default authMiddleware({
     // Add auth-related routes
     "/sso-callback",
     "/sign-in/(.*)",
-    "/sign-up/(.*)"
+    "/sign-up/(.*)",
+    // Add user profile routes
+    "/:username/following",
+    "/:username/followers",
+    "/@:username/following",
+    "/@:username/followers"
   ],
   async afterAuth(auth: AuthObject, req: NextRequest) {
     const url = req.nextUrl;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+      `https://${req.headers.get('host') || 'favely.net'}`;
 
     // If the user is signed in and trying to access auth pages, redirect to home
     if (auth.userId && ['/sign-in', '/sign-up'].some(path => url.pathname.startsWith(path))) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-        `https://${req.headers.get('host') || 'favely.net'}`;
       return NextResponse.redirect(new URL('/', baseUrl));
+    }
+
+    // Handle protected routes
+    const protectedRoutes = ['/my-lists', '/pinned', '/collab'];
+    if (!auth.userId && protectedRoutes.some(path => url.pathname.startsWith(path))) {
+      const returnUrl = encodeURIComponent(url.pathname);
+      return NextResponse.redirect(new URL(`/sign-in?returnUrl=${returnUrl}`, baseUrl));
     }
 
     // Handle profile route redirects

@@ -29,7 +29,19 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
     }
 
     // Reset ready state when session changes
-    if (!isLoaded || !sessionId) {
+    if (!isLoaded) {
+      setIsReady(false);
+      return;
+    }
+
+    // Handle sign-out
+    if (isLoaded && !isSignedIn && !isAuthPage && sessionId === null) {
+      router.push('/');
+      return;
+    }
+
+    // Reset ready state when session changes
+    if (!sessionId) {
       setIsReady(false);
       return;
     }

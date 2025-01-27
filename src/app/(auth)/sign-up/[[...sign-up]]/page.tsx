@@ -3,6 +3,7 @@
 import { SignUp } from "@clerk/nextjs";
 import { useSearchParams } from "next/navigation";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { LoadingPage } from "@/components/loading/loading-page";
 
 export default function SignUpPage() {
   const searchParams = useSearchParams();
@@ -10,7 +11,7 @@ export default function SignUpPage() {
   const returnUrl = searchParams?.get("returnUrl");
 
   if (!isReady) {
-    return null;
+    return <LoadingPage />;
   }
 
   return (
