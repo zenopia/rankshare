@@ -59,7 +59,7 @@ export default authMiddleware({
     "/profile",
     "/pinned",
     "/my-lists",
-    "collab"
+    "/collab"
   ],
   async afterAuth(auth: AuthObject, req: NextRequest) {
     const url = req.nextUrl;

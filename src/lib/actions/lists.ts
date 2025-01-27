@@ -3,14 +3,24 @@
 import { auth } from "@clerk/nextjs/server";
 import { clerkClient, User } from "@clerk/clerk-sdk-node";
 import { connectToMongoDB } from "@/lib/db/client";
-import { getListModel, ListDocument } from "@/lib/db/models-v2/list";
-import { getUserCacheModel, UserCacheDocument } from "@/lib/db/models-v2/user-cache";
-import { getPinModel, PinDocument } from "@/lib/db/models-v2/pin";
-import { FilterQuery, Types } from "mongoose";
+import { getListModel } from "@/lib/db/models-v2/list";
+import { getUserCacheModel } from "@/lib/db/models-v2/user-cache";
+import { getPinModel } from "@/lib/db/models-v2/pin";
+import { FilterQuery, Types, QueryOptions } from "mongoose";
 import { EnhancedList, List, ListItem, ListCollaborator } from "@/types/list";
 import { MongoListDocument } from "@/types/mongo";
+import { connectToDatabase } from "@/lib/db";
 
-export async function getEnhancedLists(query: FilterQuery<MongoListDocument> = {}, options: any = {}): Promise<{
+interface MongoPinDocument {
+  listId: Types.ObjectId;
+  clerkId: string;
+  lastViewedAt: Date;
+}
+
+export async function getEnhancedLists(
+  query: FilterQuery<MongoListDocument> = {}, 
+  options: QueryOptions<MongoListDocument> = {}
+): Promise<{
   lists: EnhancedList[];
   lastViewedMap?: Record<string, Date>;
 }> {
@@ -98,7 +108,7 @@ export async function getEnhancedLists(query: FilterQuery<MongoListDocument> = {
     const pins = await PinModel.find({
       clerkId: userId,
       listId: { $in: lists.map(list => list._id) }
-    }).lean() as PinDocument[];
+    }).lean() as unknown as MongoPinDocument[];
 
     lastViewedMap = Object.fromEntries(
       pins.map(pin => [pin.listId.toString(), pin.lastViewedAt])
@@ -164,4 +174,18 @@ export async function getEnhancedLists(query: FilterQuery<MongoListDocument> = {
     lists: enhancedLists,
     lastViewedMap
   };
+}
+
+export async function getPinnedLists(userId: string) {
+  // Ensure database connection
+  await connectToDatabase();
+
+  // Get pinned lists for the user
+  const pinModel = await getPinModel();
+  const pins = await pinModel.find({ clerkId: userId }).lean() as unknown as MongoPinDocument[];
+  const listIds = pins.map(pin => pin.listId);
+
+  return getEnhancedLists({
+    _id: { $in: listIds }
+  });
 } 

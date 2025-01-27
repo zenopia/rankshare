@@ -1,27 +1,27 @@
 "use client";
 
-import { MainLayout } from "@/components/layout/main-layout";
-import { ListGrid } from "@/components/lists/list-grid";
-import { ListTabs } from "@/components/lists/list-tabs";
-import { CreateListFAB } from "@/components/lists/create-list-fab";
-import type { EnhancedList } from "@/types/list";
+import { ProtectedPageWrapper } from "@/components/auth/protected-page-wrapper";
+import { EnhancedList } from "@/types/list";
+import { MyListsContent } from "./my-lists-content";
 
 interface MyListsLayoutProps {
   lists: EnhancedList[];
+  initialUser: {
+    id: string;
+    username: string | null;
+    fullName: string | null;
+    imageUrl: string;
+  };
 }
 
-export function MyListsLayout({ lists }: MyListsLayoutProps) {
+export function MyListsLayout({ lists, initialUser }: MyListsLayoutProps) {
   return (
-    <MainLayout>
-      <div className="relative">
-        <ListTabs />
-        <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
-          <div className="max-w-7xl mx-auto">
-            <ListGrid lists={lists} />
-          </div>
-        </div>
-        <CreateListFAB />
-      </div>
-    </MainLayout>
+    <ProtectedPageWrapper 
+      initialUser={initialUser}
+      layoutType="main"
+      title="My Lists"
+    >
+      <MyListsContent lists={lists} />
+    </ProtectedPageWrapper>
   );
 } 
