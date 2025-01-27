@@ -4,27 +4,25 @@ import { CollabListsLayout } from "@/components/lists/collab-lists-layout";
 import { getCollaboratorModel } from "@/lib/db/models/collaborator";
 import { Collaborator } from "@/types/collaborator";
 import { connectToDatabase } from "@/lib/db";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 export default async function CollabListsPage() {
   const { userId } = auth();
 
-  // Redirect to sign in if not authenticated
-  if (!userId) {
-    redirect("/sign-in");
-  }
-
   // Get user data
   let user;
   try {
+    if (!userId) {
+      notFound();
+    }
     user = await clerkClient.users.getUser(userId);
   } catch (error) {
     console.error('Error fetching user from Clerk:', error);
-    redirect("/sign-in");
+    notFound();
   }
 
   if (!user) {
-    redirect("/sign-in");
+    notFound();
   }
 
   // Ensure database connection

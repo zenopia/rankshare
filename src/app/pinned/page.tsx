@@ -3,7 +3,7 @@ import { getEnhancedLists } from "@/lib/actions/lists";
 import { PinnedListsLayout } from "@/components/lists/pinned-lists-layout";
 import { getPinModel } from "@/lib/db/models/pin";
 import { connectToDatabase } from "@/lib/db";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import type { Document } from "mongoose";
 
 interface PinDocument extends Document {
@@ -14,22 +14,20 @@ interface PinDocument extends Document {
 export default async function PinnedListsPage() {
   const { userId } = auth();
 
-  // Redirect to sign in if not authenticated
-  if (!userId) {
-    redirect("/sign-in");
-  }
-
   // Get user data
   let user;
   try {
+    if (!userId) {
+      notFound();
+    }
     user = await clerkClient.users.getUser(userId);
   } catch (error) {
     console.error('Error fetching user from Clerk:', error);
-    redirect("/sign-in");
+    notFound();
   }
 
   if (!user) {
-    redirect("/sign-in");
+    notFound();
   }
 
   // Ensure database connection
