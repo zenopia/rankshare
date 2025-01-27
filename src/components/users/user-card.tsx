@@ -19,15 +19,41 @@ interface UserCardProps {
 }
 
 export function UserCard({ username, firstName, lastName, imageUrl, isFollowing: initialIsFollowing = false, hideFollow = false }: UserCardProps) {
-  const { isSignedIn, getToken, isLoaded } = useAuthGuard();
+  const { isSignedIn, getToken, isLoaded, isReady } = useAuthGuard();
   const [isLoading, setIsLoading] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
+  const [isFollowing, setIsFollowing] = useState<boolean | null>(null);
   const pathname = usePathname();
 
-  // Update local state when prop changes
+  // Check follow status when component mounts and auth is ready
   useEffect(() => {
-    setIsFollowing(initialIsFollowing);
-  }, [initialIsFollowing]);
+    const checkFollowStatus = async () => {
+      if (!isSignedIn || !isReady) return;
+      
+      try {
+        const token = await getToken();
+        const response = await fetch(`/api/users/${username}/follow/status`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setIsFollowing(data.isFollowing);
+        }
+      } catch (error) {
+        console.error("Error checking follow status:", error);
+        // Fall back to prop value if API call fails
+        setIsFollowing(initialIsFollowing);
+      }
+    };
+
+    if (isSignedIn && isReady) {
+      checkFollowStatus();
+    } else {
+      setIsFollowing(initialIsFollowing);
+    }
+  }, [username, isSignedIn, isReady, getToken, initialIsFollowing]);
 
   const handleFollowClick = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation when clicking the button
@@ -35,6 +61,11 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
 
     if (!isSignedIn) {
       toast.error("Please sign in to follow users");
+      return;
+    }
+
+    if (!isReady) {
+      toast.error("Please wait while we complete authentication");
       return;
     }
 
@@ -63,9 +94,33 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
     }
   };
 
-  // Don't render anything until auth is loaded
-  if (!isLoaded) {
-    return null;
+  // Show loading state while auth is initializing or follow status is being checked
+  if (!isLoaded || isFollowing === null) {
+    return (
+      <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+        <div className="flex items-center gap-3 min-w-0">
+          <UserProfileBase
+            username={username}
+            firstName={firstName}
+            lastName={lastName}
+            imageUrl={imageUrl}
+            variant="compact"
+            hideFollow={true}
+            linkToProfile={false}
+          />
+        </div>
+        {!hideFollow && isSignedIn && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-shrink-0"
+            disabled={true}
+          >
+            Loading...
+          </Button>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -90,7 +145,7 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
           size="sm"
           className="flex-shrink-0"
           onClick={handleFollowClick}
-          disabled={isLoading}
+          disabled={isLoading || !isReady}
         >
           {isLoading ? 'Loading...' : (isFollowing ? (
             <>
