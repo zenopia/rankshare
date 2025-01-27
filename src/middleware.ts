@@ -49,7 +49,8 @@ export default authMiddleware({
     // Add protected routes as public
     "/my-lists",
     "/pinned",
-    "/collab"
+    "/collab",
+    "/profile"
   ],
   async afterAuth(auth: AuthObject, req: NextRequest) {
     const url = req.nextUrl;
