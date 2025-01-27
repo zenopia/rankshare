@@ -32,19 +32,22 @@ export default async function UserFollowingPage({ params, searchParams }: PagePr
 
   // Get following
   const followModel = await getFollowModel();
-  const filter = searchQuery ? { username: { $regex: searchQuery, $options: "i" } } : {};
+  const query = { followerId: profileUser.id, status: 'accepted' };
   const following = await followModel
-    .find({ followerId: profileUser.id, ...filter })
+    .find(query)
     .select("followingId")
     .lean();
   const followingIds = following.map((f: Follow) => f.followingId);
 
-  // Get enhanced user data
-  const users = await getEnhancedUsers(followingIds);
+  // Get enhanced user data with search filter if needed
+  const filter = searchQuery 
+    ? { clerkId: { $in: followingIds }, username: { $regex: searchQuery, $options: "i" } }
+    : { clerkId: { $in: followingIds } };
+  const users = await getEnhancedUsers(filter);
 
   // Get follow counts
-  const followerCount = await followModel.countDocuments({ followingId: profileUser.id });
-  const followingCount = await followModel.countDocuments({ followerId: profileUser.id });
+  const followerCount = await followModel.countDocuments({ followingId: profileUser.id, status: 'accepted' });
+  const followingCount = await followModel.countDocuments({ followerId: profileUser.id, status: 'accepted' });
 
   return (
     <PeoplePageLayout
