@@ -54,7 +54,12 @@ export default authMiddleware({
     "/:username/following",
     "/:username/followers",
     "/@:username/following",
-    "/@:username/followers"
+    "/@:username/followers",
+    // Add profile route
+    "/profile",
+    "/pinned",
+    "/my-lists",
+    "collab"
   ],
   async afterAuth(auth: AuthObject, req: NextRequest) {
     const url = req.nextUrl;
@@ -106,8 +111,6 @@ export const config = {
   matcher: [
     "/((?!.+\\.[\\w]+$|_next|_vercel|[\\w-]+\\.\\w+).*)",
     "/(api|trpc)(.*)",
-    "/@:username*",
-    "/profile",
-    "/pinned"
+    "/@:username*"
   ]
 };
