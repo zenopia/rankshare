@@ -7,6 +7,7 @@ import { SubLayout } from "@/components/layout/sub-layout";
 import { PeopleTabs } from "@/components/users/people-tabs";
 import { SearchInput } from "@/components/search/search-input";
 import { UserList } from "@/components/users/user-list";
+import { useEffect, useState } from "react";
 
 interface PeoplePageLayoutProps {
   profileUserId: string;
@@ -27,8 +28,14 @@ export function PeoplePageLayout({
   users,
   searchQuery
 }: PeoplePageLayoutProps) {
-  const { user } = useUser();
-  const isOwnProfile = user?.id === profileUserId;
+  const { user, isLoaded } = useUser();
+  const [isOwnProfile, setIsOwnProfile] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (isLoaded) {
+      setIsOwnProfile(user?.id === profileUserId);
+    }
+  }, [user, isLoaded, profileUserId]);
 
   const PageContent = (
     <div className="relative">
@@ -48,6 +55,15 @@ export function PeoplePageLayout({
       </div>
     </div>
   );
+
+  // Show SubLayout by default until we confirm it's the user's own profile
+  if (!isLoaded || isOwnProfile === null) {
+    return (
+      <SubLayout title={displayName}>
+        {PageContent}
+      </SubLayout>
+    );
+  }
 
   return isOwnProfile ? (
     <MainLayout>

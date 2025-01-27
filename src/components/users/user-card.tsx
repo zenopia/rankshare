@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { UserProfileBase } from "./user-profile-base";
 import { Button } from "@/components/ui/button";
@@ -19,10 +19,15 @@ interface UserCardProps {
 }
 
 export function UserCard({ username, firstName, lastName, imageUrl, isFollowing: initialIsFollowing = false, hideFollow = false }: UserCardProps) {
-  const { isSignedIn, getToken } = useAuthGuard();
+  const { isSignedIn, getToken, isLoaded } = useAuthGuard();
   const [isLoading, setIsLoading] = useState(false);
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const pathname = usePathname();
+
+  // Update local state when prop changes
+  useEffect(() => {
+    setIsFollowing(initialIsFollowing);
+  }, [initialIsFollowing]);
 
   const handleFollowClick = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation when clicking the button
@@ -58,6 +63,11 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
     }
   };
 
+  // Don't render anything until auth is loaded
+  if (!isLoaded) {
+    return null;
+  }
+
   return (
     <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
       <Link 
@@ -74,7 +84,7 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
           linkToProfile={false}
         />
       </Link>
-      {!hideFollow && (
+      {!hideFollow && isSignedIn && (
         <Button
           variant={isFollowing ? "outline" : "default"}
           size="sm"
