@@ -6,11 +6,11 @@ import { ListTabs } from "@/components/lists/list-tabs";
 import { CreateListFAB } from "@/components/lists/create-list-fab";
 import type { EnhancedList } from "@/types/list";
 
-interface PinnedListsLayoutProps {
+interface CollabListsLayoutProps {
   lists: EnhancedList[];
 }
 
-export function PinnedListsLayout({ lists }: PinnedListsLayoutProps) {
+export function CollabListsLayout({ lists }: CollabListsLayoutProps) {
   return (
     <MainLayout>
       <div className="relative">

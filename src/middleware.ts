@@ -66,13 +66,6 @@ export default authMiddleware({
       return NextResponse.redirect(new URL('/', baseUrl));
     }
 
-    // Handle protected routes
-    const protectedRoutes = ['/my-lists', '/pinned', '/collab'];
-    if (!auth.userId && protectedRoutes.some(path => url.pathname.startsWith(path))) {
-      const returnUrl = encodeURIComponent(url.pathname);
-      return NextResponse.redirect(new URL(`/sign-in?returnUrl=${returnUrl}`, baseUrl));
-    }
-
     // Handle profile route redirects
     if (url.pathname.startsWith('/profile/')) {
       const path = url.pathname.slice('/profile/'.length);
