@@ -38,7 +38,7 @@ export function PeoplePageLayout({
         followingCount={followingCount} 
       />
       <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-2xl mx-auto space-y-6">
           <SearchInput 
             placeholder="Search people..." 
             defaultValue={searchQuery}

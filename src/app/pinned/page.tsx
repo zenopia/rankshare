@@ -1,18 +1,26 @@
 import { auth } from "@clerk/nextjs/server";
 import { getEnhancedLists } from "@/lib/actions/lists";
-import { getPinModel } from "@/lib/db/models-v2/pin";
 import { PinnedListsLayout } from "@/components/lists/pinned-lists-layout";
+import { getPinModel } from "@/lib/db/models/pin";
+import { connectToDatabase } from "@/lib/db";
+import type { Document } from "mongoose";
+
+interface PinDocument extends Document {
+  listId: string;
+  clerkId: string;
+}
 
 export default async function PinnedListsPage() {
   const { userId } = auth();
-  if (!userId) return null;
 
-  // Get pinned list IDs
+  // Ensure database connection
+  await connectToDatabase();
+
+  // Get pinned lists for the user
   const pinModel = await getPinModel();
-  const pins = await pinModel.find({ clerkId: userId }).lean();
-  const listIds = pins.map(pin => pin.listId);
+  const pins = await pinModel.find({ clerkId: userId || '' });
+  const listIds = pins.map((pin: PinDocument) => pin.listId);
 
-  // Get lists
   const { lists } = await getEnhancedLists({
     _id: { $in: listIds }
   });

@@ -101,6 +101,9 @@ export const config = {
   matcher: [
     "/((?!.+\\.[\\w]+$|_next|_vercel|[\\w-]+\\.\\w+).*)",
     "/(api|trpc)(.*)",
-    "/@:username*"
+    "/@:username*",
+    "/my-lists",
+    "/collab",
+    "/pinned"
   ]
 };
