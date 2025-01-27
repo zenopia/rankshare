@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { MainLayout } from "@/components/layout/main-layout";
 import { z } from "zod";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProtectedPageWrapper } from "@/components/auth/protected-page-wrapper";
 
 // First, let's create a type for the privacy settings keys
 type PrivacySettingKey = 'showBio' | 'showLocation' | 'showDateOfBirth' | 'showGender' | 'showLivingStatus';
@@ -243,7 +244,7 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
   const user = clerkUser || initialUser;
 
   return (
-    <MainLayout>
+    <ProtectedPageWrapper initialUser={initialUser} layoutType="main">
       <div className="flex flex-col min-h-screen">
         <div className="flex-1">
           {/* Profile Header */}
@@ -483,6 +484,6 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </ProtectedPageWrapper>
   );
 } 

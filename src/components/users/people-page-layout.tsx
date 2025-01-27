@@ -2,13 +2,11 @@
 
 import { useUser } from "@clerk/nextjs";
 import type { EnhancedUser } from "@/lib/actions/users";
-import { MainLayout } from "@/components/layout/main-layout";
-import { SubLayout } from "@/components/layout/sub-layout";
 import { PeopleTabs } from "@/components/users/people-tabs";
 import { SearchInput } from "@/components/search/search-input";
 import { UserList } from "@/components/users/user-list";
 import { useEffect, useState } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ProtectedPageWrapper } from "@/components/auth/protected-page-wrapper";
 
 interface PeoplePageLayoutProps {
   profileUserId: string;
@@ -18,19 +16,6 @@ interface PeoplePageLayoutProps {
   followingCount: number;
   users: EnhancedUser[];
   searchQuery?: string;
-}
-
-function LoadingLayout() {
-  return (
-    <div className="space-y-4 p-4">
-      <Skeleton className="h-10 w-full" />
-      <div className="space-y-4">
-        {[...Array(6)].map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full" />
-        ))}
-      </div>
-    </div>
-  );
 }
 
 export function PeoplePageLayout({
@@ -44,18 +29,6 @@ export function PeoplePageLayout({
 }: PeoplePageLayoutProps) {
   const { user, isLoaded } = useUser();
   const [isOwnProfile, setIsOwnProfile] = useState<boolean | null>(null);
-  const [shouldShowSkeleton, setShouldShowSkeleton] = useState(false);
-
-  // Only show skeleton after a delay if still loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!isLoaded || isOwnProfile === null) {
-        setShouldShowSkeleton(true);
-      }
-    }, 200); // Small delay to prevent flash
-
-    return () => clearTimeout(timer);
-  }, [isLoaded, isOwnProfile]);
 
   useEffect(() => {
     if (isLoaded) {
@@ -84,23 +57,21 @@ export function PeoplePageLayout({
 
   // Show nothing during initial load to prevent flash
   if (!isLoaded || isOwnProfile === null) {
-    if (!shouldShowSkeleton) {
-      return null;
-    }
-    return (
-      <SubLayout title={displayName}>
-        <LoadingLayout />
-      </SubLayout>
-    );
+    return null;
   }
 
-  return isOwnProfile ? (
-    <MainLayout>
+  return (
+    <ProtectedPageWrapper 
+      initialUser={{
+        id: profileUserId,
+        username,
+        fullName: displayName,
+        imageUrl: user?.imageUrl || ""
+      }}
+      layoutType={isOwnProfile ? "main" : "sub"}
+      title={displayName}
+    >
       {PageContent}
-    </MainLayout>
-  ) : (
-    <SubLayout title={displayName}>
-      {PageContent}
-    </SubLayout>
+    </ProtectedPageWrapper>
   );
 } 

@@ -1,12 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { UserNav } from "@/components/layout/user-nav";
 import { usePathname } from "next/navigation";
-import { Home, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -66,6 +62,11 @@ export function Navbar({ title }: NavbarProps) {
         return null;
     }
   };
+
+  // Show skeleton during initial load
+  if (shouldShowSkeleton) {
+    return <NavbarSkeleton />;
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
