@@ -35,8 +35,12 @@ export default async function CollabListsPage() {
   const collabs = await collaboratorModel.find({ clerkId: userId });
   const listIds = collabs.map(collab => (collab as unknown as Collaborator).listId);
 
+  // Get both owned lists and lists where user is a collaborator
   const { lists } = await getEnhancedLists({
-    _id: { $in: listIds }
+    $or: [
+      { 'owner.clerkId': userId },
+      { _id: { $in: listIds } }
+    ]
   });
 
   return (
