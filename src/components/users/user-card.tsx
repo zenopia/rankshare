@@ -37,15 +37,25 @@ function UserCardSkeleton() {
 export function UserCard({ username, firstName, lastName, imageUrl, isFollowing: initialIsFollowing = false, hideFollow = false }: UserCardProps) {
   const { isSignedIn, getToken, isLoaded, isReady } = useAuthGuard();
   const [isLoading, setIsLoading] = useState(false);
-  const [isFollowing, setIsFollowing] = useState<boolean | null>(null);
-  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
+  const [shouldShowSkeleton, setShouldShowSkeleton] = useState(false);
   const pathname = usePathname();
+
+  // Only show skeleton after a delay if still loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isLoaded || !isReady) {
+        setShouldShowSkeleton(true);
+      }
+    }, 200); // Small delay to prevent flash
+
+    return () => clearTimeout(timer);
+  }, [isLoaded, isReady]);
 
   // Check follow status when component mounts and auth is ready
   useEffect(() => {
     const checkFollowStatus = async () => {
       if (!isSignedIn || !isReady) {
-        setIsCheckingStatus(false);
         return;
       }
       
@@ -65,8 +75,6 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
         console.error("Error checking follow status:", error);
         // Fall back to prop value if API call fails
         setIsFollowing(initialIsFollowing);
-      } finally {
-        setIsCheckingStatus(false);
       }
     };
 
@@ -74,7 +82,6 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
       checkFollowStatus();
     } else {
       setIsFollowing(initialIsFollowing);
-      setIsCheckingStatus(false);
     }
   }, [username, isSignedIn, isReady, getToken, initialIsFollowing]);
 
@@ -117,9 +124,14 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
     }
   };
 
-  // Show skeleton while loading
-  if (!isLoaded || isCheckingStatus) {
+  // Show skeleton only after delay and if still loading
+  if (shouldShowSkeleton && (!isLoaded || !isReady)) {
     return <UserCardSkeleton />;
+  }
+
+  // Show nothing during initial load to prevent flash
+  if (!isLoaded || !isReady) {
+    return null;
   }
 
   return (

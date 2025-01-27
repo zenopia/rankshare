@@ -7,7 +7,7 @@ import { SubLayout } from "@/components/layout/sub-layout";
 import { PeopleTabs } from "@/components/users/people-tabs";
 import { SearchInput } from "@/components/search/search-input";
 import { UserList } from "@/components/users/user-list";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface PeoplePageLayoutProps {
@@ -44,6 +44,18 @@ export function PeoplePageLayout({
 }: PeoplePageLayoutProps) {
   const { user, isLoaded } = useUser();
   const [isOwnProfile, setIsOwnProfile] = useState<boolean | null>(null);
+  const [shouldShowSkeleton, setShouldShowSkeleton] = useState(false);
+
+  // Only show skeleton after a delay if still loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isLoaded || isOwnProfile === null) {
+        setShouldShowSkeleton(true);
+      }
+    }, 200); // Small delay to prevent flash
+
+    return () => clearTimeout(timer);
+  }, [isLoaded, isOwnProfile]);
 
   useEffect(() => {
     if (isLoaded) {
@@ -64,16 +76,17 @@ export function PeoplePageLayout({
             placeholder="Search people..." 
             defaultValue={searchQuery}
           />
-          <Suspense fallback={<LoadingLayout />}>
-            <UserList users={users} />
-          </Suspense>
+          <UserList users={users} />
         </div>
       </div>
     </div>
   );
 
-  // Show SubLayout by default until we confirm it's the user's own profile
+  // Show nothing during initial load to prevent flash
   if (!isLoaded || isOwnProfile === null) {
+    if (!shouldShowSkeleton) {
+      return null;
+    }
     return (
       <SubLayout title={displayName}>
         <LoadingLayout />
