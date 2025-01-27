@@ -18,10 +18,8 @@ export default async function CollabListsPage() {
     const [user, { lists }] = await Promise.all([
       clerkClient.users.getUser(userId),
       (async () => {
-        // Ensure database connection
-        await connectToDatabase();
-
         // Get lists where user is a collaborator
+        await connectToDatabase();
         const collaboratorModel = await getCollaboratorModel();
         const collabs = await collaboratorModel.find({ clerkId: userId });
         const listIds = collabs.map(collab => (collab as unknown as Collaborator).listId);
@@ -44,7 +42,7 @@ export default async function CollabListsPage() {
         });
       })()
     ]);
-
+    
     return (
       <CollabListsLayout 
         lists={lists}

@@ -20,8 +20,7 @@ export default async function Page() {
       imageUrl: user.imageUrl,
     }} />;
   } catch (error) {
-    console.error('Error fetching user from Clerk:', error);
-    // If we can't fetch the user, redirect to sign in
+    console.error('Error loading profile page:', error);
     redirect('/sign-in');
   }
 } 
