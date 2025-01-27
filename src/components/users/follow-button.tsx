@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@clerk/nextjs";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { useRouter } from "next/navigation";
 
 export interface FollowButtonProps {
@@ -21,13 +21,13 @@ export function FollowButton({
   size = "default"
 }: FollowButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, getToken } = useAuthGuard();
   const router = useRouter();
 
   const handleFollowClick = async () => {
     if (!isSignedIn) {
       const returnUrl = encodeURIComponent(window.location.pathname);
-      router.push(`/sign-in?redirect_url=${returnUrl}`);
+      router.push(`/sign-in?returnUrl=${returnUrl}`);
       return;
     }
 
@@ -35,6 +35,9 @@ export function FollowButton({
     try {
       const response = await fetch(`/api/users/${username}/follow`, {
         method: initialIsFollowing ? 'DELETE' : 'POST',
+        headers: {
+          'Authorization': `Bearer ${await getToken()}`
+        }
       });
 
       if (!response.ok) {

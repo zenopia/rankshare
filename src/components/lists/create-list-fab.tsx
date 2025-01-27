@@ -3,17 +3,18 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useUser } from "@clerk/nextjs";
 
 export function CreateListFAB() {
   const router = useRouter();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthGuard();
   const { user } = useUser();
 
   const handleClick = () => {
     if (!isSignedIn) {
-      sessionStorage.setItem('returnTo', '/lists/create');
-      router.push('/sign-in');
+      const returnUrl = encodeURIComponent('/lists/create');
+      router.push(`/sign-in?returnUrl=${returnUrl}`);
       return;
     }
 

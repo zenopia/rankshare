@@ -43,6 +43,7 @@ export interface UserProfileBaseProps {
   className?: string;
   linkToProfile?: boolean;
   onClick?: () => void;
+  profilePath?: string;
 }
 
 export function formatDisplayName(firstName: string | null | undefined, lastName: string | null | undefined, username: string): string {
@@ -80,6 +81,7 @@ export function UserProfileBase({
   className,
   linkToProfile = true,
   onClick,
+  profilePath,
 }: UserProfileBaseProps) {
   const displayName = formatDisplayName(firstName, lastName, username);
   const pathname = usePathname();
@@ -208,7 +210,7 @@ export function UserProfileBase({
     const relativePath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
     return (
       <Link
-        href={variant === "compact" ? "/profile" : `/${username}?from=${relativePath}`}
+        href={variant === "compact" ? (profilePath || "/profile") : `/${username}?from=${relativePath}`}
         className={cn(
           "block",
           onClick && "cursor-pointer",

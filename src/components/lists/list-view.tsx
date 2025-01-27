@@ -10,7 +10,10 @@ import { EditListFAB } from "@/components/lists/edit-list-fab";
 import { UserCard } from "@/components/users/user-card";
 import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
 import { CollaboratorManagement } from "@/components/lists/collaborator-management";
-import { useAuth } from "@clerk/nextjs";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useUser } from "@clerk/nextjs";
+
+type CollaboratorRole = 'owner' | 'admin' | 'editor' | 'viewer';
 
 interface ListViewProps {
   list: EnhancedList;
@@ -32,20 +35,22 @@ export function ListView({
   onCollaboratorsClick 
 }: ListViewProps) {
   const [isPinned, setIsPinned] = useState(initialIsPinned);
-  const { userId } = useAuth();
+  const { isSignedIn } = useAuthGuard();
+  const { user } = useUser();
+  const userId = user?.id;
 
   const handlePinChange = (newIsPinned: boolean) => {
     setIsPinned(newIsPinned);
   };
 
   // Get current user's role from collaborators array
-  const currentUserRole = isOwner ? 'owner' as const : list.collaborators?.find(c => 
+  const currentUserRole: CollaboratorRole | undefined = isOwner ? 'owner' : userId ? list.collaborators?.find(c => 
     c.clerkId === userId && 
     c.status === 'accepted'
-  )?.role;
+  )?.role as CollaboratorRole : undefined;
 
   // Check if user has edit permissions (owner, admin, or editor)
-  const canEdit = isOwner || (isCollaborator && list.collaborators?.some(c => 
+  const canEdit = isOwner || (isCollaborator && userId && list.collaborators?.some(c => 
     c.clerkId === userId && 
     c.status === 'accepted' && 
     ['admin', 'editor'].includes(c.role)
@@ -56,10 +61,11 @@ export function ListView({
       <div key="user-section" className="user-section">
         <UserCard
           username={list.owner.username}
-          displayName={list.owner.displayName}
-          imageUrl={list.owner.imageUrl}
+          firstName={list.owner.displayName.split(' ')[0] || ''}
+          lastName={list.owner.displayName.split(' ').slice(1).join(' ') || ''}
+          imageUrl={list.owner.imageUrl || ''}
           isFollowing={isFollowing}
-          isOwner={isOwner}
+          hideFollow={isOwner}
         />
       </div>
 

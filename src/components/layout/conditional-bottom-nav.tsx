@@ -1,56 +1,17 @@
-'use client';
+"use client";
 
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { Home, Users } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useAuth, useUser } from '@clerk/nextjs';
+import { usePathname } from "next/navigation";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { BottomNav } from "./bottom-nav";
 
 export function ConditionalBottomNav() {
   const pathname = usePathname();
-  const { userId } = useAuth();
-  const { user } = useUser();
+  const { isSignedIn } = useAuthGuard({ protected: false });
 
-  // Consider these paths as "home" routes
-  const isHomeRoute = ['/', '/pinned', '/my-lists', '/collab'].includes(pathname);
-  const isPeopleRoute = pathname.includes('/following') || pathname.includes('/followers');
+  // Don't show bottom nav on auth pages
+  if (pathname === "/sign-in" || pathname === "/sign-up") {
+    return null;
+  }
 
-  // Hide bottom nav on list view pages, profile, auth pages, and other pages with their own bottom nav
-  if (
-    pathname.startsWith('/lists/') || 
-    pathname === '/profile' ||
-    pathname.startsWith('/sign-in') ||
-    pathname.startsWith('/sign-up')
-  ) return null;
-
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t bg-background shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] sm:hidden">
-      <div className="grid h-full grid-cols-2">
-        <Link
-          href="/"
-          className={cn(
-            "flex flex-col items-center justify-center gap-1 border-t-2",
-            isHomeRoute 
-              ? "text-primary border-primary"
-              : "text-muted-foreground border-transparent"
-          )}
-        >
-          <Home className="h-5 w-5" />
-          <span className="text-xs">Lists</span>
-        </Link>
-        <Link
-          href={userId && user?.username ? `/${user.username}/following` : "/sign-in"}
-          className={cn(
-            "flex flex-col items-center justify-center gap-1 border-t-2",
-            isPeopleRoute
-              ? "text-primary border-primary"
-              : "text-muted-foreground border-transparent"
-          )}
-        >
-          <Users className="h-5 w-5" />
-          <span className="text-xs">People</span>
-        </Link>
-      </div>
-    </nav>
-  );
+  return <BottomNav showProfile={isSignedIn} />;
 } 

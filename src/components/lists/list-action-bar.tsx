@@ -5,7 +5,7 @@ import { Share2, Pin, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 interface ListActionBarProps {
   listId: string;
@@ -21,7 +21,7 @@ export default function ListActionBar({
   const router = useRouter();
   const [isPinning, setIsPinning] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
-  const { isSignedIn } = useAuth();
+  const { isSignedIn } = useAuthGuard();
 
   const handleShare = async () => {
     try {

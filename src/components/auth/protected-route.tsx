@@ -1,20 +1,11 @@
 "use client";
 
-import { useAuth } from '@clerk/nextjs';
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isLoaded, isSignedIn } = useAuth();
-  const router = useRouter();
+  const { isReady } = useAuthGuard({ protected: true });
 
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push("/sign-in");
-    }
-  }, [isLoaded, isSignedIn, router]);
-
-  if (!isLoaded || !isSignedIn) {
+  if (!isReady) {
     return <div>Loading...</div>;
   }
 

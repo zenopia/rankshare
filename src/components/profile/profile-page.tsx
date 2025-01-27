@@ -1,11 +1,14 @@
 "use client";
 
-import { useAuth, useUser, useClerk } from "@clerk/nextjs";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { useRouter, useSearchParams } from "next/navigation";
 import { Settings, LogOut } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useClerk } from "@clerk/nextjs";
 import { toast } from "sonner";
+import Link from "next/link";
+import Image from "next/image";
+import { useState, useEffect } from "react";
 import type { User } from "@/types/user";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -18,10 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import Image from "next/image";
-import { z } from "zod";
 import { MainLayout } from "@/components/layout/main-layout";
-import Link from "next/link";
+import { z } from "zod";
 
 // First, let's create a type for the privacy settings keys
 type PrivacySettingKey = 'showBio' | 'showLocation' | 'showDateOfBirth' | 'showGender' | 'showLivingStatus';
@@ -35,12 +36,9 @@ const profileSchema = z.object({
 });
 
 export function ProfilePage() {
-  const { signOut, getToken } = useAuth();
+  const { isReady, getToken } = useAuthGuard({ protected: true });
   const { user: clerkUser } = useUser();
-  const { openUserProfile } = useClerk();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const returnUrl = searchParams.get('returnUrl');
+  const { openUserProfile, signOut } = useClerk();
   const [isLoading, setIsLoading] = useState(false);
   const [isProfileComplete, setIsProfileComplete] = useState(true);
   const [profileData, setProfileData] = useState<Partial<User>>({
@@ -97,19 +95,18 @@ export function ProfilePage() {
       }
     }
 
-    if (clerkUser) {
+    if (clerkUser && isReady) {
       checkProfile();
     }
-  }, [clerkUser, getToken]);
+  }, [clerkUser, isReady, getToken]);
 
-  // Handle normal sign out
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.push('/');
+      toast.success("Signed out successfully");
     } catch (error) {
-      console.error('Error during sign out:', error);
-      toast.error('Failed to sign out');
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out");
     }
   };
 
@@ -140,13 +137,7 @@ export function ProfilePage() {
       
       if (user) {
         toast.success('Profile updated successfully');
-        
-        // Redirect back to the original page if returnUrl exists, otherwise go to homepage
-        if (returnUrl) {
-          router.push(decodeURIComponent(returnUrl));
-        } else {
-          router.push('/');
-        }
+        setIsProfileComplete(true);
       } else {
         toast.error('Failed to update profile');
       }
@@ -183,7 +174,9 @@ export function ProfilePage() {
     }));
   };
 
-  if (!clerkUser) return null;
+  if (!isReady || !clerkUser) {
+    return null;
+  }
 
   return (
     <MainLayout>
@@ -192,7 +185,7 @@ export function ProfilePage() {
           {/* Profile Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between py-6 px-4 sm:px-6 lg:px-8 gap-4 border-b">
             <Link 
-              href={`/${clerkUser.username}`}
+              href={`/${clerkUser?.username}`}
               className="flex items-center gap-6 hover:opacity-80 transition-opacity"
             >
               <Image

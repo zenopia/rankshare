@@ -62,6 +62,28 @@ export default authMiddleware({
       return NextResponse.redirect(new URL('/', baseUrl));
     }
 
+    // Handle profile route redirects
+    if (url.pathname.startsWith('/profile/')) {
+      const path = url.pathname.slice('/profile/'.length);
+      if (auth.userId) {
+        // Get user from Clerk
+        const clerkUrl = `${process.env.CLERK_API_URL}/users/${auth.userId}`;
+        const response = await fetch(clerkUrl, {
+          headers: {
+            'Authorization': `Bearer ${process.env.CLERK_SECRET_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const user = await response.json();
+        if (user.username) {
+          // Redirect to /@username/following or /@username/followers
+          return NextResponse.redirect(new URL(`/@${user.username}/${path}`, req.url));
+        }
+      }
+      // If not signed in or no username, redirect to sign in
+      return NextResponse.redirect(new URL('/sign-in', req.url));
+    }
+
     // Apply security headers to all responses
     const response = NextResponse.next();
     Object.entries(securityHeaders).forEach(([key, value]) => {

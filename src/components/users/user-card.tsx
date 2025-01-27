@@ -1,52 +1,57 @@
 "use client";
 
-import { UserProfileBase } from "@/components/users/user-profile-base";
+import { useState } from "react";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { UserProfileBase } from "./user-profile-base";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 import { toast } from "sonner";
 import { usePathname } from "next/navigation";
 
-export interface UserCardProps {
+interface UserCardProps {
   username: string;
-  isFollowing: boolean;
-  isOwner?: boolean;
-  linkToProfile?: boolean;
-  displayName?: string;
-  imageUrl?: string | null;
+  firstName?: string;
+  lastName?: string;
+  imageUrl: string;
+  isFollowing?: boolean;
+  hideFollow?: boolean;
 }
 
-export function UserCard({ 
-  username, 
-  isFollowing: initialIsFollowing, 
-  isOwner = false, 
-  linkToProfile = true,
-  displayName,
-  imageUrl
-}: UserCardProps) {
+export function UserCard({ username, firstName, lastName, imageUrl, isFollowing: initialIsFollowing = false, hideFollow = false }: UserCardProps) {
+  const { isSignedIn, getToken } = useAuthGuard();
+  const [isLoading, setIsLoading] = useState(false);
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
-  const [isLoadingFollow, setIsLoadingFollow] = useState(false);
   const pathname = usePathname();
 
-  const handleFollowClick = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!username) return;
-    
-    setIsLoadingFollow(true);
+  const handleFollowClick = async () => {
+    if (!isSignedIn) {
+      toast.error("Please sign in to follow users");
+      return;
+    }
+
+    setIsLoading(true);
     try {
+      const token = await getToken();
       const response = await fetch(`/api/users/${username}/follow`, {
-        method: isFollowing ? 'DELETE' : 'POST',
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
       });
 
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        throw new Error("Failed to follow user");
+      }
 
-      setIsFollowing(!isFollowing);
-      toast.success(isFollowing ? 'Unfollowed user' : 'Following user');
+      setIsFollowing(true);
+      toast.success("Successfully followed user");
     } catch (error) {
-      toast.error('Failed to update follow status');
+      console.error("Error following user:", error);
+      toast.error("Failed to follow user");
     } finally {
-      setIsLoadingFollow(false);
+      setIsLoading(false);
     }
   };
 
@@ -55,23 +60,23 @@ export function UserCard({
       <div className="flex items-center gap-3 min-w-0">
         <UserProfileBase
           username={username}
-          firstName={displayName}
-          lastName={null}
-          imageUrl={imageUrl || undefined}
+          firstName={firstName}
+          lastName={lastName}
+          imageUrl={imageUrl}
           variant="compact"
           hideFollow={true}
           linkToProfile={false}
         />
       </div>
-      {!isOwner && (
+      {!hideFollow && (
         <Button
           variant={isFollowing ? "outline" : "default"}
           size="sm"
           className="flex-shrink-0"
           onClick={handleFollowClick}
-          disabled={isLoadingFollow}
+          disabled={isLoading}
         >
-          {isLoadingFollow ? 'Loading...' : (isFollowing ? (
+          {isLoading ? 'Loading...' : (isFollowing ? (
             <>
               <Check className="h-4 w-4 mr-2" />
               Following
@@ -82,7 +87,7 @@ export function UserCard({
     </div>
   );
 
-  if (linkToProfile) {
+  if (pathname) {
     const relativePath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
     return <Link href={`/${username}?from=${relativePath}`}>{content}</Link>;
   }
