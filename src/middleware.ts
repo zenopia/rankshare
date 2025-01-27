@@ -61,6 +61,11 @@ export default authMiddleware({
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
       `https://${req.headers.get('host') || 'favely.net'}`;
 
+    // If not signed in and trying to access protected routes, redirect to sign in
+    if (!auth.userId && !auth.isPublicRoute) {
+      return NextResponse.redirect(new URL('/sign-in', baseUrl));
+    }
+
     // If the user is signed in and trying to access auth pages, redirect to home
     if (auth.userId && ['/sign-in', '/sign-up'].some(path => url.pathname.startsWith(path))) {
       return NextResponse.redirect(new URL('/', baseUrl));
@@ -101,9 +106,6 @@ export const config = {
   matcher: [
     "/((?!.+\\.[\\w]+$|_next|_vercel|[\\w-]+\\.\\w+).*)",
     "/(api|trpc)(.*)",
-    "/@:username*",
-    "/my-lists",
-    "/collab",
-    "/pinned"
+    "/@:username*"
   ]
 };
