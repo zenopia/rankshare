@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { getEnhancedLists } from "@/lib/actions/lists";
 import { MyListsLayout } from "@/components/lists/my-lists-layout";
+import { redirect } from "next/navigation";
 
 interface PageProps {
   searchParams: { q?: string };
@@ -9,13 +10,13 @@ interface PageProps {
 export default async function MyListsPage({ searchParams }: PageProps) {
   const { userId } = auth();
   if (!userId) {
-    throw new Error("Not authenticated");
+    redirect("/sign-in?returnUrl=/my-lists");
   }
 
   const searchQuery = searchParams.q;
   const filter = searchQuery 
-    ? { ownerId: userId, title: { $regex: searchQuery, $options: "i" } }
-    : { ownerId: userId };
+    ? { owner: { clerkId: userId }, title: { $regex: searchQuery, $options: "i" } }
+    : { owner: { clerkId: userId } };
 
   const { lists } = await getEnhancedLists(filter);
 

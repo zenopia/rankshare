@@ -1,0 +1,27 @@
+"use client";
+
+import { MainLayout } from "@/components/layout/main-layout";
+import { SearchInput } from "@/components/search/search-input";
+import { ListGrid } from "@/components/lists/list-grid";
+import type { EnhancedList } from "@/types/list";
+
+interface PinnedListsLayoutProps {
+  lists: EnhancedList[];
+  searchQuery?: string;
+}
+
+export function PinnedListsLayout({ lists, searchQuery }: PinnedListsLayoutProps) {
+  return (
+    <MainLayout>
+      <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
+        <div className="max-w-2xl mx-auto space-y-6">
+          <SearchInput 
+            placeholder="Search pinned lists..." 
+            defaultValue={searchQuery}
+          />
+          <ListGrid lists={lists} />
+        </div>
+      </div>
+    </MainLayout>
+  );
+} 
