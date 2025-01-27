@@ -107,6 +107,7 @@ export const config = {
     "/((?!.+\\.[\\w]+$|_next|_vercel|[\\w-]+\\.\\w+).*)",
     "/(api|trpc)(.*)",
     "/@:username*",
-    "/profile"
+    "/profile",
+    "/pinned"
   ]
 };
