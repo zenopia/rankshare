@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { MobileNav } from "@/components/layout/mobile-nav";
-import { UserNav } from "@/components/layout/user-nav";
+import { MobileNav } from "@/components/layout/nav/mobile-nav";
+import { UserNav } from "@/components/layout/nav/user-nav";
 
 export default function TermsPage() {
   return (

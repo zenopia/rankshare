@@ -85,7 +85,7 @@ export function ListGrid({
             {lists.map((list) => (
               <Link 
                 key={list.id} 
-                href={`/${list.owner.username}/lists/${list.id}?from=${encodeURIComponent(currentPath)}`}
+                href={`/lists/${list.id}?from=${encodeURIComponent(currentPath)}`}
                 onClick={() => handleListClick(list.id)}
               >
                 <Card className="group relative overflow-hidden transition-colors hover:bg-accent">

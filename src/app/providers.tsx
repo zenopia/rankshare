@@ -3,6 +3,7 @@
 import { ThemeProvider } from "next-themes";
 import { SWRConfig } from "swr";
 import { ClerkProvider } from '@clerk/nextjs';
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
@@ -25,7 +26,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         }}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
+          <TooltipProvider>
+            {children}
+          </TooltipProvider>
         </ThemeProvider>
       </SWRConfig>
     </ClerkProvider>

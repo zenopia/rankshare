@@ -12,17 +12,18 @@ interface PeopleTabsProps {
 export function PeopleTabs({ username, followerCount, followingCount }: PeopleTabsProps) {
   const searchParams = useSearchParams();
   const fromParam = searchParams.get('from');
+  const usernameWithAt = username.startsWith('@') ? username : `@${username}`;
 
   const tabs = [
     {
       label: `Followers${typeof followerCount === 'number' ? ` (${followerCount})` : ''}`,
-      href: `/${username}/followers${fromParam ? `?from=${fromParam}` : ''}`,
-      value: `/${username}/followers`
+      href: `/profile/${username}/followers${fromParam ? `?from=${fromParam}` : ''}`,
+      value: `/profile/${username}/followers`
     },
     {
       label: `Following${typeof followingCount === 'number' ? ` (${followingCount})` : ''}`,
-      href: `/${username}/following${fromParam ? `?from=${fromParam}` : ''}`,
-      value: `/${username}/following`
+      href: `/profile/${username}/following${fromParam ? `?from=${fromParam}` : ''}`,
+      value: `/profile/${username}/following`
     }
   ];
 

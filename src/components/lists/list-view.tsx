@@ -6,7 +6,7 @@ import { CategoryBadge } from "@/components/lists/category-badge";
 import ListActionBar from "@/components/lists/list-action-bar";
 import { Eye, Pin, Copy, Lock, Pen, Plus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { EditListFAB } from "@/components/lists/edit-list-fab";
+import { EditListFAB } from "@/components/layout/FABs/edit-list-fab";
 import { UserCard } from "@/components/users/user-card";
 import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
 import { CollaboratorManagement } from "@/components/lists/collaborator-management";

@@ -32,7 +32,7 @@ export const config = {
   matcher: [
     "/((?!.+\\.[\\w]+$|_next|_vercel|[\\w-]+\\.\\w+).*)",
     "/(api|trpc)(.*)",
-    "/@:username*"
+    "/profile/:username(.*)"
   ]
 };
 
@@ -49,20 +49,18 @@ export default authMiddleware({
     "/api/webhooks/user",
     "/manifest.json",
     "/api/health",
-    "/:path*/_rsc",
-    "/@:path*/_rsc",
+    "/:path/_rsc",
+    "/profile/:username/_rsc",
     // Only allow public access to user list pages
-    "/:username/lists/:listId",
-    "/@:username/lists/:listId",
+    "/profile/:username/lists/:listId",
     // Add auth-related routes
     "/sso-callback",
     "/sign-in/(.*)",
     "/sign-up/(.*)",
     // Add user profile routes
-    "/:username/following",
-    "/:username/followers",
-    "/@:username/following",
-    "/@:username/followers"
+    "/profile/:username/following",
+    "/profile/:username/followers",
+    "/profile/:username",
   ],
-  debug: true
+  debug: false
 });

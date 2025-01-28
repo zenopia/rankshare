@@ -1,6 +1,6 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { ProfilePage } from "@/components/profile/profile-page";
 import { redirect } from "next/navigation";
+import { ProfilePage } from "@/components/profile/profile-page";
 
 export default async function Page() {
   const { userId } = auth();

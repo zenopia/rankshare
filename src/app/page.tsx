@@ -1,8 +1,8 @@
 import { MainLayout } from "@/components/layout/main-layout";
 import { ListGrid } from "@/components/lists/list-grid";
-import { ListTabs } from "@/components/lists/list-tabs";
+import { ListTabs } from "@/components/layout/nav/list-tabs";
 import { getEnhancedLists } from "@/lib/actions/lists";
-import { CreateListFAB } from "@/components/lists/create-list-fab";
+import { CreateListFAB } from "@/components/layout/FABs/create-list-fab";
 import { SessionRedirect } from "@/components/home/session-redirect";
 import { FilterQuery } from "mongoose";
 import type { MongoListDocument } from "@/types/mongo";

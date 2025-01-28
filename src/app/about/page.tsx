@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Heart, List, Users, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { MobileNav } from "@/components/layout/mobile-nav";
-import { UserNav } from "@/components/layout/user-nav";
+import { MobileNav } from "@/components/layout/nav/mobile-nav";
+import { UserNav } from "@/components/layout/nav/user-nav";
 
 export default function AboutPage() {
   return (

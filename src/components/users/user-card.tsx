@@ -40,6 +40,7 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [shouldShowSkeleton, setShouldShowSkeleton] = useState(false);
   const pathname = usePathname();
+  const usernameWithAt = username.startsWith('@') ? username : `@${username}`;
 
   // Only show skeleton after a delay if still loading
   useEffect(() => {
@@ -137,7 +138,7 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
   return (
     <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
       <Link 
-        href={`/${username}?from=${pathname.startsWith('/') ? pathname.slice(1) : pathname}`}
+        href={`/${usernameWithAt}?from=${pathname.startsWith('/') ? pathname.slice(1) : pathname}`}
         className="flex items-center gap-3 min-w-0"
       >
         <UserProfileBase

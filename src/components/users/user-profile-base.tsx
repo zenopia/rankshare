@@ -6,6 +6,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { MapPin, Calendar, Users } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export interface UserProfileBaseProps {
   // Core user data
@@ -44,6 +45,8 @@ export interface UserProfileBaseProps {
   linkToProfile?: boolean;
   onClick?: () => void;
   profilePath?: string;
+  showEditButton?: boolean;
+  extraButtons?: React.ReactNode;
 }
 
 export function formatDisplayName(firstName: string | null | undefined, lastName: string | null | undefined, username: string): string {
@@ -82,6 +85,8 @@ export function UserProfileBase({
   linkToProfile = true,
   onClick,
   profilePath,
+  showEditButton = false,
+  extraButtons,
 }: UserProfileBaseProps) {
   const displayName = formatDisplayName(firstName, lastName, username);
   const pathname = usePathname();
@@ -114,25 +119,35 @@ export function UserProfileBase({
                 <h2 className="text-2xl font-bold truncate">{displayName}</h2>
                 <p className="text-muted-foreground">@{username}</p>
               </div>
-              {!hideFollow && (
-                <FollowButton
-                  username={username}
-                  isFollowing={isFollowing}
-                  variant="default"
-                />
-              )}
+              <div className="flex items-center gap-2">
+                {showEditButton && (
+                  <Link href="/profile">
+                    <Button variant="outline" size="sm">
+                      Edit Profile
+                    </Button>
+                  </Link>
+                )}
+                {extraButtons}
+                {!hideFollow && (
+                  <FollowButton
+                    username={username}
+                    isFollowing={isFollowing}
+                    variant="default"
+                  />
+                )}
+              </div>
             </div>
 
             {showStats && stats && (
               <div className="flex gap-4 mt-2">
                 {stats.followers !== undefined && (
-                  <Link href={`/${username}/followers${fromParam ? `?from=${fromParam}` : ''}`} className="text-sm">
+                  <Link href={`/profile/${username}/followers${fromParam ? `?from=${fromParam}` : ''}`} className="text-sm">
                     <span className="font-semibold">{stats.followers}</span>{" "}
                     <span className="text-muted-foreground">Followers</span>
                   </Link>
                 )}
                 {stats.following !== undefined && (
-                  <Link href={`/${username}/following${fromParam ? `?from=${fromParam}` : ''}`} className="text-sm">
+                  <Link href={`/profile/${username}/following${fromParam ? `?from=${fromParam}` : ''}`} className="text-sm">
                     <span className="font-semibold">{stats.following}</span>{" "}
                     <span className="text-muted-foreground">Following</span>
                   </Link>
@@ -210,7 +225,7 @@ export function UserProfileBase({
     const relativePath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
     return (
       <Link
-        href={variant === "compact" ? (profilePath || "/profile") : `/${username}?from=${relativePath}`}
+        href={variant === "compact" ? (profilePath || `/profile/${username}`) : `/profile/${username}?from=${relativePath}`}
         className={cn(
           "block",
           onClick && "cursor-pointer",

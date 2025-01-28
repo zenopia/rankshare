@@ -24,7 +24,7 @@ export function SidebarProfile({ collapsed, onClick }: SidebarProfileProps) {
       linkToProfile={true}
       onClick={onClick}
       className={collapsed ? "justify-center" : ""}
-      profilePath="/profile"
+      profilePath={`/profile/${user.username}`}
     />
   );
 } 

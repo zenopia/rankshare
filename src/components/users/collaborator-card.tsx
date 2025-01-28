@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { usePathname } from "next/navigation";
+import { useUser } from "@/hooks/use-user";
 
 export interface CollaboratorCardProps {
   userId: string;
@@ -30,6 +31,11 @@ export interface CollaboratorCardProps {
   currentUserRole?: 'owner' | 'admin' | 'editor' | 'viewer';
   onRoleChange?: (newRole: string) => void;
   onRemove?: () => void;
+  onResendInvite?: () => void;
+  onCancelInvite?: () => void;
+  onAcceptInvite?: () => void;
+  onRejectInvite?: () => void;
+  className?: string;
 }
 
 export function CollaboratorCard({ 
@@ -43,12 +49,19 @@ export function CollaboratorCard({
   isOwner = false,
   currentUserRole,
   onRoleChange,
-  onRemove
+  onRemove,
+  onResendInvite,
+  onCancelInvite,
+  onAcceptInvite,
+  onRejectInvite,
+  className
 }: CollaboratorCardProps) {
   const isEmailInvite = !clerkId;
   const { data: users, isLoading } = useUsers([userId]);
   const userData = isEmailInvite ? null : users?.[0];
   const pathname = usePathname();
+  const relativePath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+  const usernameWithAt = username.startsWith('@') ? username : `@${username}`;
 
   if (isLoading) {
     return (
@@ -169,9 +182,12 @@ export function CollaboratorCard({
     </div>
   );
 
-  if (linkToProfile && userData && !isEmailInvite && username) {
-    const relativePath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
-    return <Link href={`/${userData.username || username}?from=${relativePath}`}>{content}</Link>;
+  if (status === 'accepted') {
+    return (
+      <Link href={`/${usernameWithAt}?from=${relativePath}`}>
+        {content}
+      </Link>
+    );
   }
 
   return content;

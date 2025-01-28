@@ -2,7 +2,7 @@
 
 import { ProtectedPageWrapper } from "@/components/auth/protected-page-wrapper";
 import { EnhancedList } from "@/types/list";
-import { MyListsContent } from "./my-lists-content";
+import { MyListsContent } from "@/components/lists/my-lists-content";
 
 interface MyListsLayoutProps {
   lists: EnhancedList[];

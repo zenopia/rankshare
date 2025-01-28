@@ -4,6 +4,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { UserProfileBase } from "@/components/users/user-profile-base";
 import type { User } from "@/types/user";
+import { useClerk } from "@clerk/nextjs";
+import { LogOut } from "lucide-react";
+import { toast } from "sonner";
 
 interface UserProfileProps {
   username: string;
@@ -18,6 +21,7 @@ interface UserProfileProps {
   isFollowing: boolean;
   hideFollow?: boolean;
   userData?: Partial<User>;
+  showEditButton?: boolean;
 }
 
 export function UserProfile({
@@ -28,18 +32,29 @@ export function UserProfile({
   stats,
   isFollowing,
   hideFollow = false,
-  userData
+  userData,
+  showEditButton = false
 }: UserProfileProps) {
   const [isBioExpanded, setIsBioExpanded] = useState(false);
   const showMoreButton = false;
+  const { signOut } = useClerk();
 
   // Split fullName into firstName and lastName for the base component
   const [firstName, lastName] = fullName.split(' ');
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Signed out successfully");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <UserProfileBase
-        userId={userData?.clerkId || ""}
         username={username}
         firstName={firstName}
         lastName={lastName}
@@ -57,6 +72,18 @@ export function UserProfile({
         showStats={true}
         stats={stats}
         linkToProfile={false}
+        showEditButton={showEditButton}
+        extraButtons={showEditButton ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSignOut}
+            className="flex items-center gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Sign Out</span>
+          </Button>
+        ) : undefined}
       />
 
       {bio && showMoreButton && (

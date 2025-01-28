@@ -102,7 +102,6 @@ export default function CollaborationsPage() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>Invited by</span>
                     <UserProfileBase
-                      userId={collab.owner.clerkId}
                       username={collab.owner.username}
                       variant="compact"
                       hideFollow

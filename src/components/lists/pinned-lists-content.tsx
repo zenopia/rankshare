@@ -1,8 +1,8 @@
 "use client";
 
 import { ListGrid } from "@/components/lists/list-grid";
-import { ListTabs } from "@/components/lists/list-tabs";
-import { CreateListFAB } from "@/components/lists/create-list-fab";
+import { ListTabs } from "@/components/layout/nav/list-tabs";
+import { CreateListFAB } from "@/components/layout/FABs/create-list-fab";
 import type { EnhancedList } from "@/types/list";
 
 interface PinnedListsContentProps {

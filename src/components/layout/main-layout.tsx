@@ -1,9 +1,9 @@
-import { Navbar } from "./navbar";
-import { Sidebar } from "./sidebar";
-import { ConditionalBottomNav } from "./conditional-bottom-nav";
+import { Navbar } from "@/components/layout/nav/navbar";
+import { Sidebar } from "@/components/layout/nav/sidebar";
+import { ConditionalBottomNav } from "@/components/layout/nav/conditional-bottom-nav";
 
-interface MainLayoutProps {
-  children: React.ReactNode;
+export interface MainLayoutProps {
+  children?: React.ReactNode;
   title?: {
     text: string;
     subtext?: string;

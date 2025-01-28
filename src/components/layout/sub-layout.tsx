@@ -4,7 +4,7 @@ import { ArrowLeft, MessageSquare } from "lucide-react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ConditionalBottomNav } from "@/components/layout/conditional-bottom-nav";
+import { ConditionalBottomNav } from "@/components/layout/nav/conditional-bottom-nav";
 import { useUser } from "@clerk/clerk-react";
 
 function FeedbackButton() {
@@ -25,14 +25,18 @@ function FeedbackButton() {
   );
 }
 
-interface SubLayoutProps {
-  children: React.ReactNode;
+export interface SubLayoutProps {
+  children?: React.ReactNode;
   title?: string;
   subtext?: string;
   hideBottomNav?: boolean;
+  action?: {
+    label: string;
+    href: string;
+  };
 }
 
-export function SubLayout({ children, title = "Page", hideBottomNav }: SubLayoutProps) {
+export function SubLayout({ children, title = "Page", hideBottomNav, action }: SubLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -89,6 +93,13 @@ export function SubLayout({ children, title = "Page", hideBottomNav }: SubLayout
           )}
         </div>
         <div className="flex items-center gap-2">
+          {action && (
+            <Link href={action.href}>
+              <Button variant="outline" size="sm">
+                {action.label}
+              </Button>
+            </Link>
+          )}
           <FeedbackButton />
         </div>
       </div>
