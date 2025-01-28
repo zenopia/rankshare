@@ -5,11 +5,15 @@ import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { MainLayout } from "@/components/layout/main-layout";
 import { useRouter } from "next/navigation";
 
+interface ProtectedLayoutProps {
+  children: React.ReactNode;
+  username: React.ReactNode;
+}
+
 export default function ProtectedLayout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+  username,
+}: ProtectedLayoutProps) {
   const { isReady, isSignedIn } = useAuthGuard({ protected: true });
   const router = useRouter();
 
@@ -32,5 +36,10 @@ export default function ProtectedLayout({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {username}
+    </>
+  );
 } 

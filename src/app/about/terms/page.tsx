@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { UserNav } from "@/components/layout/user-nav";
 
+
 export default function TermsPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">

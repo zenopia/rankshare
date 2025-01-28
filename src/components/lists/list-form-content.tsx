@@ -52,7 +52,7 @@ export interface ListFormProps {
     title: string;
     description?: string;
     category: ListCategory;
-    privacy: 'public' | 'private';
+    privacy: 'public' | 'private' | 'unlisted';
     owner: {
       username: string;
     };
@@ -72,35 +72,16 @@ export interface ListFormProps {
 }
 
 const formSchema = z.object({
-  title: z.string()
-    .min(3, "Title must be at least 3 characters long")
-    .max(100, "Title cannot exceed 100 characters"),
-  category: z.enum([
-    "movies",
-    "tv-shows",
-    "books",
-    "restaurants",
-    "recipes",
-    "things-to-do",
-    "other"
-  ] as const),
-  description: z.string()
+  title: z.string().min(1, "Title is required").max(100, "Title cannot exceed 100 characters"),
+  description: z
+    .string()
     .max(500, "Description cannot exceed 500 characters")
     .optional(),
-  privacy: z.enum(["public", "private"] as const),
+  privacy: z.enum(["public", "private", "unlisted"] as const),
+  category: z.enum(["movies", "tv", "books", "games", "music", "food", "places", "products", "other"] as const),
 });
 
 type FormData = z.infer<typeof formSchema>;
-
-const FORM_CATEGORIES = [
-  "movies",
-  "tv-shows",
-  "books",
-  "restaurants",
-  "recipes",
-  "things-to-do",
-  "other"
-] as const;
 
 export function ListFormContent({ defaultValues, mode = 'create', returnPath }: ListFormProps) {
   const router = useRouter();
@@ -124,7 +105,7 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: defaultValues?.title || "",
-      category: (defaultValues?.category === 'all' ? 'movies' : defaultValues?.category) || "movies",
+      category: defaultValues?.category || "movies",
       description: defaultValues?.description || "",
       privacy: defaultValues?.privacy || "public",
     },
@@ -332,38 +313,24 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
                 control={form.control}
                 name="category"
                 render={({ field }) => (
-                  <FormItem className="flex-1">
+                  <FormItem>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select category" />
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {FORM_CATEGORIES.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            <div className="flex items-center gap-2">
-                              <div className={cn(
-                                "h-3.5 w-3.5 rounded-full shrink-0",
-                                {
-                                  'bg-[var(--category-movies)]': category === 'movies',
-                                  'bg-[var(--category-tv)]': category === 'tv-shows',
-                                  'bg-[var(--category-books)]': category === 'books',
-                                  'bg-[var(--category-restaurants)]': category === 'restaurants',
-                                  'bg-[var(--category-recipes)]': category === 'recipes',
-                                  'bg-[var(--category-activities)]': category === 'things-to-do',
-                                  'bg-[var(--category-other)]': category === 'other'
-                                }
-                              )} />
-                              <span>
-                                {category === 'tv-shows' ? 'TV Shows' : 
-                                category === 'things-to-do' ? 'Things to do' :
-                                category.charAt(0).toUpperCase() + category.slice(1)}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="movies">Movies</SelectItem>
+                        <SelectItem value="tv">TV Shows</SelectItem>
+                        <SelectItem value="books">Books</SelectItem>
+                        <SelectItem value="games">Games</SelectItem>
+                        <SelectItem value="music">Music</SelectItem>
+                        <SelectItem value="food">Food</SelectItem>
+                        <SelectItem value="places">Places</SelectItem>
+                        <SelectItem value="products">Products</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -386,6 +353,7 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
                       <SelectContent>
                         <SelectItem value="public">Public</SelectItem>
                         <SelectItem value="private">Private</SelectItem>
+                        <SelectItem value="unlisted">Unlisted</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -1,74 +1,91 @@
 "use client";
 
 import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { UserProfileBase } from "@/components/users/user-profile-base";
-import type { User } from "@/types/user";
+import Link from "next/link";
+import { toast } from "sonner";
+import { Tabs } from "./profile-tabs";
 
 interface UserProfileProps {
+  userId: string;
   username: string;
-  fullName: string;
-  bio?: string | null;
-  imageUrl?: string | null;
-  stats: {
-    followers: number;
-    following: number;
-    lists: number;
-  };
+  displayName: string;
+  imageUrl: string;
+  followerCount: number;
+  followingCount: number;
   isFollowing: boolean;
-  hideFollow?: boolean;
-  userData?: Partial<User>;
+  isOwnProfile: boolean;
 }
 
-export function UserProfile({
-  username,
-  fullName,
-  bio,
+export function UserProfile({ 
+  userId, 
+  username, 
+  displayName, 
   imageUrl,
-  stats,
-  isFollowing,
-  hideFollow = false,
-  userData
+  followerCount,
+  followingCount,
+  isFollowing: initialIsFollowing,
+  isOwnProfile
 }: UserProfileProps) {
-  const [isBioExpanded, setIsBioExpanded] = useState(false);
-  const showMoreButton = false;
+  const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Split fullName into firstName and lastName for the base component
-  const [firstName, lastName] = fullName.split(' ');
+  const handleFollow = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/users/${userId}/follow`, {
+        method: isFollowing ? 'DELETE' : 'POST'
+      });
+
+      if (!response.ok) throw new Error();
+
+      setIsFollowing(!isFollowing);
+      toast.success(isFollowing ? `Unfollowed ${username}` : `Following ${username}`);
+    } catch (error) {
+      console.error('Error following/unfollowing:', error);
+      toast.error('Failed to update follow status');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <UserProfileBase
-        userId={userData?.clerkId || ""}
-        username={username}
-        firstName={firstName}
-        lastName={lastName}
-        imageUrl={imageUrl}
-        bio={bio}
-        location={userData?.location}
-        dateOfBirth={userData?.dateOfBirth}
-        gender={userData?.gender}
-        livingStatus={userData?.livingStatus}
-        privacySettings={userData?.privacySettings}
-        variant="full"
-        hideFollow={hideFollow}
-        isFollowing={isFollowing}
-        showLocation={true}
-        showStats={true}
-        stats={stats}
-        linkToProfile={false}
-      />
+      <Card className="p-6">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <Avatar className="h-20 w-20">
+              <AvatarImage src={imageUrl} alt={username} />
+              <AvatarFallback>{username[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-2xl font-bold">{displayName}</h1>
+              <p className="text-muted-foreground">@{username}</p>
+            </div>
+          </div>
 
-      {bio && showMoreButton && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsBioExpanded(!isBioExpanded)}
-          className="mt-1"
-        >
-          {isBioExpanded ? "Show less" : "Show more"}
-        </Button>
-      )}
+          {!isOwnProfile && (
+            <Button
+              variant={isFollowing ? "outline" : "default"}
+              onClick={handleFollow}
+              disabled={isLoading}
+            >
+              {isFollowing ? "Unfollow" : "Follow"}
+            </Button>
+          )}
+        </div>
+
+        <Tabs 
+          username={username}
+          followerCount={followerCount}
+          followingCount={followingCount}
+          activeTab="lists"
+        />
+      </Card>
     </div>
   );
 } 

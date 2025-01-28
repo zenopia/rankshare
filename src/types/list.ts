@@ -1,26 +1,32 @@
-export type ListCategory = 
-  | 'movies' 
-  | 'tv-shows' 
-  | 'books' 
-  | 'restaurants' 
-  | 'recipes' 
-  | 'things-to-do' 
-  | 'other' 
-  | 'all';
+export type ListCategory =
+  | "movies"
+  | "tv"
+  | "books"
+  | "games"
+  | "music"
+  | "food"
+  | "places"
+  | "products"
+  | "other";
+
+export type ListPrivacy = "public" | "private" | "unlisted";
 
 export const LIST_CATEGORIES: ListCategory[] = [
-  'movies',
-  'tv-shows',
-  'books',
-  'restaurants',
-  'recipes',
-  'things-to-do',
-  'other'
+  "movies",
+  "tv",
+  "books",
+  "games",
+  "music",
+  "food",
+  "places",
+  "products",
+  "other"
 ];
 
 export const PRIVACY_OPTIONS = [
   { value: 'public', label: 'Public' },
-  { value: 'private', label: 'Private' }
+  { value: 'private', label: 'Private' },
+  { value: 'unlisted', label: 'Unlisted' }
 ] as const;
 
 export const OWNER_FILTER_OPTIONS = [
@@ -34,12 +40,14 @@ export interface ListItem {
   title: string;
   comment?: string;
   rank: number;
-  properties?: Array<{
-    id: string;
-    type?: 'text' | 'link';
-    label: string;
-    value: string;
-  }>;
+  properties?: ListItemProperty[];
+}
+
+export interface ListItemProperty {
+  id: string;
+  type: "text" | "link";
+  label: string;
+  value: string;
 }
 
 export interface ListOwner {
@@ -50,14 +58,10 @@ export interface ListOwner {
 }
 
 export interface ListCollaborator {
-  id: string;
   clerkId: string;
   username: string;
-  email?: string;
-  role: 'admin' | 'editor' | 'viewer';
-  status: 'pending' | 'accepted' | 'rejected';
-  invitedAt: string;
-  acceptedAt?: string;
+  role: "owner" | "admin" | "editor" | "viewer";
+  status: "pending" | "accepted" | "rejected";
 }
 
 export interface ListStats {
@@ -69,17 +73,29 @@ export interface ListStats {
 export interface List {
   id: string;
   title: string;
-  description?: string;
+  description: string | null;
   category: ListCategory;
-  privacy: 'public' | 'private';
-  owner: ListOwner;
-  items?: ListItem[];
-  stats: ListStats;
-  collaborators?: ListCollaborator[];
-  lastEditedAt?: string;
+  privacy: ListPrivacy;
+  owner: {
+    clerkId: string;
+    username: string;
+  };
+  collaborators: ListCollaborator[];
+  items: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    url: string | null;
+    position: number;
+  }>;
+  stats: {
+    itemCount: number;
+    pinCount: number;
+    viewCount: number;
+  };
+  pinnedAt?: string;
   createdAt: string;
   updatedAt: string;
-  editedAt?: string;
 }
 
 export interface ItemDetails {

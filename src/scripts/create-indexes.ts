@@ -6,9 +6,9 @@ import { MongoClient } from 'mongodb';
 const envPath = resolve(process.cwd(), '.env.local');
 config({ path: envPath });
 
-const mongoUri = process.env.MONGODB_URI_V2;
+const mongoUri = process.env.MONGODB_URI_V3;
 if (!mongoUri) {
-  console.error('MONGODB_URI_V2 is not defined in .env.local');
+  console.error('MONGODB_URI_V3 is not defined in .env.local');
   process.exit(1);
 }
 

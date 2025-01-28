@@ -1,9 +1,11 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import connectToDatabase from '../mongodb';
+import { ListPrivacy } from '@/types/list';
 
 export interface UserDocument extends Document {
   clerkId: string;
   username: string;
+  email: string;
   displayName: string;
   searchIndex: string;
   bio?: string;
@@ -16,6 +18,27 @@ export interface UserDocument extends Document {
     showGender: boolean;
     showLivingStatus: boolean;
   };
+  preferences: {
+    notifications: {
+      email: {
+        collaborationInvites: boolean;
+        collaborationUpdates: boolean;
+        listActivity: boolean;
+        mentions: boolean;
+      };
+      push: {
+        collaborationInvites: boolean;
+        collaborationUpdates: boolean;
+        listActivity: boolean;
+        mentions: boolean;
+      };
+    };
+    privacy: {
+      defaultListPrivacy: ListPrivacy;
+      showProfileStats: boolean;
+    };
+    theme: 'light' | 'dark' | 'system';
+  };
   followersCount: number;
   followingCount: number;
   listCount: number;
@@ -26,6 +49,7 @@ export interface UserDocument extends Document {
 const userSchema = new Schema<UserDocument>({
   clerkId: { type: String, required: true, unique: true },
   username: { type: String, required: true, unique: true },
+  email: { type: String, required: true },
   displayName: { type: String, required: true },
   searchIndex: { type: String },
   bio: { type: String },
@@ -37,6 +61,27 @@ const userSchema = new Schema<UserDocument>({
     showDateOfBirth: { type: Boolean, default: false },
     showGender: { type: Boolean, default: true },
     showLivingStatus: { type: Boolean, default: true }
+  },
+  preferences: {
+    notifications: {
+      email: {
+        collaborationInvites: { type: Boolean, default: true },
+        collaborationUpdates: { type: Boolean, default: true },
+        listActivity: { type: Boolean, default: true },
+        mentions: { type: Boolean, default: true }
+      },
+      push: {
+        collaborationInvites: { type: Boolean, default: true },
+        collaborationUpdates: { type: Boolean, default: true },
+        listActivity: { type: Boolean, default: true },
+        mentions: { type: Boolean, default: true }
+      }
+    },
+    privacy: {
+      defaultListPrivacy: { type: String, enum: ['public', 'private', 'unlisted'], default: 'private' },
+      showProfileStats: { type: Boolean, default: true }
+    },
+    theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' }
   },
   followersCount: { type: Number, default: 0 },
   followingCount: { type: Number, default: 0 },

@@ -6,7 +6,11 @@ import { cn } from "@/lib/utils";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { UserNav } from "@/components/layout/user-nav";
 
-export default function AboutPage() {
+interface AboutPageProps {
+  username?: string;
+}
+
+export default function AboutPage({ username }: AboutPageProps) {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

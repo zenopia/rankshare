@@ -2,15 +2,16 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { ListCategory } from "@/types/list";
 
-const categoryStyles: Record<ListCategory, { color: string }> = {
-  "movies": { color: "bg-[var(--category-movies)] text-[var(--category-badge-text)]" },
-  "tv-shows": { color: "bg-[var(--category-tv)] text-[var(--category-badge-text)]" },
-  "books": { color: "bg-[var(--category-books)] text-[var(--category-badge-text)]" },
-  "restaurants": { color: "bg-[var(--category-restaurants)] text-[var(--category-badge-text)]" },
-  "recipes": { color: "bg-[var(--category-recipes)] text-[var(--category-badge-text)]" },
-  "things-to-do": { color: "bg-[var(--category-activities)] text-[var(--category-badge-text)]" },
-  "other": { color: "bg-[var(--category-other)] text-[var(--category-badge-text)]" },
-  "all": { color: "bg-[var(--category-other)] text-[var(--category-badge-text)]" }
+const categoryColors: Record<ListCategory, { bg: string; text: string }> = {
+  movies: { bg: "bg-red-100", text: "text-red-700" },
+  tv: { bg: "bg-blue-100", text: "text-blue-700" },
+  books: { bg: "bg-yellow-100", text: "text-yellow-700" },
+  games: { bg: "bg-purple-100", text: "text-purple-700" },
+  music: { bg: "bg-pink-100", text: "text-pink-700" },
+  food: { bg: "bg-orange-100", text: "text-orange-700" },
+  places: { bg: "bg-green-100", text: "text-green-700" },
+  products: { bg: "bg-indigo-100", text: "text-indigo-700" },
+  other: { bg: "bg-gray-100", text: "text-gray-700" },
 };
 
 interface CategoryBadgeProps {
@@ -19,20 +20,22 @@ interface CategoryBadgeProps {
 }
 
 export function CategoryBadge({ category, className }: CategoryBadgeProps) {
-  const categoryStyle = categoryStyles[category]?.color || categoryStyles.other.color;
+  const colors = categoryColors[category];
 
   return (
-    <Badge 
-      variant="secondary" 
+    <Badge
+      variant="secondary"
       className={cn(
-        "font-medium text-xs capitalize",
-        categoryStyle,
+        "font-normal",
+        colors.bg,
+        colors.text,
+        "border-0",
         className
       )}
     >
-      {category.replace('-', ' ')}
+      {category.charAt(0).toUpperCase() + category.slice(1)}
     </Badge>
   );
 }
 
-export { categoryStyles }; 
+export { categoryColors }; 

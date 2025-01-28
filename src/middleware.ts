@@ -1,6 +1,54 @@
 import { authMiddleware } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
+interface AuthObject {
+  userId: string | null;
+  isPublicRoute: boolean;
+  sessionId: string | null;
+}
+
+// URL patterns for consistent routing
+const USER_ROUTES = {
+  profile: "/@:username",
+  lists: "/@:username/lists",
+  followers: "/@:username/followers",
+  following: "/@:username/following",
+  specificList: "/@:username/lists/:listId"
+} as const;
+
+const APP_ROUTES = {
+  dashboard: "/app/dashboard",
+  myLists: "/app/lists",
+  pinned: "/app/pinned",
+  collab: "/app/collab",
+  settings: "/app/settings"
+} as const;
+
+const STATIC_ROUTES = {
+  home: "/",
+  about: "/about",
+  feedback: "/feedback",
+  search: "/search"
+} as const;
+
+// Routes that don't require authentication
+const publicRoutes = [
+  "/",
+  "/about",
+  "/search",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/sso-callback(.*)",
+  "/@(.*)",
+  "/api/webhook(.*)",
+];
+
+// Routes that require authentication
+const protectedRoutes = [
+  "/app(.*)",
+  "/settings(.*)",
+];
+
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 const securityHeaders = {
@@ -23,46 +71,21 @@ const securityHeaders = {
     'camera=(), microphone=(), geolocation=()'
 };
 
-interface AuthObject {
-  userId: string | null;
-  isPublicRoute: boolean;
-}
-
-export const config = {
-  matcher: [
-    "/((?!.+\\.[\\w]+$|_next|_vercel|[\\w-]+\\.\\w+).*)",
-    "/(api|trpc)(.*)",
-    "/@:username*"
-  ]
-};
-
 export default authMiddleware({
   publicRoutes: [
     "/",
-    "/sign-in",
-    "/sign-up",
+    "/about",
     "/search",
-    "/lists/:path*",
-    "/api/lists/:path*",
-    "/api/users/:path*",
-    "/api/webhooks/clerk",
-    "/api/webhooks/user",
-    "/manifest.json",
-    "/api/health",
-    "/:path*/_rsc",
-    "/@:path*/_rsc",
-    // Only allow public access to user list pages
-    "/:username/lists/:listId",
-    "/@:username/lists/:listId",
-    // Add auth-related routes
-    "/sso-callback",
-    "/sign-in/(.*)",
-    "/sign-up/(.*)",
-    // Add user profile routes
-    "/:username/following",
-    "/:username/followers",
-    "/@:username/following",
-    "/@:username/followers"
+    "/sign-in(.*)",
+    "/sign-up(.*)",
+    "/sso-callback(.*)",
+    "/@(.*)",
+    "/api/webhook(.*)",
   ],
-  debug: true
+  ignoredRoutes: ["/api/webhook(.*)"],
+  debug: process.env.NODE_ENV === "development",
 });
+
+export const config = {
+  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+};

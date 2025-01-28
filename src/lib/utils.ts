@@ -24,7 +24,7 @@ export function serializeList(list: MongoListDocument): List {
       id: list.owner.userId.toString(),
       clerkId: list.owner.clerkId,
       username: list.owner.username,
-      joinedAt: list.owner.joinedAt?.toISOString() || new Date().toISOString()
+      joinedAt: list.owner.joinedAt.toISOString()
     },
     items: list.items.map(item => ({
       id: crypto.randomUUID(),
@@ -33,7 +33,7 @@ export function serializeList(list: MongoListDocument): List {
       rank: item.rank,
       properties: item.properties?.map(prop => ({
         id: crypto.randomUUID(),
-        type: (prop.type || 'text') as 'text' | 'link',
+        type: prop.type,
         label: prop.label,
         value: prop.value
       }))
@@ -44,7 +44,7 @@ export function serializeList(list: MongoListDocument): List {
       copyCount: list.stats.copyCount
     },
     collaborators: list.collaborators?.map(collab => ({
-      id: collab.userId?.toString() || collab.clerkId,
+      id: collab.clerkId,
       clerkId: collab.clerkId,
       username: collab.username,
       role: collab.role,
@@ -52,19 +52,34 @@ export function serializeList(list: MongoListDocument): List {
       invitedAt: collab.invitedAt.toISOString(),
       acceptedAt: collab.acceptedAt?.toISOString()
     })),
-    lastEditedAt: list.lastEditedAt?.toISOString(),
-    createdAt: list.createdAt?.toISOString(),
-    updatedAt: list.updatedAt?.toISOString(),
-    editedAt: list.editedAt?.toISOString()
+    createdAt: list.createdAt.toISOString(),
+    updatedAt: list.updatedAt.toISOString(),
+    editedAt: list.editedAt.toISOString()
   };
 }
 
-export function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
+export function formatDate(input: string | number | Date): string {
+  const date = new Date(input);
+  return date.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
-  }).format(date);
+  });
+}
+
+export function formatDateTime(input: string | number | Date): string {
+  const date = new Date(input);
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+  });
+}
+
+export function absoluteUrl(path: string) {
+  return `${process.env.NEXT_PUBLIC_APP_URL}${path}`;
 }
 
 export function serializeLists(lists: MongoListDocument[]): List[] {
@@ -77,16 +92,16 @@ export function serializeUser(user: MongoUserDocument | null) {
   return {
     id: user._id.toString(),
     username: user.username,
-    displayName: user.displayName,
-    bio: user.bio,
-    location: user.location,
-    dateOfBirth: user.dateOfBirth,
-    gender: user.gender,
-    livingStatus: user.livingStatus,
-    privacySettings: user.privacySettings,
-    followersCount: user.followersCount,
-    followingCount: user.followingCount,
-    listCount: user.listCount,
+    displayName: user.profile.displayName,
+    bio: user.profile.bio,
+    location: user.profile.location,
+    dateOfBirth: user.profile.dateOfBirth,
+    gender: user.profile.gender,
+    livingStatus: user.profile.livingStatus,
+    privacySettings: user.profile.privacySettings,
+    followersCount: user.stats.followersCount,
+    followingCount: user.stats.followingCount,
+    listCount: user.stats.listCount,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt
   };

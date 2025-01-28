@@ -16,13 +16,13 @@ export function PeopleTabs({ username, followerCount, followingCount }: PeopleTa
   const tabs = [
     {
       label: `Followers${typeof followerCount === 'number' ? ` (${followerCount})` : ''}`,
-      href: `/${username}/followers${fromParam ? `?from=${fromParam}` : ''}`,
-      value: `/${username}/followers`
+      href: `/u/${username}/followers${fromParam ? `?from=${fromParam}` : ''}`,
+      value: `/u/${username}/followers`
     },
     {
       label: `Following${typeof followingCount === 'number' ? ` (${followingCount})` : ''}`,
-      href: `/${username}/following${fromParam ? `?from=${fromParam}` : ''}`,
-      value: `/${username}/following`
+      href: `/u/${username}/following${fromParam ? `?from=${fromParam}` : ''}`,
+      value: `/u/${username}/following`
     }
   ];
 

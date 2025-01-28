@@ -6,19 +6,21 @@ interface MongooseCache {
 }
 
 declare global {
-  var _mongooseConnection: MongooseCache;
+  var mongooseConnection: MongooseCache;
 }
 
-global._mongooseConnection = global._mongooseConnection || { conn: null, promise: null };
+if (!global.mongooseConnection) {
+  global.mongooseConnection = { conn: null, promise: null };
+}
 
 export async function connectToDatabase(customUri?: string): Promise<Connection> {
-  const MONGODB_URI = customUri || process.env.MONGODB_URI_V2;
+  const MONGODB_URI = customUri || process.env.MONGODB_URI_V3;
 
   if (!MONGODB_URI) {
-    throw new Error('Please define the MONGODB_URI_V2 environment variable inside .env.local');
+    throw new Error('Please define the MONGODB_URI_V3 environment variable inside .env.local');
   }
 
-  const cache = global._mongooseConnection;
+  const cache = global.mongooseConnection;
 
   if (cache.conn) {
     console.log('Using existing MongoDB connection');
@@ -27,12 +29,13 @@ export async function connectToDatabase(customUri?: string): Promise<Connection>
 
   if (!cache.promise) {
     const opts: ConnectOptions = {
-      bufferCommands: true,
+      bufferCommands: false,
       autoIndex: true,
       maxPoolSize: 10,
       minPoolSize: 5,
-      serverSelectionTimeoutMS: 30000,
-      socketTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
       family: 4,
       retryWrites: true,
       w: 'majority'

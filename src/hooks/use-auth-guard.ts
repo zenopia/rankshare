@@ -19,7 +19,7 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
   const pathname = usePathname();
 
   // Auth pages should be immediately ready
-  const isAuthPage = pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up');
+  const isAuthPage = pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up') || false;
   
   useEffect(() => {
     // Auth pages are always ready and don't need token validation
@@ -53,7 +53,7 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
         
         if (isProtected && !isSignedIn) {
           // Redirect to sign in if trying to access protected route while not signed in
-          const returnUrl = encodeURIComponent(pathname);
+          const returnUrl = pathname ? encodeURIComponent(pathname) : '/';
           router.push(`/sign-in?returnUrl=${returnUrl}`);
           return;
         }

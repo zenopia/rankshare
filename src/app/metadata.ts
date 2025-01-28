@@ -1,36 +1,39 @@
 import { Metadata, Viewport } from 'next';
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'Favely';
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  themeColor: '#ffffff',
-};
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: siteName,
-  description: 'Create and share ranked lists of your favorite things',
-  keywords: ['ranking', 'lists', 'recommendations', 'sharing'],
-  authors: [{ name: `${siteName} Team` }],
-  openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    url: siteUrl,
-    siteName,
-    title: `${siteName} - Create and Share Ranked Lists`,
-    description: 'Create and share ranked lists of your favorite things',
+  title: {
+    default: "RankShare",
+    template: "%s | RankShare",
   },
-  robots: {
-    index: true,
-    follow: true,
+  description: "Share and discover ranked lists of your favorite things",
+  keywords: ["ranking", "lists", "social", "sharing", "discover"],
+  authors: [{ name: "RankShare" }],
+  creator: "RankShare",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://rankshare.app",
+    title: "RankShare",
+    description: "Share and discover ranked lists of your favorite things",
+    siteName: "RankShare",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "RankShare",
+    description: "Share and discover ranked lists of your favorite things",
+    creator: "@rankshare",
   },
   icons: {
-    icon: '/favicon-32x32.png',
-    shortcut: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
+    icon: "/favicon.ico",
+    shortcut: "/favicon-16x16.png",
+    apple: "/apple-touch-icon.png",
   },
-  manifest: '/site.webmanifest',
+  manifest: "/site.webmanifest",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 }; 

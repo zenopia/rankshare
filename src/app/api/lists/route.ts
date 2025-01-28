@@ -155,6 +155,7 @@ export async function GET(request: Request) {
           $or: [
             { 'owner.clerkId': userId },
             { privacy: 'public' },
+            { privacy: 'unlisted' },
             {
               'collaborators': {
                 $elemMatch: {

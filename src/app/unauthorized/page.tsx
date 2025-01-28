@@ -16,7 +16,7 @@ export default function UnauthorizedPage() {
         </p>
         <div className="flex justify-center">
           <Button asChild>
-            <Link href="/my-lists">
+            <Link href="/lists">
               View My Lists
             </Link>
           </Button>

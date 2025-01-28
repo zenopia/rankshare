@@ -1,4 +1,4 @@
-import { CollaboratorRole } from '@/types/list';
+import type { ListCollaborator, ListPrivacy } from '@/types/list';
 
 // Collaborator Management
 export async function getListCollaborators(listId: string) {
@@ -9,7 +9,7 @@ export async function getListCollaborators(listId: string) {
   return response.json();
 }
 
-export async function addListCollaborator(listId: string, email: string, role: CollaboratorRole = 'viewer') {
+export async function addListCollaborator(listId: string, email: string, role: ListCollaborator['role'] = 'viewer') {
   const response = await fetch(`/api/lists/${listId}/collaborators`, {
     method: 'POST',
     headers: {
@@ -23,7 +23,7 @@ export async function addListCollaborator(listId: string, email: string, role: C
   return response.json();
 }
 
-export async function updateCollaboratorRole(listId: string, collaboratorId: string, role: CollaboratorRole) {
+export async function updateCollaboratorRole(listId: string, collaboratorId: string, role: ListCollaborator['role']) {
   const response = await fetch(`/api/lists/${listId}/collaborators`, {
     method: 'PATCH',
     headers: {
@@ -52,7 +52,7 @@ export async function removeListCollaborator(listId: string, collaboratorId: str
 }
 
 // Update list privacy
-export async function updateListPrivacy(listId: string, privacy: 'public' | 'private') {
+export async function updateListPrivacy(listId: string, privacy: ListPrivacy) {
   const response = await fetch(`/api/lists/${listId}`, {
     method: 'PATCH',
     headers: {

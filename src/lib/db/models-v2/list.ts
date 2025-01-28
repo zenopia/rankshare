@@ -1,128 +1,171 @@
-import mongoose, { Schema, Document } from 'mongoose';
-import connectToDatabase from '../mongodb';
-import { LIST_CATEGORIES } from '@/types/list';
+import mongoose from "mongoose";
+import { LIST_CATEGORIES } from "@/types/list";
+import type { MongoListDocument } from "@/types/mongo";
 
-interface ListOwner {
-  userId: mongoose.Types.ObjectId;
-  clerkId: string;
-}
+const listItemPropertySchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ["text", "link"],
+    required: true,
+  },
+  label: {
+    type: String,
+    required: true,
+  },
+  value: {
+    type: String,
+    required: true,
+  },
+}, { _id: true });
 
-export interface ListCollaborator {
-  userId?: mongoose.Types.ObjectId;
-  clerkId?: string;
-  email?: string;
-  username?: string;
-  role: 'admin' | 'editor' | 'viewer';
-  status: 'pending' | 'accepted' | 'rejected';
-  invitedAt: Date;
-  acceptedAt?: Date;
-  _isEmailInvite?: boolean;
-}
+const listItemSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+  },
+  comment: {
+    type: String,
+    default: null,
+  },
+  rank: {
+    type: Number,
+    required: true,
+  },
+  properties: {
+    type: [listItemPropertySchema],
+    default: [],
+  },
+}, { _id: true });
 
-interface ListItem {
-  title: string;
-  comment?: string;
-  rank: number;
-  properties?: Array<{
-    type: 'text' | 'link';
-    label: string;
-    value: string;
-  }>;
-}
+const listOwnerSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+  },
+  clerkId: {
+    type: String,
+    required: true,
+  },
+  username: {
+    type: String,
+    required: true,
+  },
+  joinedAt: {
+    type: Date,
+    required: true,
+  },
+}, { _id: false });
 
-export interface ListDocument extends Document {
-  title: string;
-  description?: string;
-  category: string;
-  privacy: 'public' | 'private';
-  owner: ListOwner;
-  collaborators: ListCollaborator[];
-  items: ListItem[];
-  stats: {
-    viewCount: number;
-    pinCount: number;
-    copyCount: number;
-  };
-  createdAt: Date;
-  updatedAt: Date;
-  editedAt?: Date;
-}
+const listCollaboratorSchema = new mongoose.Schema({
+  clerkId: {
+    type: String,
+    required: true,
+  },
+  username: {
+    type: String,
+    required: true,
+  },
+  role: {
+    type: String,
+    enum: ["editor", "viewer"],
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ["pending", "accepted", "rejected"],
+    required: true,
+  },
+  invitedAt: {
+    type: Date,
+    required: true,
+  },
+  acceptedAt: Date,
+}, { _id: false });
 
-const listSchema = new Schema<ListDocument>({
-  title: { type: String, required: true },
-  description: { type: String },
-  category: { type: String, enum: LIST_CATEGORIES, required: true },
-  privacy: { type: String, enum: ['public', 'private'], default: 'public' },
+const listStatsSchema = new mongoose.Schema({
+  viewCount: {
+    type: Number,
+    default: 0,
+  },
+  pinCount: {
+    type: Number,
+    default: 0,
+  },
+  itemCount: {
+    type: Number,
+    default: 0,
+  },
+}, { _id: false });
+
+const listSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+    default: null,
+  },
+  category: {
+    type: String,
+    enum: LIST_CATEGORIES,
+    required: true,
+  },
+  privacy: {
+    type: String,
+    enum: ["public", "private", "unlisted"],
+    required: true,
+  },
   owner: {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    clerkId: { type: String, required: true }
+    type: listOwnerSchema,
+    required: true,
   },
-  collaborators: [{
-    userId: { type: Schema.Types.ObjectId, ref: 'User' },
-    clerkId: { type: String },
-    email: { type: String },
-    username: { type: String },
-    role: { type: String, enum: ['admin', 'editor', 'viewer'], required: true },
-    status: { type: String, enum: ['pending', 'accepted', 'rejected'], required: true },
-    invitedAt: { type: Date, required: true },
-    acceptedAt: { type: Date },
-    _isEmailInvite: { type: Boolean, default: false }
-  }],
-  items: [{
-    title: { type: String, required: true },
-    comment: { type: String },
-    rank: { type: Number, required: true },
-    properties: [{
-      type: { type: String, enum: ['text', 'link'], default: 'text' },
-      label: { type: String, required: true },
-      value: { type: String, required: true }
-    }]
-  }],
+  items: {
+    type: [listItemSchema],
+    default: [],
+  },
   stats: {
-    viewCount: { type: Number, default: 0 },
-    pinCount: { type: Number, default: 0 },
-    copyCount: { type: Number, default: 0 }
+    type: listStatsSchema,
+    default: () => ({}),
   },
-  editedAt: { type: Date }
+  collaborators: {
+    type: [listCollaboratorSchema],
+    default: [],
+  },
+  pinnedAt: Date,
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
 }, {
-  timestamps: true
+  timestamps: true,
 });
 
 // Create indexes
-// Compound text index for list content with weights
+listSchema.index({ "owner.clerkId": 1 });
+listSchema.index({ "owner.username": 1 });
+listSchema.index({ "collaborators.clerkId": 1 });
+listSchema.index({ category: 1 });
+listSchema.index({ privacy: 1 });
+listSchema.index({ createdAt: -1 });
+listSchema.index({ updatedAt: -1 });
+listSchema.index({ pinnedAt: -1 });
+listSchema.index({ isDeleted: 1 });
+
+// Create text index for search
 listSchema.index({
-  title: 'text',
-  description: 'text',
-  'items.title': 'text'
+  title: "text",
+  description: "text",
 }, {
   weights: {
-    title: 10,        // Highest priority
-    'items.title': 5, // Medium priority
-    description: 1    // Lower priority
-  }
+    title: 2,
+    description: 1,
+  },
 });
 
-// Access control index
-listSchema.index({ 
-  privacy: 1,
-  'owner.clerkId': 1,
-  'collaborators.clerkId': 1,
-  'collaborators.email': 1,
-  'collaborators._isEmailInvite': 1,
-  'collaborators.status': 1
-});
+export const ListModel = mongoose.models.List as mongoose.Model<MongoListDocument> || 
+  mongoose.model<MongoListDocument>("List", listSchema);
 
-// Initialize model
-let ListModel: mongoose.Model<ListDocument> | null = null;
-
-export const getListModel = async () => {
-  if (!ListModel) {
-    const connection = await connectToDatabase();
-    try {
-      ListModel = connection.model<ListDocument>('List', listSchema);
-    } catch (error) {
-      ListModel = connection.model<ListDocument>('List');
-    }
-  }
+export async function getListModel() {
   return ListModel;
-}; 
+} 

@@ -49,6 +49,7 @@ export async function GET(req: NextRequest) {
       matchConditions.push({
         $or: [
           { privacy: 'public' },
+          { privacy: 'unlisted' },
           { privacy: 'private', 'owner.clerkId': userId },
           { privacy: 'private', 'collaborators': { $elemMatch: { clerkId: userId, status: 'accepted' } } }
         ]
@@ -162,34 +163,29 @@ export async function GET(req: NextRequest) {
 
     const total = countResult?.total || 0;
 
-    // Convert MongoDB documents to List type
-    const serializedLists = lists.map((list: MongoListDocument & { ownerDetails: { username: string; displayName: string } }) => ({
+    // Map results to response format
+    const results = lists.map((list: MongoListDocument & { ownerDetails: { username: string; displayName: string } }) => ({
       id: list._id.toString(),
       title: list.title,
       description: list.description,
       category: list.category,
       privacy: list.privacy,
+      stats: list.stats,
       owner: {
-        ...list.owner,
+        clerkId: list.owner.clerkId,
         username: list.ownerDetails.username,
         displayName: list.ownerDetails.displayName
       },
-      items: list.items,
-      stats: list.stats,
-      collaborators: list.collaborators,
-      lastEditedAt: list.lastEditedAt,
-      createdAt: list.createdAt,
-      updatedAt: list.updatedAt,
-      editedAt: list.editedAt
+      createdAt: list.createdAt?.toISOString(),
+      updatedAt: list.updatedAt?.toISOString()
     }));
 
     return NextResponse.json({
-      lists: serializedLists,
+      lists: results,
       pagination: {
         total,
         page,
-        limit,
-        pages: Math.ceil(total / limit)
+        limit
       }
     });
   } catch (error) {

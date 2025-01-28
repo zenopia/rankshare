@@ -40,8 +40,8 @@ export async function getAuthorizedListForView(listId: string): Promise<MongoLis
     notFound();
   }
 
-  // Public lists can be viewed by anyone
-  if (list.privacy === 'public') {
+  // Public and unlisted lists can be viewed by anyone
+  if (list.privacy === 'public' || list.privacy === 'unlisted') {
     return list;
   }
 

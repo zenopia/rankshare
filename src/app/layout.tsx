@@ -1,19 +1,23 @@
-import { Providers } from './providers'
-import { Toaster } from "sonner"
-import './globals.css'
-import { metadata, viewport } from './metadata'
-import { GoogleTagManager } from '@/components/analytics/gtm'
+import { Inter } from "next/font/google"
+import { Toaster } from "@/components/ui/sonner"
+import { Providers } from "@/components/providers"
+import { GoogleTagManager } from "@/components/analytics/gtm"
+import { metadata, viewport } from "./metadata"
+import "./globals.css"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export { metadata, viewport }
-export const dynamic = 'force-dynamic';
+
+interface RootLayoutProps {
+  children: React.ReactNode;
+}
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
-  const gtmId = process.env.NEXT_PUBLIC_GTM_ID?.replace(/"/g, '');
-  const isGtmEnabled = process.env.NEXT_PUBLIC_GTM_ENABLED !== 'false';
+}: RootLayoutProps) {
+  const isGtmEnabled = process.env.NEXT_PUBLIC_GTM_ENABLED === "true"
+  const gtmId = process.env.NEXT_PUBLIC_GTM_ID
 
   return (
     <html 
@@ -22,22 +26,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {isGtmEnabled && (
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                window.dataLayer.push({
-                  'gtm.start': new Date().getTime(),
-                  event: 'gtm.js'
-                });
-              `,
-            }}
-          />
-        )}
         {isGtmEnabled && gtmId && <GoogleTagManager gtmId={gtmId} />}
       </head>
-      <body className="min-h-screen font-sans antialiased">
+      <body className={`min-h-screen font-sans antialiased ${inter.className}`}>
         <Providers>
           {children}
           <Toaster />

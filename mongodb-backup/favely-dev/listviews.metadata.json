@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"clerkId":{"$numberInt":"1"},"listId":{"$numberInt":"1"}},"name":"clerkId_1_listId_1","background":true,"unique":true}],"uuid":"31b583e913454a7290e725f7b7d76c74","collectionName":"listviews","type":"collection"}

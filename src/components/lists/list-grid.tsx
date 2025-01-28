@@ -1,178 +1,148 @@
 "use client";
 
-import { useState } from "react";
-import { ListSearchControls } from "@/components/lists/list-search-controls";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Lock, ListChecks, Eye, Pin, PenLine } from "lucide-react";
+import { PinButton } from "@/components/lists/pin-button";
+import { ListGridSkeleton } from "@/components/lists/list-card-skeleton";
+import { LoadingMore } from "@/components/ui/loading-indicator";
+import { ListFilters } from "@/components/lists/list-filters";
+import { ListSearch } from "@/components/lists/list-search";
 import { CategoryBadge } from "@/components/lists/category-badge";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { EnhancedList, ListCategory } from "@/types/list";
-import { LIST_CATEGORIES } from "@/types/list";
-import { formatDistanceToNow, differenceInMinutes } from "date-fns";
-import { cn } from "@/lib/utils";
+import { PrivacyBadge } from "@/components/lists/privacy-badge";
+import { ListStats } from "@/components/lists/list-stats";
+import { formatDateTime } from "@/lib/utils/date";
+import type { List } from "@/types/list";
 
 interface ListGridProps {
-  lists: EnhancedList[];
-  showPrivacyBadge?: boolean;
-  _isFollowing?: boolean;
-  lastViewedMap?: Record<string, Date>;
-  searchParams?: {
-    q?: string;
-    category?: string;
-    sort?: string;
-  };
+  lists: List[];
+  isLoading?: boolean;
+  isLoadingMore?: boolean;
+  hasMore?: boolean;
+  loadMoreRef?: (node?: Element | null) => void;
+  emptyMessage?: string;
+  showPinButton?: boolean;
+  showFilters?: boolean;
   showSearch?: boolean;
+  showPrivacy?: boolean;
+  showStats?: boolean;
+  initialIsPinned?: boolean;
+  onPinSuccess?: () => void;
+  getTimestamp?: (list: List) => string | undefined;
+  getTimestampPrefix?: (list: List) => string;
 }
 
-// Add this CSS keyframe animation at the top of the file
-const pulseAnimation = `
-  @keyframes pulse {
-    0% {
-      transform: scale(0.95);
-      opacity: 0.5;
-    }
-    50% {
-      transform: scale(1.05);
-      opacity: 0.8;
-    }
-    100% {
-      transform: scale(0.95);
-      opacity: 0.5;
-    }
-  }
-`;
-
-export function ListGrid({ 
-  lists, 
-  showPrivacyBadge = true, 
-  _isFollowing, 
-  lastViewedMap: initialViewedMap = {},
-  searchParams,
-  showSearch = false
+export function ListGrid({
+  lists,
+  isLoading = false,
+  isLoadingMore = false,
+  hasMore = false,
+  loadMoreRef,
+  emptyMessage = "No lists found",
+  showPinButton = true,
+  showFilters = false,
+  showSearch = false,
+  showPrivacy = true,
+  showStats = true,
+  initialIsPinned = false,
+  onPinSuccess,
+  getTimestamp = (list) => list.createdAt,
+  getTimestampPrefix = () => "Created",
 }: ListGridProps) {
-  const currentPath = usePathname();
-  const [viewedMap, setViewedMap] = useState<Record<string, Date>>(initialViewedMap);
+  const router = useRouter();
 
-  const category = searchParams?.category && LIST_CATEGORIES.includes(searchParams.category as ListCategory) 
-    ? searchParams.category as ListCategory 
-    : undefined;
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {showSearch && <ListSearch />}
+        {showFilters && <ListFilters />}
+        <ListGridSkeleton />
+      </div>
+    );
+  }
 
-  const handleListClick = (listId: string) => {
-    setViewedMap(prev => ({
-      ...prev,
-      [listId]: new Date()
-    }));
-  };
+  if (lists.length === 0) {
+    return (
+      <div className="space-y-6">
+        {showSearch && <ListSearch />}
+        {showFilters && <ListFilters />}
+        <Card className="flex h-[120px] items-center justify-center text-sm text-muted-foreground">
+          {emptyMessage}
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <>
-      {lists.length > 0 && <style>{pulseAnimation}</style>}
-      <div className="space-y-8">
-        <ListSearchControls 
-          defaultCategory={category}
-          defaultSort={searchParams?.sort}
-          showSearch={showSearch}
-        />
-
-        {lists.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No lists found
-          </div>
-        ) : (
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {lists.map((list) => (
-              <Link 
-                key={list.id} 
-                href={`/${list.owner.username}/lists/${list.id}?from=${encodeURIComponent(currentPath)}`}
-                onClick={() => handleListClick(list.id)}
-              >
-                <Card className="group relative overflow-hidden transition-colors hover:bg-accent">
-                  <div className="p-4 space-y-3">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {viewedMap[list.id] && list.editedAt && new Date(list.editedAt) > new Date(viewedMap[list.id]) && (
-                            <div className="flex-shrink-0">
-                              <div 
-                                className={cn(
-                                  "bg-primary rounded-full w-2 h-2",
-                                  "animate-[pulse_2s_ease-in-out_infinite]"
-                                )}
-                              />
-                            </div>
-                          )}
-                          <h3 className="font-semibold leading-none tracking-tight line-clamp-1">
-                            {list.title}
-                          </h3>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <CategoryBadge category={list.category} />
-                          {showPrivacyBadge && list.privacy === 'private' && (
-                            <Lock className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </div>
-                      </div>
-
-                      {list.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {list.description}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1">
-                          <Eye className="h-4 w-4" />
-                          <span>{list.stats.viewCount}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Pin className="h-4 w-4" />
-                          <span>{list.stats.pinCount}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 ml-auto">
-                        <ListChecks className="h-4 w-4" />
-                        <span>{list.items?.length || 0}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage 
-                            src={list.owner.imageUrl || undefined} 
-                            alt={list.owner.displayName || list.owner.username} 
-                          />
-                          <AvatarFallback>
-                            {(list.owner.displayName || list.owner.username || '?')[0]?.toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex items-center gap-1 text-sm">
-                          <span className="text-foreground font-medium">{list.owner.displayName || list.owner.username}</span>
-                          <span className="text-muted-foreground">@{list.owner.username}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        {differenceInMinutes(new Date(list.editedAt || ''), new Date(list.createdAt)) > 1 ? (
-                          <>
-                            <PenLine className="h-4 w-4" />
-                            <span>{formatDistanceToNow(new Date(list.editedAt || list.createdAt))} ago</span>
-                          </>
-                        ) : (
-                          <span>{formatDistanceToNow(new Date(list.createdAt))} ago</span>
-                        )}
-                      </div>
-                    </div>
+    <div className="space-y-6">
+      {showSearch && <ListSearch />}
+      {showFilters && <ListFilters />}
+      <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {lists.map((list) => (
+            <Card
+              key={list.id}
+              className="group relative flex cursor-pointer flex-col gap-2 p-4 transition-colors hover:bg-muted/50"
+              onClick={() => router.push(`/@${list.owner.username}/lists/${list.id}`)}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="line-clamp-1 flex-1 font-medium">
+                      {list.title}
+                    </h3>
+                    {showPrivacy && (
+                      <PrivacyBadge
+                        privacy={list.privacy}
+                        showText={false}
+                        className="h-5"
+                      />
+                    )}
                   </div>
-                </Card>
-              </Link>
-            ))}
+                  <p className="line-clamp-2 text-sm text-muted-foreground">
+                    {list.description || "No description"}
+                  </p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CategoryBadge category={list.category} />
+                  {showPinButton && (
+                    <PinButton
+                      listId={list.id}
+                      initialIsPinned={initialIsPinned}
+                      onSuccess={onPinSuccess}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-auto flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">
+                  By @{list.owner.username}
+                </span>
+                {showStats && (
+                  <ListStats
+                    viewCount={list.stats.viewCount}
+                    pinCount={list.stats.pinCount}
+                    itemCount={list.stats.itemCount}
+                  />
+                )}
+              </div>
+
+              <div className="text-xs text-muted-foreground">
+                {getTimestamp(list) &&
+                  `${getTimestampPrefix(list)} ${formatDateTime(
+                    getTimestamp(list)!
+                  )}`}
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {hasMore && (
+          <div ref={loadMoreRef}>
+            {isLoadingMore && <LoadingMore />}
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 } 

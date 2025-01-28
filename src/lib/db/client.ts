@@ -24,8 +24,8 @@ if (!cached) {
 }
 
 export async function connectToMongoDB() {
-  if (!process.env.MONGODB_URI_V2) {
-    throw new Error('Please define the MONGODB_URI_V2 environment variable inside .env.local');
+  if (!process.env.MONGODB_URI_V3) {
+    throw new Error('Please define the MONGODB_URI_V3 environment variable inside .env.local');
   }
 
   if (cached.conn) {
@@ -33,7 +33,7 @@ export async function connectToMongoDB() {
   }
 
   if (!cached.promise) {
-    const uri = process.env.MONGODB_URI_V2;
+    const uri = process.env.MONGODB_URI_V3;
     cached.promise = mongoose.createConnection(uri, opts).asPromise();
   }
 

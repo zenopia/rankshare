@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"clerkId":{"$numberInt":"1"}},"name":"clerkId_1","background":true,"unique":true}],"uuid":"ce0f087a3d3544cbb34d34fdb46d5c75","collectionName":"usercaches","type":"collection"}

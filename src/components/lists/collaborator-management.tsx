@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Globe, Lock } from "lucide-react";
+import { X, Globe, Lock, Link } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { CollaboratorCard } from "@/components/users/collaborator-card";
 import { UserCombobox } from "@/components/users/user-combobox";
 import { useAuth } from "@clerk/nextjs";
+import { ListPrivacy } from "@/types/list";
 
 interface Collaborator {
   userId: string;
@@ -30,9 +31,9 @@ interface FollowingResult {
 interface CollaboratorManagementProps {
   listId: string;
   isOwner: boolean;
-  privacy: 'public' | 'private';
+  privacy: ListPrivacy;
   onClose: () => void;
-  onPrivacyChange?: (privacy: 'public' | 'private') => void;
+  onPrivacyChange?: (privacy: ListPrivacy) => void;
   currentUserRole?: 'owner' | 'admin' | 'editor' | 'viewer';
 }
 
@@ -162,7 +163,8 @@ export function CollaboratorManagement({
   };
 
   const togglePrivacy = async () => {
-    const newPrivacy = privacy === "public" ? "private" : "public";
+    // Toggle between public and private only. Unlisted state is handled separately through share functionality.
+    const newPrivacy: ListPrivacy = privacy === "private" ? "public" : "private";
     setIsLoading(true);
     try {
       const response = await fetch(`/api/lists/${listId}`, {
@@ -348,28 +350,37 @@ export function CollaboratorManagement({
                     <div className="flex items-center gap-2">
                       {privacy === "public" ? (
                         <Globe className="h-4 w-4" />
-                      ) : (
+                      ) : privacy === "private" ? (
                         <Lock className="h-4 w-4" />
+                      ) : (
+                        <Link className="h-4 w-4" />
                       )}
                       <h3 className="font-medium">
-                        {privacy === "public" ? "Public" : "Private"} List
+                        {privacy === "public" ? "Public" : privacy === "private" ? "Private" : "Unlisted"} List
                       </h3>
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {privacy === "public"
                         ? "Anyone can view this list"
-                        : "Only collaborators can view this list"}
+                        : privacy === "private"
+                        ? "Only collaborators can view this list"
+                        : "Only people with the link can view this list"}
                     </p>
                   </div>
                   {(isOwner || collaborators.some(c => c.role === 'admin')) && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={togglePrivacy}
-                      disabled={isLoading}
-                    >
-                      Make {privacy === "public" ? "Private" : "Public"}
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={togglePrivacy}
+                        disabled={isLoading}
+                      >
+                        Make {privacy === "private" ? "Public" : "Private"}
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-right">
+                        Use the share button to make the list unlisted
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>

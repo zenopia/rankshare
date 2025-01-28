@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { EnhancedList, ListItem } from "@/types/list";
+import { EnhancedList, ListItem, ListPrivacy } from "@/types/list";
 import { CategoryBadge } from "@/components/lists/category-badge";
-import ListActionBar from "@/components/lists/list-action-bar";
-import { Eye, Pin, Copy, Lock, Pen, Plus } from "lucide-react";
+import { ListActions } from "@/components/lists/list-actions";
+import { Eye, Pin, Lock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { EditListFAB } from "@/components/lists/edit-list-fab";
 import { UserCard } from "@/components/users/user-card";
@@ -27,21 +27,18 @@ interface ListViewProps {
 
 export function ListView({ 
   list, 
-  isOwner, 
-  isCollaborator,
-  isPinned: initialIsPinned, 
+  isOwner,
+  isPinned,
   isFollowing,
+  isCollaborator,
   showCollaborators,
-  onCollaboratorsClick 
+  onCollaboratorsClick
 }: ListViewProps) {
-  const [isPinned, setIsPinned] = useState(initialIsPinned);
   const { isSignedIn } = useAuthGuard();
   const { user } = useUser();
   const userId = user?.id;
 
-  const handlePinChange = (newIsPinned: boolean) => {
-    setIsPinned(newIsPinned);
-  };
+  const showPrivacyIcon = list.privacy === "private" || list.privacy === "unlisted";
 
   // Get current user's role from collaborators array
   const currentUserRole: CollaboratorRole | undefined = isOwner ? 'owner' : userId ? list.collaborators?.find(c => 
@@ -57,13 +54,89 @@ export function ListView({
   ));
 
   return (
-    <div key="root" className="space-y-8">
-      <div key="user-section" className="user-section">
+    <div className="space-y-6">
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">{list.title}</h1>
+            {showPrivacyIcon && (
+              <Lock className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+          {list.description && (
+            <p className="text-muted-foreground">{list.description}</p>
+          )}
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <CategoryBadge category={list.category} />
+            <div className="flex items-center gap-1">
+              <Eye className="h-4 w-4" />
+              {list.stats.viewCount}
+            </div>
+            <div className="flex items-center gap-1">
+              <Pin className="h-4 w-4" />
+              {list.stats.pinCount}
+            </div>
+            <div>
+              Updated {formatDistanceToNow(new Date(list.updatedAt))} ago
+            </div>
+          </div>
+        </div>
+        <ListActions
+          list={list}
+          isOwner={isOwner}
+          isCollaborator={isCollaborator}
+        />
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Items</h2>
+          {isOwner && (
+            <EditListFAB
+              listId={list.id}
+              username={list.owner.username}
+            />
+          )}
+        </div>
+        <div className="space-y-4">
+          {list.items.map((item, index) => (
+            <div
+              key={item.id}
+              className="flex items-start gap-4 rounded-lg border p-4"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium">
+                {index + 1}
+              </div>
+              <div className="flex-1 space-y-1">
+                <h3 className="font-medium">{item.title}</h3>
+                {item.description && (
+                  <p className="text-sm text-muted-foreground">
+                    {item.description}
+                  </p>
+                )}
+                {item.url && (
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    {item.url}
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Created by</h2>
         <UserCard
           username={list.owner.username}
-          firstName={list.owner.displayName.split(' ')[0] || ''}
-          lastName={list.owner.displayName.split(' ').slice(1).join(' ') || ''}
-          imageUrl={list.owner.imageUrl || ''}
+          firstName={list.owner.displayName?.split(" ")[0]}
+          lastName={list.owner.displayName?.split(" ").slice(1).join(" ")}
+          imageUrl={list.owner.imageUrl || ""}
           isFollowing={isFollowing}
           hideFollow={isOwner}
         />
@@ -83,130 +156,6 @@ export function ListView({
               currentUserRole={currentUserRole}
             />
           </ErrorBoundaryWrapper>
-        </div>
-      )}
-
-      <div key="header-section" className="header-section space-y-4">
-        <div key="header-content" className="flex items-start justify-between gap-4">
-          <div key="title-description" className="space-y-1">
-            <h1 className="text-2xl font-bold">{list.title}</h1>
-            {list.description && (
-              <p className="text-muted-foreground">{list.description}</p>
-            )}
-          </div>
-          <div key="category-privacy" className="flex items-center gap-2">
-            <CategoryBadge category={list.category} />
-            {list.privacy === 'private' && (
-              <Lock className="h-4 w-4 text-muted-foreground" />
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="items-section space-y-4">
-        <h2 className="text-xl font-semibold">Items</h2>
-        {Array.isArray(list.items) && list.items.length > 0 ? (
-          <ul className="space-y-2">
-            {list.items.map((item: ListItem, index: number) => {
-              const itemKey = `item-${item.id}-${index}`;
-              return (
-                <li key={itemKey} className="flex items-stretch rounded-lg border bg-card">
-                  <div className="flex items-center justify-center min-w-[3rem] bg-muted rounded-l-lg">
-                    <span className="text-base font-medium text-muted-foreground">
-                      {index + 1}
-                    </span>
-                  </div>
-                  <div className="flex-1 p-4">
-                    <div className="font-medium">{item.title}</div>
-                    {item.comment && (
-                      <div className="mt-1 text-sm text-muted-foreground">{item.comment}</div>
-                    )}
-                    {Array.isArray(item.properties) && item.properties.length > 0 && (
-                      <ul className="mt-2 flex flex-wrap gap-2">
-                        {item.properties.map((prop: { id: string; type?: 'text' | 'link'; label: string; value: string; }) => {
-                          const propKey = `${itemKey}-prop-${prop.id}`;
-                          return (
-                            <li key={propKey} className="text-sm text-muted-foreground">
-                              {prop.type === 'link' ? (
-                                <a
-                                  key={`${propKey}-link`}
-                                  href={prop.value}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-primary hover:underline"
-                                >
-                                  {prop.value}
-                                </a>
-                              ) : (
-                                <span key={`${propKey}-value`}>{prop.value}</span>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <div>No items in this list</div>
-        )}
-      </div>
-
-      <div key="stats-section" className="stats-section space-y-4 border-t pt-4">
-        <div key="stats-content" className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-4">
-            <div key="views" className="flex items-center gap-1">
-              <Eye className="h-3 w-3" />
-              {list.stats.viewCount}
-            </div>
-            <div key="pins" className="flex items-center gap-1">
-              <Pin className="h-3 w-3" />
-              {list.stats.pinCount}
-            </div>
-            <div key="copies" className="flex items-center gap-1">
-              <Copy className="h-3 w-3" />
-              {list.stats.copyCount}
-            </div>
-          </div>
-          <div key="timestamps" className="flex flex-col gap-1 text-right">
-            {list.editedAt && 
-              Math.floor(new Date(list.editedAt).getTime() / 60000) > 
-              Math.floor(new Date(list.createdAt).getTime() / 60000) ? (
-              <>
-                <div className="flex items-center gap-1 justify-end">
-                  <Pen className="h-4 w-4" />
-                  <span>{formatDistanceToNow(new Date(list.editedAt), { addSuffix: true })}</span>
-                </div>
-                <div className="flex items-center gap-1 justify-end">
-                  <Plus className="h-4 w-4" />
-                  <span>{formatDistanceToNow(new Date(list.createdAt), { addSuffix: true })}</span>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center gap-1 justify-end">
-                <Plus className="h-4 w-4" />
-                <span>{formatDistanceToNow(new Date(list.createdAt), { addSuffix: true })}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <ListActionBar
-          listId={list.id}
-          isPinned={isPinned}
-          onPinChange={handlePinChange}
-        />
-      </div>
-
-      {canEdit && (
-        <div key="fab-section" className="fab-section">
-          <EditListFAB 
-            listId={list.id} 
-            username={list.owner.username}
-          />
         </div>
       )}
     </div>

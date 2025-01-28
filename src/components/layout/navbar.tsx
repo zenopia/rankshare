@@ -4,6 +4,8 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { UserNav } from "@/components/layout/user-nav";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import { InvitationNotifications } from "@/components/notifications/invitation-notifications";
+import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 
 interface NavbarProps {
   title?: {
@@ -48,28 +50,21 @@ export function Navbar({ title }: NavbarProps) {
                   {title.text}
                 </h1>
                 {title.subtext && (
-                  <p className="text-sm text-muted-foreground leading-tight">
+                  <p className="text-sm text-muted-foreground">
                     {title.subtext}
                   </p>
                 )}
               </div>
-            ) : getPageTitle() ? (
-              <h1 className="text-xl font-semibold">
-                {getPageTitle()}
-              </h1>
             ) : (
-              <Image
-                src="/Favely-logo.svg"
-                alt="Favely"
-                className="h-[30px] w-[120px]"
-                width={120}
-                height={30}
-                priority
-              />
+              <div className="text-xl font-semibold">
+                {getPageTitle()}
+              </div>
             )}
           </div>
 
-          <div className="flex items-center">
+          <div className="flex items-center gap-4">
+            <NotificationDropdown />
+            <InvitationNotifications />
             <UserNav />
           </div>
         </div>
