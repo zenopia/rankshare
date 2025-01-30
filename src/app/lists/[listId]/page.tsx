@@ -203,22 +203,36 @@ export default async function ListPage({ params, searchParams }: PageProps) {
       }
     };
 
+    // If not authenticated, return early with minimal props
+    if (!userId) {
+      return (
+        <ListPageContent
+          list={enhancedList}
+          isOwner={false}
+          isPinned={false}
+          isFollowing={false}
+          isCollaborator={false}
+          returnPath={searchParams.from || '/lists'}
+        />
+      );
+    }
+
     // Get follow status if logged in
-    const followStatus = userId ? await FollowModel.findOne({
+    const followStatus = await FollowModel.findOne({
       followerId: userId,
       followingId: owner.id
-    }).lean() : null;
+    }).lean();
 
     // Check if user is a collaborator
-    const isCollaborator = userId ? enhancedList.collaborators?.some(
+    const isCollaborator = enhancedList.collaborators?.some(
       c => c.clerkId === userId && c.status === 'accepted'
-    ) ?? false : false;
+    ) ?? false;
 
     // Check if list is pinned by current user
-    const pinDoc = userId ? await PinModel.findOne({
+    const pinDoc = await PinModel.findOne({
       listId: params.listId,
       clerkId: userId
-    }).lean() : null;
+    }).lean();
 
     // Get return path from query params or default to lists
     const returnPath = searchParams.from || '/lists';
@@ -226,7 +240,7 @@ export default async function ListPage({ params, searchParams }: PageProps) {
     return (
       <ListPageContent
         list={enhancedList}
-        isOwner={!!userId && userId === owner.id}
+        isOwner={userId === owner.id}
         isPinned={!!pinDoc}
         isFollowing={!!followStatus}
         isCollaborator={isCollaborator}
