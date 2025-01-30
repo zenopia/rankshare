@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useUser } from "@clerk/nextjs";
 import { UserProfileBase } from "./user-profile-base";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
@@ -34,76 +34,50 @@ function UserCardSkeleton() {
 }
 
 export function UserCard({ username, displayName, imageUrl, isFollowing: initialIsFollowing = false, hideFollow = false }: UserCardProps) {
-  const { isSignedIn, getToken, isLoaded, isReady } = useAuthGuard();
+  const { user, isLoaded } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
-  const [shouldShowSkeleton, setShouldShowSkeleton] = useState(false);
   const pathname = usePathname();
   const usernameWithAt = username.startsWith('@') ? username : `@${username}`;
 
-  // Only show skeleton after a delay if still loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!isLoaded || !isReady) {
-        setShouldShowSkeleton(true);
-      }
-    }, 200); // Small delay to prevent flash
-
-    return () => clearTimeout(timer);
-  }, [isLoaded, isReady]);
-
-  // Check follow status when component mounts and auth is ready
+  // Check follow status when component mounts and user is signed in
   useEffect(() => {
     const checkFollowStatus = async () => {
-      if (!isSignedIn || !isReady) {
+      if (!user) {
         setIsFollowing(false);
         return;
       }
       
       try {
-        const token = await getToken();
-        const response = await fetch(`/api/users/${username}/follow/status`, {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-        
+        const response = await fetch(`/api/users/${username}/follow/status`);
         if (response.ok) {
           const data = await response.json();
           setIsFollowing(data.isFollowing);
         }
       } catch (error) {
         console.error("Error checking follow status:", error);
-        // Fall back to prop value if API call fails
-        setIsFollowing(initialIsFollowing);
+        setIsFollowing(false);
       }
     };
 
     checkFollowStatus();
-  }, [username, isSignedIn, isReady, getToken, initialIsFollowing]);
+  }, [username, user]);
 
   const handleFollowClick = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation when clicking the button
     e.stopPropagation(); // Stop event from bubbling up
 
-    if (!isSignedIn) {
+    if (!user) {
       toast.error("Please sign in to follow users");
-      return;
-    }
-
-    if (!isReady) {
-      toast.error("Please wait while we complete authentication");
       return;
     }
 
     setIsLoading(true);
     try {
-      const token = await getToken();
       const response = await fetch(`/api/users/${username}/follow`, {
         method: isFollowing ? "DELETE" : "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Content-Type": "application/json"
         }
       });
 
@@ -121,13 +95,8 @@ export function UserCard({ username, displayName, imageUrl, isFollowing: initial
     }
   };
 
-  // Show skeleton only after delay and if still loading
-  if (shouldShowSkeleton && (!isLoaded || !isReady)) {
-    return <UserCardSkeleton />;
-  }
-
   // Show nothing during initial load to prevent flash
-  if (!isLoaded || !isReady) {
+  if (!isLoaded) {
     return null;
   }
 
@@ -147,13 +116,13 @@ export function UserCard({ username, displayName, imageUrl, isFollowing: initial
             linkToProfile={false}
           />
         </div>
-        {!hideFollow && isSignedIn && (
+        {!hideFollow && user && (
           <Button
             variant={isFollowing ? "outline" : "default"}
             size="sm"
             className="flex-shrink-0"
             onClick={handleFollowClick}
-            disabled={isLoading || !isReady}
+            disabled={isLoading}
           >
             {isLoading ? 'Loading...' : (isFollowing ? (
               <>
