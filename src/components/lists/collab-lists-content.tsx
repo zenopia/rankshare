@@ -4,12 +4,20 @@ import { ListGrid } from "@/components/lists/list-grid";
 import { ListTabs } from "@/components/layout/nav/list-tabs";
 import { CreateListFAB } from "@/components/layout/FABs/create-list-fab";
 import type { EnhancedList } from "@/types/list";
+import { useSearchParams } from "next/navigation";
 
 interface CollabListsContentProps {
   lists: EnhancedList[];
 }
 
 export function CollabListsContent({ lists }: CollabListsContentProps) {
+  const searchParams = useSearchParams();
+  const params = {
+    category: searchParams.get('category') || undefined,
+    sort: searchParams.get('sort') || undefined,
+    q: searchParams.get('q') || undefined
+  };
+
   return (
     <div className="relative">
       <ListTabs />
@@ -18,6 +26,8 @@ export function CollabListsContent({ lists }: CollabListsContentProps) {
           <ListGrid 
             lists={lists} 
             showPrivacyBadge
+            searchParams={params}
+            showSearch
           />
         </div>
       </div>

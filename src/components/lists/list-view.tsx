@@ -10,7 +10,6 @@ import { EditListFAB } from "@/components/layout/FABs/edit-list-fab";
 import { UserCard } from "@/components/users/user-card";
 import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
 import { CollaboratorManagement } from "@/components/lists/collaborator-management";
-import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { useUser } from "@clerk/nextjs";
 
 type CollaboratorRole = 'owner' | 'admin' | 'editor' | 'viewer';
@@ -35,7 +34,6 @@ export function ListView({
   onCollaboratorsClick 
 }: ListViewProps) {
   const [isPinned, setIsPinned] = useState(initialIsPinned);
-  const { isSignedIn } = useAuthGuard();
   const { user } = useUser();
   const userId = user?.id;
 

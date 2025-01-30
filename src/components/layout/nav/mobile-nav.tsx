@@ -9,7 +9,6 @@ import {
   ListChecks,
   Users2,
   UserPlus,
-  Users,
   MessageSquare,
   Info,
   Pin,
@@ -85,17 +84,6 @@ export function MobileNav() {
 
   const handleClose = () => setOpen(false);
 
-  const peopleItems: NavItem[] = userId && user?.username ? [
-    {
-      title: "People",
-      href: `/profile/${user.username}/following`,
-      public: false,
-      icon: Users,
-      description: "View people",
-      id: "people"
-    }
-  ] : [];
-
   const followingItems: NavItem[] = userId && user?.username ? [
     {
       title: "Following",
@@ -103,7 +91,6 @@ export function MobileNav() {
       public: false,
       icon: Users2,
       description: "Users you follow",
-      indent: true,
       id: "following"
     },
     {
@@ -111,8 +98,7 @@ export function MobileNav() {
       href: `/profile/${user.username}/followers`,
       public: false,
       icon: UserPlus,
-      description: "Users following you",
-      indent: true
+      description: "Users following you"
     },
     {
       title: "Create List",
@@ -201,7 +187,7 @@ export function MobileNav() {
               {mobileOnlyNavItems.map((item, index) =>
                 ((item.public || isSignedIn) || (!isSignedIn && item.showWhenSignedOut)) && renderNavLink(item, index)
               )}
-              {isSignedIn && [...navItems, ...peopleItems, ...followingItems].map((item, index) => renderNavLink(item, index))}
+              {isSignedIn && [...navItems, ...followingItems].map((item, index) => renderNavLink(item, index))}
               
               {!isSignedIn && (
                 <>

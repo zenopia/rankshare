@@ -138,7 +138,7 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
   return (
     <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
       <Link 
-        href={`/${usernameWithAt}?from=${pathname.startsWith('/') ? pathname.slice(1) : pathname}`}
+        href={`/profile/${usernameWithAt}?from=${pathname.startsWith('/') ? pathname.slice(1) : pathname}`}
         className="flex items-center gap-3 min-w-0"
       >
         <UserProfileBase

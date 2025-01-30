@@ -17,7 +17,8 @@ export function ListForm({ mode, defaultValues, returnPath }: ListFormProps) {
     description: defaultValues.description,
     category: defaultValues.category,
     privacy: defaultValues.privacy,
-    items: defaultValues.items || []
+    items: defaultValues.items || [],
+    owner: defaultValues.owner
   };
 
   return (

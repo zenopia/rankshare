@@ -190,8 +190,8 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
         router.push(returnPath);
       } else {
         const listPath = mode === 'create' 
-          ? `/${responseData.username}/lists/${responseData.id}`
-          : `/${defaultValues?.owner.username}/lists/${defaultValues?.id}`;
+          ? `/lists/${responseData.id}`
+          : `/lists/${defaultValues?.id}`;
         router.push(listPath);
       }
       router.refresh();

@@ -34,7 +34,7 @@ export default async function EditListPage({ params }: EditListPageProps) {
   return (
     <SubLayout title="Edit List" hideBottomNav>
       <ErrorBoundaryWrapper>
-        <ListFormContent mode="edit" defaultValues={list} />
+        <ListFormContent mode="edit" defaultValues={{ ...list, items: list.items || [] }} />
       </ErrorBoundaryWrapper>
     </SubLayout>
   );

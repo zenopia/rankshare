@@ -9,7 +9,6 @@ import {
   ListChecks,
   Users2,
   UserPlus,
-  Users,
   PlusCircle,
   ListIcon,
   MessageSquare,
@@ -83,17 +82,6 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
   const { userId } = useAuth();
   const { user } = useUser();
 
-  const peopleItems: NavItem[] = userId && user?.username ? [
-    {
-      title: "People",
-      href: `/profile/${user.username}/following`,
-      public: false,
-      icon: Users,
-      description: "View people",
-      id: "people"
-    }
-  ] : [];
-
   const followingItems: NavItem[] = userId && user?.username ? [
     {
       title: "Following",
@@ -101,7 +89,6 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
       public: false,
       icon: Users2,
       description: "Users you follow",
-      indent: true,
       id: "following"
     },
     {
@@ -109,8 +96,7 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
       href: `/profile/${user.username}/followers`,
       public: false,
       icon: UserPlus,
-      description: "Users following you",
-      indent: true
+      description: "Users following you"
     },
     {
       title: "Create List",
@@ -156,7 +142,7 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
         </div>
 
         <div className="flex-1 space-y-1 p-2 overflow-y-auto min-h-0">
-          {[...menuItems, ...peopleItems, ...followingItems]
+          {[...menuItems, ...followingItems]
             .filter(item => item.title !== 'Feedback' && item.title !== 'About')
             .map((item, index) => {
               const isActive = pathname === item.href;
