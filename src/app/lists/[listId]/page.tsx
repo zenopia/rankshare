@@ -79,8 +79,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ListPage({ params, searchParams }: PageProps) {
   try {
-    const { userId } = await auth();
-
     // Connect to MongoDB
     await connectToMongoDB();
     const ListModel = await getListModel();
@@ -112,8 +110,12 @@ export default async function ListPage({ params, searchParams }: PageProps) {
       notFound();
     }
 
-    // Check access based on privacy and authentication
+    // Get auth only if needed (private list or tracking features)
+    let userId: string | null = null;
     if (list.privacy === 'private') {
+      const { userId: authUserId } = await auth();
+      userId = authUserId;
+      
       if (!userId) {
         redirect('/sign-in');
       }
@@ -124,6 +126,12 @@ export default async function ListPage({ params, searchParams }: PageProps) {
       if (!isOwner && !isCollaborator) {
         notFound();
       }
+    }
+
+    // If list is public but user is logged in, get their ID for additional features
+    if (!userId && list.privacy === 'public') {
+      const { userId: authUserId } = await auth();
+      userId = authUserId;
     }
 
     // Track list view if user is logged in and has access
