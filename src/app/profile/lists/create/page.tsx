@@ -1,26 +1,30 @@
-import { auth } from "@clerk/nextjs/server";
-import { ensureUserExists } from "@/lib/actions/user";
-import { SubLayout } from "@/components/layout/sub-layout";
+import { redirect } from "next/navigation";
+import { AuthService } from "@/lib/services/auth.service";
 import { ListFormContent } from "@/components/lists/list-form-content";
-import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
+import { ProtectedPageWrapper } from "@/components/auth/protected-page-wrapper";
 
-interface PageProps {
-  params: {
-    username: string;
-  };
-}
-
-export default async function CreateListPage({ params: _params }: PageProps) {
-  const { userId } = await auth();
-  if (!userId) return null;
-
-  await ensureUserExists();
+export default async function CreateListPage() {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    redirect('/sign-in');
+  }
 
   return (
-    <SubLayout title="Create New List" hideBottomNav>
-      <ErrorBoundaryWrapper>
-        <ListFormContent mode="create" />
-      </ErrorBoundaryWrapper>
-    </SubLayout>
+    <ProtectedPageWrapper
+      initialUser={{
+        id: user.id,
+        username: user.username || null,
+        fullName: user.fullName || null,
+        imageUrl: user.imageUrl || "",
+      }}
+      layoutType="main"
+      title="Create List"
+    >
+      <div className="px-4 md:px-6 lg:px-8 py-8">
+        <div className="max-w-3xl mx-auto">
+          <ListFormContent mode="create" />
+        </div>
+      </div>
+    </ProtectedPageWrapper>
   );
 } 

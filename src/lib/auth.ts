@@ -1,15 +1,15 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { AuthService } from "@/lib/services/auth.service";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
 
 export async function checkAuth() {
-  const { userId } = auth();
-  if (!userId) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
     redirect("/sign-in");
   }
-  return userId;
+  return user.id;
 }
 
 export async function checkProfile(returnUrl?: string) {
@@ -18,8 +18,8 @@ export async function checkProfile(returnUrl?: string) {
     return;
   }
 
-  const { userId } = auth();
-  if (!userId) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
     redirect("/sign-in");
   }
 
@@ -27,15 +27,15 @@ export async function checkProfile(returnUrl?: string) {
   const UserModel = await getUserModel();
   const UserProfileModel = await getUserProfileModel();
 
-  const user = await UserModel.findOne({ clerkId: userId });
-  if (!user) {
+  const mongoUser = await UserModel.findOne({ clerkId: user.id });
+  if (!mongoUser) {
     redirect("/sign-in");
   }
 
-  const profile = await UserProfileModel.findOne({ userId: user._id });
+  const profile = await UserProfileModel.findOne({ userId: mongoUser._id });
   if (!profile?.profileComplete) {
     redirect(`/profile${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`);
   }
 
-  return { user, profile };
+  return { user: mongoUser, profile };
 } 

@@ -2,8 +2,17 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getEnhancedLists } from "@/lib/actions/lists";
 import { MyListsLayout } from "@/components/lists/my-lists-layout";
+import { ListCategory } from "@/types/list";
 
-export default async function CollaborativeListsPage() {
+interface PageProps {
+  searchParams: {
+    q?: string;
+    category?: ListCategory;
+    sort?: string;
+  };
+}
+
+export default async function CollaborativeListsPage({ searchParams }: PageProps) {
   const { userId } = auth();
 
   if (!userId) {
@@ -11,7 +20,7 @@ export default async function CollaborativeListsPage() {
   }
 
   try {
-    const [user, { lists }] = await Promise.all([
+    const [user, { lists: unsortedLists }] = await Promise.all([
       clerkClient.users.getUser(userId),
       getEnhancedLists(
         { 
@@ -22,9 +31,23 @@ export default async function CollaborativeListsPage() {
       )
     ]);
     
+    // Apply sorting
+    const sortedLists = [...unsortedLists].sort((a, b) => {
+      switch (searchParams.sort) {
+        case 'views':
+          return (b.stats.viewCount || 0) - (a.stats.viewCount || 0);
+        case 'pins':
+          return (b.stats.pinCount || 0) - (a.stats.pinCount || 0);
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        default: // newest
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
+    
     return (
       <MyListsLayout 
-        lists={lists}
+        lists={sortedLists}
         initialUser={{
           id: user.id,
           username: user.username,

@@ -13,7 +13,7 @@ export function CreateListFAB() {
 
   const handleClick = () => {
     if (!isSignedIn) {
-      const returnUrl = encodeURIComponent('/lists/create');
+      const returnUrl = encodeURIComponent('/profile/lists/create');
       router.push(`/sign-in?returnUrl=${returnUrl}`);
       return;
     }

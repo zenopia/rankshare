@@ -1,6 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/db/mongodb";
+import { AuthService } from "@/lib/services/auth.service";
+import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { getPinModel } from "@/lib/db/models-v2/pin";
 import { getUserModel } from "@/lib/db/models-v2/user";
@@ -9,124 +9,104 @@ export async function POST(
   request: Request,
   { params }: { params: { listId: string } }
 ) {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
 
-    await connectToDatabase();
+  try {
+    await connectToMongoDB();
     const ListModel = await getListModel();
     const PinModel = await getPinModel();
     const UserModel = await getUserModel();
 
-    // Check if list exists
-    const list = await ListModel.findById(params.listId);
+    // Find the list
+    const list = await ListModel.findById(params.listId).lean();
     if (!list) {
-      return NextResponse.json(
-        { error: "List not found" },
-        { status: 404 }
-      );
+      return new NextResponse("List not found", { status: 404 });
     }
 
-    // Check if already pinned
+    // Get the owner's username
+    const owner = await UserModel.findOne({ clerkId: list.owner.clerkId }).lean();
+    if (!owner) {
+      return new NextResponse("List owner not found", { status: 404 });
+    }
+
+    // Check if the list is public or if the user has access
+    const hasAccess =
+      list.privacy === "public" ||
+      list.owner.clerkId === user.id ||
+      list.collaborators?.some(
+        (c) => c.clerkId === user.id && c.status === "accepted"
+      );
+
+    if (!hasAccess) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    // Check if the pin already exists
     const existingPin = await PinModel.findOne({
-      clerkId: userId,
-      listId: list._id
+      listId: list._id,
+      clerkId: user.id
     });
 
     if (existingPin) {
-      return NextResponse.json(
-        { error: "List already pinned" },
-        { status: 400 }
-      );
+      // If pin exists, remove it and decrement pin count
+      await Promise.all([
+        PinModel.findByIdAndDelete(existingPin._id),
+        ListModel.findByIdAndUpdate(list._id, {
+          $inc: { "stats.pinCount": -1 }
+        })
+      ]);
+
+      return NextResponse.json({ pinned: false });
+    } else {
+      // If pin doesn't exist, create it and increment pin count
+      await Promise.all([
+        PinModel.create({
+          listId: list._id,
+          clerkId: user.id,
+          listInfo: {
+            title: list.title,
+            category: list.category,
+            ownerUsername: owner.username
+          },
+          lastViewedAt: new Date()
+        }),
+        ListModel.findByIdAndUpdate(list._id, {
+          $inc: { "stats.pinCount": 1 }
+        })
+      ]);
+
+      return NextResponse.json({ pinned: true });
     }
-
-    // Get owner's username
-    const owner = await UserModel.findOne({ clerkId: list.owner.clerkId });
-    if (!owner) {
-      return NextResponse.json(
-        { error: "List owner not found" },
-        { status: 404 }
-      );
-    }
-
-    // Create pin
-    await PinModel.create({
-      clerkId: userId,
-      listId: list._id,
-      listInfo: {
-        title: list.title,
-        category: list.category,
-        ownerUsername: owner.username
-      },
-      lastViewedAt: new Date()
-    });
-
-    // Pin count is automatically incremented by the pre-save hook
-    return NextResponse.json({ message: "List pinned successfully" });
   } catch (error) {
-    console.error("Failed to pin list:", error);
-    return NextResponse.json(
-      { error: "Failed to pin list" },
-      { status: 500 }
-    );
+    console.error("Error toggling pin:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
 
-export async function DELETE(
+export async function GET(
   request: Request,
   { params }: { params: { listId: string } }
 ) {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
 
-    await connectToDatabase();
-    const ListModel = await getListModel();
+  try {
+    await connectToMongoDB();
     const PinModel = await getPinModel();
 
-    // Check if list exists
-    const list = await ListModel.findById(params.listId);
-    if (!list) {
-      return NextResponse.json(
-        { error: "List not found" },
-        { status: 404 }
-      );
-    }
-
-    // Remove pin
-    const result = await PinModel.deleteOne({
-      clerkId: userId,
-      listId: list._id
+    const pin = await PinModel.findOne({
+      listId: params.listId,
+      clerkId: user.id
     });
 
-    if (result.deletedCount === 0) {
-      return NextResponse.json(
-        { error: "Pin not found" },
-        { status: 404 }
-      );
-    }
-
-    // Decrement pin count
-    await ListModel.findByIdAndUpdate(params.listId, {
-      $inc: { 'stats.pinCount': -1 }
-    });
-
-    return NextResponse.json({ message: "List unpinned successfully" });
+    return NextResponse.json({ pinned: !!pin });
   } catch (error) {
-    console.error("Failed to unpin list:", error);
-    return NextResponse.json(
-      { error: "Failed to unpin list" },
-      { status: 500 }
-    );
+    console.error("Error checking pin status:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 } 

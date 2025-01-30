@@ -1,48 +1,39 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { AuthService } from "@/lib/services/auth.service";
 import { connectToMongoDB } from "@/lib/db/client";
-import { getListViewModel } from "@/lib/db/models-v2/list-view";
-import mongoose from "mongoose";
+import { getPinModel } from "@/lib/db/models-v2/pin";
 
-export async function POST(request: Request) {
+export async function GET(request: Request) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
   try {
-    const { userId } = auth();
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const { searchParams } = new URL(request.url);
+    const listIds = searchParams.get("listIds")?.split(",") || [];
 
-    const { listIds } = await request.json();
-    if (!Array.isArray(listIds)) {
-      return NextResponse.json(
-        { error: "Invalid request body" },
-        { status: 400 }
-      );
+    if (listIds.length === 0) {
+      return NextResponse.json({ pins: {} });
     }
 
     await connectToMongoDB();
-    const ListViewModel = await getListViewModel();
+    const PinModel = await getPinModel();
 
-    // Get all list views for the user
-    const listViews = await ListViewModel.find({
-      clerkId: userId,
-      listId: { $in: listIds.map(id => new mongoose.Types.ObjectId(id)) }
+    const pins = await PinModel.find({
+      clerkId: user.id,
+      listId: { $in: listIds }
     }).lean();
 
-    // Create a map of listId to lastViewedAt
-    const lastViewedMap = listViews.reduce((acc, view) => {
-      acc[view.listId.toString()] = view.lastViewedAt;
+    // Convert to a map of listId -> pin
+    const pinMap = pins.reduce((acc, pin) => {
+      acc[pin.listId.toString()] = pin;
       return acc;
-    }, {} as Record<string, Date>);
+    }, {} as Record<string, any>);
 
-    return NextResponse.json(lastViewedMap);
+    return NextResponse.json({ pins: pinMap });
   } catch (error) {
-    console.error("Failed to fetch list view data:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch list view data" },
-      { status: 500 }
-    );
+    console.error("Error fetching pins:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 } 

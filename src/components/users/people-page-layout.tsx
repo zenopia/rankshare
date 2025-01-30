@@ -1,6 +1,6 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/auth.context";
 import type { EnhancedUser } from "@/lib/actions/users";
 import { PeopleTabs } from "@/components/users/people-tabs";
 import { SearchInput } from "@/components/search/search-input";
@@ -27,7 +27,7 @@ export function PeoplePageLayout({
   users,
   searchQuery
 }: PeoplePageLayoutProps) {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded } = useAuth();
   const [isOwnProfile, setIsOwnProfile] = useState<boolean | null>(null);
 
   useEffect(() => {

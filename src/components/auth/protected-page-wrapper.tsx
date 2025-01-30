@@ -1,7 +1,7 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/auth.context";
 import { MainLayout } from "@/components/layout/main-layout";
 import { SubLayout } from "@/components/layout/sub-layout";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,7 +37,7 @@ export function ProtectedPageWrapper({
   layoutType = "main",
   title
 }: ProtectedPageWrapperProps) {
-  const { isLoaded } = useUser();
+  const { isLoaded } = useAuth();
   const [shouldShowSkeleton, setShouldShowSkeleton] = useState(false);
 
   // Only show skeleton after a delay if still loading

@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/auth.context";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -8,12 +8,7 @@ interface UseAuthGuardProps {
 }
 
 export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed = false }: UseAuthGuardProps = {}) {
-  const { 
-    isLoaded, 
-    isSignedIn, 
-    getToken,
-    sessionId 
-  } = useAuth();
+  const { isLoaded, isSignedIn, getToken, user } = useAuth();
   const [isReady, setIsReady] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -35,13 +30,13 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
     }
 
     // Handle sign-out
-    if (isLoaded && !isSignedIn && !isAuthPage && sessionId === null) {
+    if (isLoaded && !isSignedIn && !isAuthPage && !user) {
       router.push('/');
       return;
     }
 
     // Reset ready state when session changes
-    if (!sessionId) {
+    if (!user) {
       setIsReady(false);
       return;
     }
@@ -64,8 +59,8 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
           return;
         }
 
-        // Only set ready if we have a valid token and session
-        if (token && sessionId) {
+        // Only set ready if we have a valid token
+        if (token) {
           setIsReady(true);
         }
       } catch (error) {
@@ -78,7 +73,7 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
     };
 
     checkAuth();
-  }, [isLoaded, isSignedIn, sessionId, isProtected, redirectIfAuthed, pathname, router, getToken, isAuthPage]);
+  }, [isLoaded, isSignedIn, user, isProtected, redirectIfAuthed, pathname, router, getToken, isAuthPage]);
 
   return {
     isReady: isAuthPage || (isLoaded && isReady),

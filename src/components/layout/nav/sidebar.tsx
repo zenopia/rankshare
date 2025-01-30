@@ -16,7 +16,6 @@ import {
   Pin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SidebarProfile } from "@/components/layout/sidebar-profile";
 import type { NavItem } from "@/types/nav";
 import { useAuth, useUser } from "@clerk/nextjs";
 
@@ -136,10 +135,6 @@ export function Sidebar({ className, isMobile = false }: SidebarProps) {
             </Button>
           </div>
         )}
-
-        <div className="p-4 pb-6 border-b shrink-0">
-          <SidebarProfile collapsed={collapsed} />
-        </div>
 
         <div className="flex-1 space-y-1 p-2 overflow-y-auto min-h-0">
           {[...menuItems, ...followingItems]

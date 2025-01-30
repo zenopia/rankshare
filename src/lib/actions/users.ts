@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { AuthService } from "@/lib/services/auth.service";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
@@ -17,7 +17,7 @@ export interface EnhancedUser {
 }
 
 export async function getEnhancedUsers(filter: any = {}, options: { sort?: any } = {}): Promise<EnhancedUser[]> {
-  const { userId } = auth();
+  const user = await AuthService.getCurrentUser();
   
   await connectToMongoDB();
   
@@ -54,9 +54,9 @@ export async function getEnhancedUsers(filter: any = {}, options: { sort?: any }
   
   // If authenticated, get follow data
   let followMap: Record<string, boolean> = {};
-  if (userId) {
+  if (user) {
     const follows = await FollowModel.find({
-      followerId: userId,
+      followerId: user.id,
       followingId: { $in: users.map(user => user.clerkId) },
       status: 'accepted'
     }).lean();

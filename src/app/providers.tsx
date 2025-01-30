@@ -1,9 +1,8 @@
 'use client';
 
-import { ThemeProvider } from "next-themes";
-import { SWRConfig } from "swr";
-import { ClerkProvider } from '@clerk/nextjs';
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { ClerkProvider } from "@clerk/nextjs";
+import { AuthProvider } from "@/contexts/auth.context";
+import { Toaster } from "sonner";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
@@ -18,19 +17,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
           footer: "hidden",
         }
       }}
-      navigate={(to) => window.location.href = to}
     >
-      <SWRConfig 
-        value={{
-          fetcher: (url: string) => fetch(url).then(res => res.json())
-        }}
-      >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <TooltipProvider>
-            {children}
-          </TooltipProvider>
-        </ThemeProvider>
-      </SWRConfig>
+      <AuthProvider>
+        {children}
+        <Toaster />
+      </AuthProvider>
     </ClerkProvider>
   );
 } 

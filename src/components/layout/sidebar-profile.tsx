@@ -1,6 +1,6 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/auth.context";
 import { UserProfileBase } from "@/components/users/user-profile-base";
 
 interface SidebarProfileProps {
@@ -9,7 +9,7 @@ interface SidebarProfileProps {
 }
 
 export function SidebarProfile({ collapsed, onClick }: SidebarProfileProps) {
-  const { user } = useUser();
+  const { user } = useAuth();
 
   if (!user) return null;
 

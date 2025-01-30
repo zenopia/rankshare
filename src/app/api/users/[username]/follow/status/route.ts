@@ -1,51 +1,38 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { clerkClient } from "@clerk/clerk-sdk-node";
+import { AuthService } from "@/lib/services/auth.service";
+import { connectToMongoDB } from "@/lib/db/client";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 
 export async function GET(
-  req: Request,
+  request: Request,
   { params }: { params: { username: string } }
 ) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
   try {
-    const { userId: followerId } = auth();
-    if (!followerId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { username } = params;
+
+    // Get the target user's Clerk ID
+    const targetUser = await AuthService.getUserByUsername(username);
+    if (!targetUser) {
+      return new NextResponse("User not found", { status: 404 });
     }
 
-    // Remove @ if present and decode the username
-    const username = decodeURIComponent(params.username).replace(/^@/, '');
-
-    // Get user from Clerk first
-    const users = await clerkClient.users.getUserList({
-      username: [username]
-    });
-    const userToCheck = users[0];
-
-    if (!userToCheck) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
-
+    await connectToMongoDB();
     const FollowModel = await getFollowModel();
 
-    // Check if following
-    const existingFollow = await FollowModel.findOne({
-      followerId,
-      followingId: userToCheck.id,
-      status: 'accepted'
-    });
+    // Check if the current user is following the target user
+    const follow = await FollowModel.findOne({
+      followerId: user.id,
+      followingId: targetUser.id
+    }).lean();
 
-    return NextResponse.json({
-      isFollowing: !!existingFollow
-    });
+    return NextResponse.json({ isFollowing: !!follow });
   } catch (error) {
-    console.error("[FOLLOW_STATUS_GET]", error);
-    return NextResponse.json(
-      { error: "Failed to check follow status" },
-      { status: 500 }
-    );
+    console.error("Error checking follow status:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 } 

@@ -61,6 +61,11 @@ export default authMiddleware({
     "/profile/:username/following",
     "/profile/:username/followers",
     "/profile/:username",
+    // Add public pages
+    "/about",
+    "/about/(.*)",
+    "/feedback",
+    "/feedback/(.*)"
   ],
   debug: false
 });

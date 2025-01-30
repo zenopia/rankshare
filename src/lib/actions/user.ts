@@ -1,11 +1,10 @@
 "use server"
 
-import { auth } from "@clerk/nextjs/server";
+import { AuthService } from "@/lib/services/auth.service";
 import { connectToDatabase } from "@/lib/db/mongodb";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { MongoUserDocument } from "@/types/mongo";
-import { clerkClient } from "@clerk/clerk-sdk-node";
 
 export async function getUser(clerkId: string): Promise<MongoUserDocument | null> {
   await connectToDatabase();
@@ -26,13 +25,13 @@ export async function getFollowingCount(clerkId: string): Promise<number> {
 }
 
 export async function getFollowStatus(targetUserId: string): Promise<boolean> {
-  const { userId } = auth();
-  if (!userId) return false;
+  const user = await AuthService.getCurrentUser();
+  if (!user) return false;
 
   await connectToDatabase();
   const FollowModel = await getFollowModel();
   const follow = await FollowModel.findOne({
-    followerId: userId,
+    followerId: user.id,
     followingId: targetUserId,
     status: 'accepted'
   });
@@ -52,25 +51,22 @@ export async function deleteUser(clerkId: string): Promise<void> {
 }
 
 export async function ensureUserExists() {
-  const { userId } = auth();
-  if (!userId) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
     throw new Error("Not authenticated");
   }
 
   await connectToDatabase();
   const UserModel = await getUserModel();
 
-  const user = await UserModel.findOne({ clerkId: userId });
-  if (!user) {
-    // Get user data from Clerk
-    const clerkUser = await clerkClient.users.getUser(userId);
-    
+  const existingUser = await UserModel.findOne({ clerkId: user.id });
+  if (!existingUser) {
     // Create new user document
     const newUser = await UserModel.create({
-      clerkId: userId,
-      username: clerkUser.username || '',
-      displayName: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || clerkUser.username || '',
-      searchIndex: `${clerkUser.username || ''} ${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.toLowerCase(),
+      clerkId: user.id,
+      username: user.username || '',
+      displayName: user.fullName || user.username || '',
+      searchIndex: `${user.username || ''} ${user.fullName || ''}`.toLowerCase(),
       followersCount: 0,
       followingCount: 0,
       listCount: 0
@@ -79,5 +75,5 @@ export async function ensureUserExists() {
     return newUser;
   }
 
-  return user;
+  return existingUser;
 } 

@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FollowButton } from "@/components/users/follow-button";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { MapPin, Calendar, Users } from "lucide-react";
+import { MapPin, Calendar, Users, UserCircle2Icon } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -47,6 +47,7 @@ export interface UserProfileBaseProps {
   profilePath?: string;
   showEditButton?: boolean;
   extraButtons?: React.ReactNode;
+  actions?: React.ReactNode;
 }
 
 export function formatDisplayName(firstName: string | null | undefined, lastName: string | null | undefined, username: string): string {
@@ -87,6 +88,7 @@ export function UserProfileBase({
   profilePath,
   showEditButton = false,
   extraButtons,
+  actions,
 }: UserProfileBaseProps) {
   const displayName = formatDisplayName(firstName, lastName, username);
   const pathname = usePathname();
@@ -176,6 +178,7 @@ export function UserProfileBase({
               )}
               {gender && privacySettings?.showGender && gender !== 'prefer-not-to-say' && (
                 <div className="flex items-center gap-1">
+                   <UserCircle2Icon className="h-4 w-4" />
                   <span className="capitalize">{gender}</span>
                 </div>
               )}
@@ -218,10 +221,12 @@ export function UserProfileBase({
           variant="outline"
         />
       )}
+
+      {actions}
     </div>
   );
 
-  if (linkToProfile) {
+  if (linkToProfile && variant !== "full") {
     const relativePath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
     return (
       <Link

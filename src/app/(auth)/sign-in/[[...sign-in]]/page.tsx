@@ -2,19 +2,14 @@
 
 import { SignIn } from "@clerk/nextjs";
 import { useSearchParams } from "next/navigation";
-import { useAuthGuard } from "@/hooks/use-auth-guard";
-import { LoadingPage } from "@/components/loading/loading-page";
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
-  const { isReady } = useAuthGuard({ redirectIfAuthed: true });
   const returnUrl = searchParams?.get("returnUrl");
 
-  if (!isReady) {
-    return <LoadingPage />;
-  }
-
   return (
-    <SignIn redirectUrl={returnUrl || "/"} />
+    <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] py-8">
+      <SignIn redirectUrl={returnUrl || "/"} />
+    </div>
   );
 } 

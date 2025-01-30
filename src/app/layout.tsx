@@ -1,5 +1,4 @@
 import { Providers } from './providers'
-import { Toaster } from "sonner"
 import './globals.css'
 import { metadata, viewport } from './metadata'
 import { GoogleTagManager } from '@/components/analytics/gtm'
@@ -16,33 +15,15 @@ export default function RootLayout({
   const isGtmEnabled = process.env.NEXT_PUBLIC_GTM_ENABLED !== 'false';
 
   return (
-    <html 
-      lang="en" 
-      data-domain={process.env.NEXT_PUBLIC_APP_URL} 
-      suppressHydrationWarning
-    >
+    <html lang="en" suppressHydrationWarning>
       <head>
-        {isGtmEnabled && (
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                window.dataLayer.push({
-                  'gtm.start': new Date().getTime(),
-                  event: 'gtm.js'
-                });
-              `,
-            }}
-          />
-        )}
         {isGtmEnabled && gtmId && <GoogleTagManager gtmId={gtmId} />}
       </head>
-      <body className="min-h-screen font-sans antialiased">
+      <body>
         <Providers>
           {children}
-          <Toaster />
         </Providers>
       </body>
     </html>
-  )
+  );
 }

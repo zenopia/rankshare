@@ -1,6 +1,5 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { clerkClient } from "@clerk/clerk-sdk-node";
+import { AuthService } from "@/lib/services/auth.service";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { getUserModel } from "@/lib/db/models-v2/user";
 
@@ -9,19 +8,16 @@ export async function POST(
   { params }: { params: { username: string } }
 ) {
   try {
-    const { userId: followerId } = auth();
-    if (!followerId) {
+    const user = await AuthService.getCurrentUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Remove @ if present and decode the username
     const username = decodeURIComponent(params.username).replace(/^@/, '');
 
-    // Get user from Clerk first
-    const users = await clerkClient.users.getUserList({
-      username: [username]
-    });
-    const userToFollow = users[0];
+    const UserModel = await getUserModel();
+    const userToFollow = await UserModel.findOne({ username }).lean();
 
     if (!userToFollow) {
       return NextResponse.json(
@@ -30,61 +26,53 @@ export async function POST(
       );
     }
 
-    const UserModel = await getUserModel();
     const FollowModel = await getFollowModel();
-
-    // Get both users' info
-    const [follower, following] = await Promise.all([
-      UserModel.findOne({ clerkId: followerId }).lean(),
-      UserModel.findOne({ clerkId: userToFollow.id }).lean()
-    ]);
-
-    if (!following) {
-      return NextResponse.json(
-        { error: "User to follow not found" },
-        { status: 404 }
-      );
-    }
-
-    if (!follower) {
-      return NextResponse.json(
-        { error: "Follower not found" },
-        { status: 404 }
-      );
-    }
 
     // Check if already following
     const existingFollow = await FollowModel.findOne({
-      followerId,
-      followingId: userToFollow.id,
+      followerId: user.id,
+      followingId: userToFollow.clerkId,
     });
 
     if (existingFollow) {
       return NextResponse.json(
-        { message: "Already following" },
-        { status: 200 }
+        { error: "Already following this user" },
+        { status: 400 }
       );
     }
 
-    // Create new follow relationship
+    // Create follow relationship
     await FollowModel.create({
-      followerId,
-      followingId: userToFollow.id,
-      status: 'accepted',
+      followerId: user.id,
+      followingId: userToFollow.clerkId,
       followerInfo: {
-        username: follower.username,
-        displayName: follower.displayName
+        username: user.username || "",
+        displayName: user.fullName || user.username || "",
       },
       followingInfo: {
-        username: following.username,
-        displayName: following.displayName
-      }
+        username: userToFollow.username,
+        displayName: userToFollow.displayName,
+      },
+      status: 'accepted',
+      createdAt: new Date(),
+      acceptedAt: new Date(),
     });
 
-    return NextResponse.json(
-      { message: "Following user" },
-      { status: 201 }
-    );
+    // Update follower counts
+    await Promise.all([
+      UserModel.updateOne(
+        { clerkId: user.id },
+        { $inc: { followingCount: 1 } }
+      ),
+      UserModel.updateOne(
+        { clerkId: userToFollow.clerkId },
+        { $inc: { followersCount: 1 } }
+      ),
+    ]);
+
+    return NextResponse.json({
+      message: `Now following @${username}`,
+    });
   } catch (error) {
     console.error("[FOLLOW_POST]", error);
     return NextResponse.json(
@@ -99,47 +87,55 @@ export async function DELETE(
   { params }: { params: { username: string } }
 ) {
   try {
-    const { userId: followerId } = auth();
-    if (!followerId) {
+    const user = await AuthService.getCurrentUser();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Remove @ if present and decode the username
     const username = decodeURIComponent(params.username).replace(/^@/, '');
 
-    // Get user from Clerk first
-    const users = await clerkClient.users.getUserList({
-      username: [username]
-    });
-    const userToUnfollow = users[0];
+    const UserModel = await getUserModel();
+    const userToUnfollow = await UserModel.findOne({ username }).lean();
 
     if (!userToUnfollow) {
       return NextResponse.json(
-        { error: "User not found" },
+        { error: "User to unfollow not found" },
         { status: 404 }
       );
     }
 
     const FollowModel = await getFollowModel();
 
-    const follow = await FollowModel.findOne({
-      followerId,
-      followingId: userToUnfollow.id,
+    // Delete follow relationship
+    const result = await FollowModel.deleteOne({
+      followerId: user.id,
+      followingId: userToUnfollow.clerkId,
+      status: 'accepted'
     });
 
-    if (!follow) {
+    if (result.deletedCount === 0) {
       return NextResponse.json(
-        { message: "Not following this user" },
-        { status: 200 }
+        { error: "Not following this user" },
+        { status: 400 }
       );
     }
 
-    await follow.deleteOne();
+    // Update follower counts
+    await Promise.all([
+      UserModel.updateOne(
+        { clerkId: user.id },
+        { $inc: { followingCount: -1 } }
+      ),
+      UserModel.updateOne(
+        { clerkId: userToUnfollow.clerkId },
+        { $inc: { followersCount: -1 } }
+      ),
+    ]);
 
-    return NextResponse.json(
-      { message: "Unfollowed user" },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      message: `Unfollowed @${username}`,
+    });
   } catch (error) {
     console.error("[FOLLOW_DELETE]", error);
     return NextResponse.json(

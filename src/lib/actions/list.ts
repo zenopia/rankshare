@@ -1,74 +1,120 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { AuthService } from "@/lib/services/auth.service";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel } from "@/lib/db/models-v2/list";
-import { getUserCacheModel } from "@/lib/db/models-v2/user-cache";
-import { getPinModel } from "@/lib/db/models-v2/pin";
+import { getEnhancedLists } from "@/lib/actions/lists";
+import { notFound } from "next/navigation";
+import { EnhancedList } from "@/types/list";
+import { FilterQuery, QueryOptions } from "mongoose";
 import { MongoListDocument } from "@/types/mongo";
-import { List } from "@/types/list";
-import { serializeList } from "@/lib/utils";
 
-export interface EnhancedList extends List {
-  owner: List['owner'] & {
-    displayName: string;
-    imageUrl: string | null;
+export async function getList(listId: string) {
+  const user = await AuthService.getCurrentUser();
+
+  await connectToMongoDB();
+  const ListModel = await getListModel();
+
+  // Get the list with enhanced data
+  const query: FilterQuery<MongoListDocument> = {
+    _id: listId,
+    $or: [
+      { privacy: "public" },
+      ...(user
+        ? [
+            { "owner.clerkId": user.id },
+            {
+              collaborators: {
+                $elemMatch: {
+                  clerkId: user.id,
+                  status: "accepted"
+                }
+              }
+            }
+          ]
+        : [])
+    ]
   };
-}
 
-export async function getEnhancedLists(lists: MongoListDocument[]): Promise<{
-  enhancedLists: EnhancedList[];
-  lastViewedMap: Record<string, Date>;
-}> {
-  const { userId } = auth();
-  
-  // Get all unique owner IDs
-  const ownerIds = Array.from(new Set(lists.map(list => list.owner.clerkId)));
-  
-  // Fetch user data for all owners in one query
-  const UserCacheModel = await getUserCacheModel();
-  const ownerData = await UserCacheModel.find({
-    clerkId: { $in: ownerIds }
-  }).lean();
-  
-  // Create a map for quick lookup
-  const ownerDataMap = ownerData.reduce((acc, owner) => {
-    acc[owner.clerkId] = owner;
-    return acc;
-  }, {} as Record<string, any>);
+  const options: QueryOptions<MongoListDocument> = {};
+  const { lists } = await getEnhancedLists(query, options);
 
-  // If authenticated, get pin data
-  let lastViewedMap: Record<string, Date> = {};
-  if (userId) {
-    const PinModel = await getPinModel();
-    const pins = await PinModel.find({
-      clerkId: userId,
-      listId: { $in: lists.map(list => list._id) }
-    }).lean();
-
-    lastViewedMap = pins.reduce((acc, pin) => {
-      acc[pin.listId.toString()] = pin.lastViewedAt;
-      return acc;
-    }, {} as Record<string, Date>);
+  if (lists.length === 0) {
+    notFound();
   }
 
-  // Enhance lists with owner data
-  const enhancedLists = lists.map(list => {
-    const serialized = serializeList(list);
-    const owner = ownerDataMap[list.owner.clerkId];
-    
-    return {
-      ...serialized,
-      owner: {
-        ...serialized.owner,
-        displayName: owner?.displayName || serialized.owner.username,
-        imageUrl: owner?.imageUrl || null
-      }
-    };
-  });
+  return lists[0];
+}
 
-  return {
-    enhancedLists,
-    lastViewedMap
-  };
+export async function updateList(
+  listId: string,
+  data: {
+    title?: string;
+    description?: string;
+    category?: string;
+    privacy?: string;
+    items?: any[];
+  }
+) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  await connectToMongoDB();
+  const ListModel = await getListModel();
+
+  // Find the list and check permissions
+  const list = await ListModel.findById(listId);
+  if (!list) {
+    throw new Error("List not found");
+  }
+
+  // Check if user is owner or collaborator with edit permissions
+  const isOwner = list.owner.clerkId === user.id;
+  const isEditor = list.collaborators?.some(
+    (c) => c.clerkId === user.id && c.status === "accepted" && c.role === "editor"
+  );
+
+  if (!isOwner && !isEditor) {
+    throw new Error("Unauthorized");
+  }
+
+  // Update the list
+  const updatedList = await ListModel.findByIdAndUpdate(
+    listId,
+    {
+      $set: {
+        ...data,
+        editedAt: new Date()
+      }
+    },
+    { new: true }
+  ).lean();
+
+  return updatedList;
+}
+
+export async function deleteList(listId: string) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  await connectToMongoDB();
+  const ListModel = await getListModel();
+
+  // Find the list and check permissions
+  const list = await ListModel.findById(listId);
+  if (!list) {
+    throw new Error("List not found");
+  }
+
+  // Only the owner can delete the list
+  if (list.owner.clerkId !== user.id) {
+    throw new Error("Unauthorized");
+  }
+
+  // Delete the list
+  await ListModel.findByIdAndDelete(listId);
 } 

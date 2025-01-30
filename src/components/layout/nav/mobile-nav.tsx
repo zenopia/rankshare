@@ -17,7 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth, useUser } from "@clerk/nextjs";
 import type { NavItem } from "@/types/nav";
-import { SidebarProfile } from "../sidebar-profile";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -174,10 +173,7 @@ export function MobileNav() {
             </div>
 
             {isSignedIn && (
-              <>
-                <SidebarProfile collapsed={false} onClick={handleClose} />
-                <div className="h-px bg-border my-4" />
-              </>
+              <div className="h-px bg-border my-4" />
             )}
 
             <nav 

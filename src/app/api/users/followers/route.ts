@@ -1,86 +1,90 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getFollowModel } from "@/lib/db/models-v2/follow";
+import { AuthService } from "@/lib/services/auth.service";
+import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
+import { getFollowModel } from "@/lib/db/models-v2/follow";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
   try {
-    const { userId } = auth();
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const page = parseInt(searchParams.get("page") || "1");
     const skip = (page - 1) * limit;
 
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const FollowModel = await getFollowModel();
+    await connectToMongoDB();
     const UserModel = await getUserModel();
+    const FollowModel = await getFollowModel();
 
-    // Get follower relationships
-    const follows = await FollowModel.find({
-      followingId: userId,
-      status: 'accepted'
-    })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .select('followerId followerInfo status createdAt')
-      .lean();
+    // Get followers
+    const [followers, total] = await Promise.all([
+      FollowModel.find({ followingId: user.id })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      FollowModel.countDocuments({ followingId: user.id })
+    ]);
 
-    // Get total count for pagination
-    const total = await FollowModel.countDocuments({
-      followingId: userId,
-      status: 'accepted'
+    // Get follower details
+    const followerIds = followers.map((f) => f.followerId);
+    const [followerDetails, clerkUsers] = await Promise.all([
+      UserModel.find({
+        clerkId: { $in: followerIds }
+      })
+        .select("username displayName bio followersCount followingCount")
+        .lean(),
+      clerkClient.users.getUserList({
+        userId: followerIds,
+      })
+    ]);
+
+    // Create maps for quick lookup
+    const followerMap = new Map(
+      followerDetails.map((f) => [f.clerkId, f])
+    );
+    const clerkUserMap = new Map(
+      clerkUsers.map((u) => [u.id, u])
+    );
+
+    // Combine follow data with user details
+    const enhancedFollowers = followers.map((follow) => {
+      const follower = followerMap.get(follow.followerId);
+      const clerkUser = clerkUserMap.get(follow.followerId);
+      return {
+        id: follow._id.toString(),
+        followerId: follow.followerId,
+        followingId: follow.followingId,
+        createdAt: follow.createdAt,
+        follower: follower
+          ? {
+              id: follower._id.toString(),
+              username: follower.username,
+              displayName: follower.displayName,
+              bio: follower.bio || "",
+              imageUrl: clerkUser?.imageUrl || null,
+              followersCount: follower.followersCount || 0,
+              followingCount: follower.followingCount || 0
+            }
+          : null
+      };
     });
 
-    // Get user details for each follower
-    const followerUsers = await UserModel.find({
-      clerkId: { $in: follows.map(f => f.followerId) }
-    })
-      .select('clerkId username displayName')
-      .lean();
-
-    // Create a map for easy lookup
-    const userMap = new Map(
-      followerUsers.map(user => [user.clerkId, user])
-    );
-
-    // Check if current user follows back each follower
-    const followBackStatuses = await Promise.all(
-      follows.map(follow =>
-        FollowModel.findOne({
-          followerId: userId,
-          followingId: follow.followerId,
-          status: 'accepted'
-        }).lean()
-      )
-    );
-
-    // Combine follower data with user details and follow-back status
-    const followersWithDetails = follows.map((follow, index) => ({
-      followerId: follow.followerId,
-      status: follow.status,
-      createdAt: follow.createdAt,
-      followerInfo: follow.followerInfo,
-      user: userMap.get(follow.followerId) || null,
-      isFollowingBack: !!followBackStatuses[index]
-    }));
-
     return NextResponse.json({
-      results: followersWithDetails,
+      followers: enhancedFollowers,
       total,
       page,
       pageSize: limit
     });
   } catch (error) {
-    console.error('Error fetching followers:', error);
-    return NextResponse.json(
-      { error: "Failed to fetch followers" },
-      { status: 500 }
-    );
+    console.error("Error fetching followers:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 } 

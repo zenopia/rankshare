@@ -112,6 +112,8 @@ export default async function UserPage({ params, searchParams }: PageProps) {
           <UserProfile 
             username={profileUser.username || ""}
             fullName={`${profileUser.firstName || ""} ${profileUser.lastName || ""}`.trim()}
+            firstName={profileUser.firstName || null}
+            lastName={profileUser.lastName || null}
             bio={serializedUser?.bio || null}
             imageUrl={profileUser.imageUrl}
             stats={{
@@ -123,6 +125,14 @@ export default async function UserPage({ params, searchParams }: PageProps) {
             hideFollow={userId === profileUser.id}
             userData={serializedUser}
             showEditButton={userId === profileUser.id}
+            location={serializedUser?.location}
+            dateOfBirth={serializedUser?.dateOfBirth}
+            gender={serializedUser?.gender}
+            livingStatus={serializedUser?.livingStatus}
+            privacySettings={serializedUser?.privacySettings}
+            variant="full"
+            showLocation={true}
+            showStats={true}
           />
           
           <div className="space-y-4">

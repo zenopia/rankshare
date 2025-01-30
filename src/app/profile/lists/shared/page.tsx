@@ -1,16 +1,16 @@
 import { redirect } from "next/navigation";
 import { AuthService } from "@/lib/services/auth.service";
-import { getEnhancedLists } from "@/lib/actions/lists";
+import { getSharedLists } from "@/lib/actions/lists";
 import { MyListsLayout } from "@/components/lists/my-lists-layout";
 
-export default async function DashboardPage() {
+export default async function SharedListsPage() {
   const user = await AuthService.getCurrentUser();
   if (!user) {
     redirect('/sign-in');
   }
 
   try {
-    const { lists } = await getEnhancedLists({ 'owner.clerkId': user.id });
+    const { lists } = await getSharedLists(user.id);
     
     return (
       <MyListsLayout 
@@ -24,7 +24,7 @@ export default async function DashboardPage() {
       />
     );
   } catch (error) {
-    console.error('Error loading dashboard:', error);
+    console.error('Error loading shared lists page:', error);
     redirect('/sign-in');
   }
 } 

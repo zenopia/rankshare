@@ -1,62 +1,55 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { AuthService } from "@/lib/services/auth.service";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel } from "@/lib/db/models-v2/list";
+import { getEnhancedLists } from "@/lib/actions/lists";
 
+export async function GET(request: Request) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
 
-export const dynamic = 'force-dynamic';
-
-export async function GET() {
   try {
-    const { userId } = auth();
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const page = parseInt(searchParams.get("page") || "1");
+    const skip = (page - 1) * limit;
 
     await connectToMongoDB();
     const ListModel = await getListModel();
 
-    // Find all lists where user is a pending collaborator
-    const lists = await ListModel.aggregate([
+    // Get lists where the user has pending collaborations
+    const { lists } = await getEnhancedLists(
       {
-        $match: {
-          'collaborators': {
-            $elemMatch: {
-              clerkId: userId,
-              status: 'pending'
-            }
+        "collaborators": {
+          $elemMatch: {
+            clerkId: user.id,
+            status: "pending"
           }
         }
       },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'owner.clerkId',
-          foreignField: 'clerkId',
-          as: 'ownerDetails'
+      { skip, limit, sort: { createdAt: -1 } }
+    );
+
+    // Get total count
+    const total = await ListModel.countDocuments({
+      "collaborators": {
+        $elemMatch: {
+          clerkId: user.id,
+          status: "pending"
         }
-      },
-      {
-        $unwind: '$ownerDetails'
       }
-    ]);
+    });
 
-    // Transform the data to match the expected format
-    const pendingCollaborations = lists.map(list => ({
-      id: list._id.toString(),
-      listId: list._id.toString(),
-      listTitle: list.title,
-      owner: {
-        clerkId: list.owner.clerkId,
-        username: list.ownerDetails.username
-      },
-      role: list.collaborators.find((c: { clerkId: string; role: string }) => c.clerkId === userId)?.role,
-      status: list.collaborators.find((c: { clerkId: string; status: string }) => c.clerkId === userId)?.status
-    }));
-
-    return NextResponse.json(pendingCollaborations);
+    return NextResponse.json({
+      lists,
+      total,
+      page,
+      pageSize: limit
+    });
   } catch (error) {
-    console.error("[GET_PENDING_COLLABORATIONS]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    console.error("Error fetching pending collaborations:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 } 

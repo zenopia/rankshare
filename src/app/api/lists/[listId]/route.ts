@@ -1,5 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { AuthService } from "@/lib/services/auth.service";
+import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel, ListDocument, ListCollaborator } from "@/lib/db/models-v2/list";
 import { getEnhancedLists } from "@/lib/actions/lists";
 import { getUserModel } from "@/lib/db/models-v2/user";
@@ -46,49 +47,42 @@ export async function GET(
   request: Request,
   { params }: { params: { listId: string } }
 ) {
+  const user = await AuthService.getCurrentUser();
+
   try {
     const { listId } = params;
-    const requestUserId = request.headers.get('X-User-Id');
-
+    await connectToMongoDB();
     const ListModel = await getListModel();
-    
-    // First get the list without incrementing
-    const list = await ListModel.findById(listId).lean();
 
-    if (!list) {
-      return NextResponse.json(
-        { error: "List not found" },
-        { status: 404 }
-      );
+    // Get the list with enhanced data
+    const { lists } = await getEnhancedLists({
+      _id: listId,
+      $or: [
+        { privacy: "public" },
+        ...(user
+          ? [
+              { "owner.clerkId": user.id },
+              {
+                collaborators: {
+                  $elemMatch: {
+                    clerkId: user.id,
+                    status: "accepted"
+                  }
+                }
+              }
+            ]
+          : [])
+      ]
+    });
+
+    if (lists.length === 0) {
+      return new NextResponse("List not found", { status: 404 });
     }
 
-    // Check access permissions using requestUserId
-    if (!await hasListAccess(list, requestUserId)) {
-      return NextResponse.json(
-        { error: "Not authorized to view this list" },
-        { status: 403 }
-      );
-    }
-
-    // Only increment view count if viewer is not the owner
-    if (list.owner.clerkId !== requestUserId) {
-      await ListModel.findByIdAndUpdate(
-        listId,
-        { $inc: { 'stats.viewCount': 1 } }
-      ).lean();
-    }
-
-    // Get enhanced list with owner data
-    const { lists } = await getEnhancedLists({ _id: new Types.ObjectId(listId) });
-    const enhancedList = lists[0];
-
-    return NextResponse.json(enhancedList);
+    return NextResponse.json({ list: lists[0] });
   } catch (error) {
-    console.error('Error fetching list:', error);
-    return NextResponse.json(
-      { error: "Failed to fetch list" },
-      { status: 500 }
-    );
+    console.error("Error fetching list:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
 
@@ -203,45 +197,34 @@ export async function DELETE(
   request: Request,
   { params }: { params: { listId: string } }
 ) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
   try {
-    const { userId } = auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { listId } = params;
-
+    await connectToMongoDB();
     const ListModel = await getListModel();
 
-    const list = await ListModel.findById(listId).lean();
-
+    // Find the list and check permissions
+    const list = await ListModel.findById(listId);
     if (!list) {
-      return NextResponse.json(
-        { error: "List not found" },
-        { status: 404 }
-      );
+      return new NextResponse("List not found", { status: 404 });
     }
 
-    // Only owner can delete the list
-    if (list.owner.clerkId !== userId) {
-      return NextResponse.json(
-        { error: "Not authorized to delete this list" },
-        { status: 403 }
-      );
+    // Only the owner can delete the list
+    if (list.owner.clerkId !== user.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    // Delete the list
     await ListModel.findByIdAndDelete(listId);
 
-    return NextResponse.json(
-      { message: "List deleted successfully" },
-      { status: 200 }
-    );
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error('Error deleting list:', error);
-    return NextResponse.json(
-      { error: "Failed to delete list" },
-      { status: 500 }
-    );
+    console.error("Error deleting list:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
 
@@ -249,75 +232,54 @@ export async function PATCH(
   request: Request,
   { params }: { params: { listId: string } }
 ) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
   try {
-    const { userId } = auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { listId } = params;
-    const data = await request.json();
-    const { privacy } = data;
+    const body = await request.json();
+    const { title, description, category, privacy, items } = body;
 
+    await connectToMongoDB();
     const ListModel = await getListModel();
-    const list = await ListModel.findById(listId).lean();
 
+    // Find the list and check permissions
+    const list = await ListModel.findById(listId);
     if (!list) {
-      return NextResponse.json(
-        { error: "List not found" },
-        { status: 404 }
-      );
+      return new NextResponse("List not found", { status: 404 });
     }
 
-    // Check edit permissions
-    if (!await canEditList(list, userId)) {
-      return NextResponse.json(
-        { error: "Not authorized to edit this list" },
-        { status: 403 }
-      );
+    // Check if user is owner or collaborator with edit permissions
+    const isOwner = list.owner.clerkId === user.id;
+    const isEditor = list.collaborators?.some(
+      (c) => c.clerkId === user.id && c.status === "accepted" && c.role === "editor"
+    );
+
+    if (!isOwner && !isEditor) {
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Update list privacy
+    // Update the list
     const updatedList = await ListModel.findByIdAndUpdate(
-      params.listId,
+      listId,
       {
-        privacy,
-        editedAt: new Date()
+        $set: {
+          title,
+          description,
+          category,
+          privacy,
+          items,
+          editedAt: new Date()
+        }
       },
       { new: true }
     ).lean();
 
-    if (!updatedList) {
-      return NextResponse.json(
-        { error: "List not found" },
-        { status: 404 }
-      );
-    }
-
-    // Convert _id to string for the response
-    const { _id, ...rest } = updatedList;
-    const responseList = {
-      ...rest,
-      id: _id.toString(),
-      createdAt: updatedList.createdAt?.toISOString(),
-      updatedAt: updatedList.updatedAt?.toISOString(),
-      editedAt: updatedList.editedAt?.toISOString(),
-      owner: {
-        ...updatedList.owner,
-        id: updatedList.owner.userId?.toString()
-      },
-      collaborators: updatedList.collaborators?.map((c: { _id?: { toString(): string } } & Record<string, unknown>) => ({
-        ...c,
-        id: c._id?.toString()
-      }))
-    };
-
-    return NextResponse.json(responseList);
+    return NextResponse.json({ list: updatedList });
   } catch (error) {
-    console.error('Error updating list privacy:', error);
-    return NextResponse.json(
-      { error: "Failed to update list privacy" },
-      { status: 500 }
-    );
+    console.error("Error updating list:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 } 

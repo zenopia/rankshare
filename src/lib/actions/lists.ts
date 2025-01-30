@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { AuthService } from "@/lib/services/auth.service";
 import { clerkClient, User } from "@clerk/clerk-sdk-node";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel } from "@/lib/db/models-v2/list";
@@ -24,7 +24,7 @@ export async function getEnhancedLists(
   lists: EnhancedList[];
   lastViewedMap?: Record<string, Date>;
 }> {
-  const { userId } = auth();
+  const user = await AuthService.getCurrentUser();
   await connectToMongoDB();
 
   // Fetch lists based on query
@@ -103,10 +103,10 @@ export async function getEnhancedLists(
 
   // If authenticated, get pin data to create lastViewedMap
   let lastViewedMap: Record<string, Date> | undefined;
-  if (userId) {
+  if (user) {
     const PinModel = await getPinModel();
     const pins = await PinModel.find({
-      clerkId: userId,
+      clerkId: user.id,
       listId: { $in: lists.map(list => list._id) }
     }).lean() as unknown as MongoPinDocument[];
 
@@ -187,5 +187,17 @@ export async function getPinnedLists(userId: string) {
 
   return getEnhancedLists({
     _id: { $in: listIds }
+  });
+}
+
+export async function getSharedLists(userId: string) {
+  // Ensure database connection
+  await connectToDatabase();
+
+  // Get lists where the user is a collaborator
+  const ListModel = await getListModel();
+  return getEnhancedLists({
+    'collaborators.clerkId': userId,
+    'collaborators.status': 'accepted'
   });
 } 

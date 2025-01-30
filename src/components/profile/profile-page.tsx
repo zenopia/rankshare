@@ -3,8 +3,7 @@
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { Settings, LogOut } from "lucide-react";
-import { useClerk } from "@clerk/nextjs";
+import { Settings } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import Image from "next/image";
@@ -20,14 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { MainLayout } from "@/components/layout/main-layout";
 import { z } from "zod";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProtectedPageWrapper } from "@/components/auth/protected-page-wrapper";
-
-// First, let's create a type for the privacy settings keys
-type PrivacySettingKey = 'showBio' | 'showLocation' | 'showDateOfBirth' | 'showGender' | 'showLivingStatus';
+import { useClerk } from "@clerk/nextjs";
 
 // Remove validation schema since fields are no longer required
 const profileSchema = z.object({
@@ -82,7 +78,7 @@ function ProfileSkeleton() {
 export function ProfilePage({ initialUser }: ProfilePageProps) {
   const { isReady, getToken } = useAuthGuard({ protected: true });
   const { user: clerkUser } = useUser();
-  const { openUserProfile, signOut } = useClerk();
+  const { openUserProfile } = useClerk();
   const [isLoading, setIsLoading] = useState(false);
   const [isProfileComplete, setIsProfileComplete] = useState(true);
   const [shouldShowSkeleton, setShouldShowSkeleton] = useState(false);
@@ -91,14 +87,7 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
     location: "",
     dateOfBirth: undefined,
     gender: undefined,
-    livingStatus: undefined,
-    privacySettings: {
-      showBio: true,
-      showLocation: true,
-      showDateOfBirth: false,
-      showGender: true,
-      showLivingStatus: true,
-    },
+    livingStatus: undefined
   });
 
   // Only show skeleton after a delay if still loading
@@ -133,15 +122,7 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
             location: profile?.location || "",
             dateOfBirth: profile?.dateOfBirth ? new Date(profile.dateOfBirth) : undefined,
             gender: profile?.gender || undefined,
-            livingStatus: profile?.livingStatus || undefined,
-            privacySettings: {
-              showBio: true,
-              showLocation: true,
-              showDateOfBirth: false,
-              showGender: true,
-              showLivingStatus: true,
-              ...(profile?.privacySettings || {}),
-            },
+            livingStatus: profile?.livingStatus || undefined
           });
           setIsProfileComplete(profile?.profileComplete ?? false);
         }
@@ -155,16 +136,6 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
       checkProfile();
     }
   }, [clerkUser, isReady, getToken]);
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast.success("Signed out successfully");
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast.error("Failed to sign out");
-    }
-  };
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -219,17 +190,6 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
     }));
   };
 
-  // Update privacy settings
-  const handlePrivacyChange = (field: PrivacySettingKey, value: boolean) => {
-    setProfileData(prev => ({
-      ...prev,
-      privacySettings: {
-        ...(prev.privacySettings || {}),
-        [field]: value,
-      } as Required<User['privacySettings']>,
-    }));
-  };
-
   // Show skeleton after delay if still loading
   if (shouldShowSkeleton && (!isReady || !clerkUser)) {
     return <ProfileSkeleton />;
@@ -249,10 +209,7 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
         <div className="flex-1">
           {/* Profile Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between py-6 px-4 sm:px-6 lg:px-8 gap-4 border-b">
-            <Link 
-              href={`/${user?.username}`}
-              className="flex items-center gap-6 hover:opacity-80 transition-opacity"
-            >
+            <div className="flex items-center gap-6">
               <Image
                 src={user.imageUrl}
                 alt={user.username || "Profile"}
@@ -261,31 +218,25 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
                 className="rounded-full"
               />
               <div>
-                <h2 className="text-xl font-semibold">
-                  {user.fullName || user.username}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  @{user.username}
-                </p>
+                <h1 className="text-2xl font-bold">{user.fullName || user.username}</h1>
+                <p className="text-muted-foreground">@{user.username}</p>
               </div>
-            </Link>
+            </div>
             <div className="flex gap-2">
               <Button 
-                variant="outline"
+                variant="outline" 
+                size="sm"
                 onClick={() => openUserProfile()}
-                className="flex items-center gap-2"
               >
-                <Settings className="h-4 w-4" />
-                <span>Manage Account</span>
+                <Settings className="h-4 w-4 mr-2" />
+                Manage Account
               </Button>
-              <Button 
-                variant="outline"
-                onClick={handleSignOut}
-                className="flex items-center gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Sign Out</span>
-              </Button>
+              <Link href="/profile/settings">
+                <Button variant="outline" size="sm">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Privacy Settings
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -389,76 +340,6 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
                 </div>
               </div>
             </div>
-
-            {/* Privacy Settings */}
-            {isProfileComplete && (
-              <div className="py-6 border-b">
-                <h3 className="text-lg font-semibold mb-1">Privacy Settings</h3>
-                <p className="text-sm text-muted-foreground mb-4">Control what others can see</p>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Show Bio</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Make your bio visible to others
-                      </p>
-                    </div>
-                    <Switch
-                      checked={profileData.privacySettings?.showBio ?? true}
-                      onCheckedChange={(value) => handlePrivacyChange('showBio', value)}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Show Location</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Display your location on your profile
-                      </p>
-                    </div>
-                    <Switch
-                      checked={profileData.privacySettings?.showLocation ?? true}
-                      onCheckedChange={(value) => handlePrivacyChange('showLocation', value)}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Show Age</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Share your age
-                      </p>
-                    </div>
-                    <Switch
-                      checked={profileData.privacySettings?.showDateOfBirth ?? false}
-                      onCheckedChange={(value) => handlePrivacyChange('showDateOfBirth', value)}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Show Gender</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Share your gender
-                      </p>
-                    </div>
-                    <Switch
-                      checked={profileData.privacySettings?.showGender ?? false}
-                      onCheckedChange={(value) => handlePrivacyChange('showGender', value)}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Show Living Status</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Share your living status
-                      </p>
-                    </div>
-                    <Switch
-                      checked={profileData.privacySettings?.showLivingStatus ?? false}
-                      onCheckedChange={(value) => handlePrivacyChange('showLivingStatus', value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

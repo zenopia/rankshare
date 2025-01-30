@@ -1,8 +1,9 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { getListModel, ListCollaborator } from "@/lib/db/models-v2/list";
+import { AuthService } from "@/lib/services/auth.service";
+import { connectToMongoDB } from "@/lib/db/client";
+import { getListModel, ListDocument, ListCollaborator } from "@/lib/db/models-v2/list";
 import { getUserModel, UserDocument } from "@/lib/db/models-v2/user";
 import { Types } from "mongoose";
 
@@ -25,43 +26,136 @@ async function canManageCollaborators(listId: string, userId: string | null) {
   );
 }
 
+export async function DELETE(
+  request: Request,
+  { params }: { params: { listId: string; userId: string } }
+) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
+  try {
+    const { listId, userId: targetUserId } = params;
+
+    await connectToMongoDB();
+    const ListModel = await getListModel();
+
+    // Find the list
+    const list = await ListModel.findById(listId);
+    if (!list) {
+      return new NextResponse("List not found", { status: 404 });
+    }
+
+    // Check if user is owner or the collaborator being removed
+    const isOwner = list.owner.clerkId === user.id;
+    const isSelfRemoval = targetUserId === user.id;
+
+    if (!isOwner && !isSelfRemoval) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    // Remove the collaborator
+    await ListModel.findByIdAndUpdate(listId, {
+      $pull: {
+        collaborators: { clerkId: targetUserId }
+      }
+    });
+
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    console.error("Error removing collaborator:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: { listId: string; userId: string } }
+) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
+  try {
+    const { listId, userId: targetUserId } = params;
+    const body = await request.json();
+    const { role } = body;
+
+    if (!role || !["editor", "viewer"].includes(role)) {
+      return new NextResponse("Invalid role", { status: 400 });
+    }
+
+    await connectToMongoDB();
+    const ListModel = await getListModel();
+
+    // Find the list
+    const list = await ListModel.findById(listId);
+    if (!list) {
+      return new NextResponse("List not found", { status: 404 });
+    }
+
+    // Only owner can change roles
+    if (list.owner.clerkId !== user.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    // Update the collaborator's role
+    const updatedList = await ListModel.findOneAndUpdate(
+      {
+        _id: listId,
+        "collaborators.clerkId": targetUserId
+      },
+      {
+        $set: {
+          "collaborators.$.role": role
+        }
+      },
+      { new: true }
+    );
+
+    if (!updatedList) {
+      return new NextResponse("Collaborator not found", { status: 404 });
+    }
+
+    return NextResponse.json({
+      collaborators: updatedList.collaborators
+    });
+  } catch (error) {
+    console.error("Error updating collaborator role:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
+  }
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: { listId: string, userId: string } }
 ) {
-  try {
-    const { userId: currentUserId } = auth();
-    if (!currentUserId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
 
+  try {
     const { listId, userId: targetUserId } = params;
     const { role } = await request.json();
 
     // Validate role
     if (!['admin', 'editor', 'viewer', 'owner'].includes(role)) {
-      return NextResponse.json(
-        { error: "Invalid role" },
-        { status: 400 }
-      );
+      return new NextResponse("Invalid role", { status: 400 });
     }
 
     // Check permissions
-    if (!await canManageCollaborators(listId, currentUserId)) {
-      return NextResponse.json(
-        { error: "Not authorized to manage collaborators" },
-        { status: 403 }
-      );
+    if (!await canManageCollaborators(listId, user.id)) {
+      return new NextResponse("Not authorized to manage collaborators", { status: 403 });
     }
 
     const ListModel = await getListModel();
     const list = await ListModel.findById(listId);
 
     if (!list) {
-      return NextResponse.json(
-        { error: "List not found" },
-        { status: 404 }
-      );
+      return new NextResponse("List not found", { status: 404 });
     }
 
     // Handle email collaborators
@@ -72,10 +166,7 @@ export async function PUT(
       );
 
       if (collaboratorIndex === -1) {
-        return NextResponse.json(
-          { error: "Collaborator not found" },
-          { status: 404 }
-        );
+        return new NextResponse("Collaborator not found", { status: 404 });
       }
 
       list.collaborators[collaboratorIndex].role = role;
@@ -87,31 +178,25 @@ export async function PUT(
     const UserModel = await getUserModel();
     const [targetUser, currentUser] = await Promise.all([
       UserModel.findOne({ clerkId: targetUserId }).lean(),
-      UserModel.findOne({ clerkId: currentUserId }).lean()
+      UserModel.findOne({ clerkId: user.id }).lean()
     ]) as [UserDocument, UserDocument];
 
     if (!targetUser || !currentUser) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return new NextResponse("User not found", { status: 404 });
     }
 
     // Handle ownership transfer
     if (role === 'owner') {
       // Only the current owner can transfer ownership
-      if (list.owner.clerkId !== currentUserId) {
-        return NextResponse.json(
-          { error: "Only the owner can transfer ownership" },
-          { status: 403 }
-        );
+      if (list.owner.clerkId !== user.id) {
+        return new NextResponse("Only the owner can transfer ownership", { status: 403 });
       }
 
       // Update the previous owner to be an admin
       list.collaborators = list.collaborators.filter(c => c.clerkId !== targetUserId);
       list.collaborators.push({
         userId: currentUser._id,
-        clerkId: currentUserId,
+        clerkId: user.id,
         role: 'admin',
         status: 'accepted',
         invitedAt: new Date(),
@@ -130,10 +215,7 @@ export async function PUT(
       );
 
       if (collaboratorIndex === -1) {
-        return NextResponse.json(
-          { error: "Collaborator not found" },
-          { status: 404 }
-        );
+        return new NextResponse("Collaborator not found", { status: 404 });
       }
 
       list.collaborators[collaboratorIndex].role = role;
@@ -144,69 +226,6 @@ export async function PUT(
     return NextResponse.json({ message: "Collaborator updated successfully" });
   } catch (error) {
     console.error('Error updating collaborator:', error);
-    return NextResponse.json(
-      { error: "Failed to update collaborator" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: { listId: string, userId: string } }
-) {
-  try {
-    const { userId: currentUserId } = auth();
-    if (!currentUserId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { listId, userId: targetUserId } = params;
-
-    const ListModel = await getListModel();
-    const list = await ListModel.findById(listId);
-
-    if (!list) {
-      return NextResponse.json(
-        { error: "List not found" },
-        { status: 404 }
-      );
-    }
-
-    // Can't remove the owner
-    if (list.owner.clerkId === targetUserId) {
-      return NextResponse.json(
-        { error: "Cannot remove the owner" },
-        { status: 400 }
-      );
-    }
-
-    // Allow if:
-    // 1. User is removing themselves, OR
-    // 2. User is the owner or admin
-    const isCurrentUser = currentUserId === targetUserId;
-    const canManage = await canManageCollaborators(listId, currentUserId);
-    
-    if (!isCurrentUser && !canManage) {
-      return NextResponse.json(
-        { error: "Not authorized to remove collaborators" },
-        { status: 403 }
-      );
-    }
-
-    // Remove the collaborator
-    list.collaborators = list.collaborators.filter(
-      c => (c._isEmailInvite ? c.email !== targetUserId : c.clerkId !== targetUserId)
-    );
-
-    await list.save();
-
-    return NextResponse.json({ message: "Collaborator removed successfully" });
-  } catch (error) {
-    console.error('Error removing collaborator:', error);
-    return NextResponse.json(
-      { error: "Failed to remove collaborator" },
-      { status: 500 }
-    );
+    return new NextResponse("Failed to update collaborator", { status: 500 });
   }
 } 

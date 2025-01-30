@@ -1,12 +1,12 @@
-import { auth } from "@clerk/nextjs/server";
+import { AuthService } from "@/lib/services/auth.service";
 import { notFound } from "next/navigation";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { connectToMongoDB } from "@/lib/db/client";
 import { MongoListDocument } from "@/types/mongo";
 
 export async function getAuthorizedList(listId: string): Promise<MongoListDocument> {
-  const { userId } = auth();
-  if (!userId) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
     notFound();
   }
 
@@ -19,8 +19,8 @@ export async function getAuthorizedList(listId: string): Promise<MongoListDocume
   }
 
   // Check if user is owner or collaborator
-  const isOwner = list.owner.clerkId === userId;
-  const isCollaborator = list.collaborators?.some(c => c.clerkId === userId && c.status === 'accepted');
+  const isOwner = list.owner.clerkId === user.id;
+  const isCollaborator = list.collaborators?.some(c => c.clerkId === user.id && c.status === 'accepted');
   
   if (!isOwner && !isCollaborator) {
     notFound();
@@ -30,7 +30,7 @@ export async function getAuthorizedList(listId: string): Promise<MongoListDocume
 }
 
 export async function getAuthorizedListForView(listId: string): Promise<MongoListDocument> {
-  const { userId } = auth();
+  const user = await AuthService.getCurrentUser();
 
   await connectToMongoDB();
   const ListModel = await getListModel();
@@ -46,12 +46,12 @@ export async function getAuthorizedListForView(listId: string): Promise<MongoLis
   }
 
   // Private lists can only be viewed by owner or collaborators
-  if (!userId) {
+  if (!user) {
     notFound();
   }
 
-  const isOwner = list.owner.clerkId === userId;
-  const isCollaborator = list.collaborators?.some(c => c.clerkId === userId && c.status === 'accepted');
+  const isOwner = list.owner.clerkId === user.id;
+  const isCollaborator = list.collaborators?.some(c => c.clerkId === user.id && c.status === 'accepted');
   
   if (!isOwner && !isCollaborator) {
     notFound();

@@ -17,19 +17,22 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   const returnUrl = searchParams.get("returnUrl");
 
   const handleBack = () => {
-    if (returnUrl) {
-      // Check if return URL is a protected route
+    // If we have history and we're not at the first page
+    if (window.history.length > 2) {
+      router.back();
+    } else if (returnUrl) {
+      // If we have a returnUrl but no history
       const isProtectedRoute = PROTECTED_ROUTES.some(route => 
         decodeURIComponent(returnUrl).startsWith(route)
       );
 
       if (isProtectedRoute) {
-        // Go to home page instead of protected route
         router.push('/');
       } else {
         router.push(decodeURIComponent(returnUrl));
       }
     } else {
+      // Fallback to homepage
       router.push('/');
     }
   };

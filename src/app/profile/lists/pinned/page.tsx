@@ -1,29 +1,48 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { AuthService } from "@/lib/services/auth.service";
 import { getPinnedLists } from "@/lib/actions/lists";
 import { MyListsLayout } from "@/components/lists/my-lists-layout";
+import { ListCategory } from "@/types/list";
 
-export default async function PinnedListsPage() {
-  const { userId } = auth();
+interface PageProps {
+  searchParams: {
+    q?: string;
+    category?: ListCategory;
+    sort?: string;
+  };
+}
 
-  if (!userId) {
+export default async function PinnedListsPage({ searchParams }: PageProps) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
     redirect('/sign-in');
   }
 
   try {
-    const [user, { lists }] = await Promise.all([
-      clerkClient.users.getUser(userId),
-      getPinnedLists(userId)
-    ]);
+    const { lists: unsortedLists } = await getPinnedLists(user.id);
+    
+    // Apply sorting
+    const sortedLists = [...unsortedLists].sort((a, b) => {
+      switch (searchParams.sort) {
+        case 'views':
+          return (b.stats.viewCount || 0) - (a.stats.viewCount || 0);
+        case 'pins':
+          return (b.stats.pinCount || 0) - (a.stats.pinCount || 0);
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        default: // newest
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
     
     return (
       <MyListsLayout 
-        lists={lists}
+        lists={sortedLists}
         initialUser={{
           id: user.id,
-          username: user.username,
-          fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || null,
-          imageUrl: user.imageUrl,
+          username: user.username || null,
+          fullName: user.fullName || null,
+          imageUrl: user.imageUrl || "",
         }}
       />
     );

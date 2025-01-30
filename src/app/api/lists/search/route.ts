@@ -1,202 +1,78 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { connectToDatabase } from "@/lib/db/mongodb";
+import { AuthService } from "@/lib/services/auth.service";
+import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel } from "@/lib/db/models-v2/list";
+import { getEnhancedLists } from "@/lib/actions/lists";
 import { FilterQuery } from "mongoose";
 import { MongoListDocument } from "@/types/mongo";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest) {
+export async function GET(request: Request) {
+  const user = await AuthService.getCurrentUser();
+
   try {
-    const { userId } = auth();
-    const searchParams = req.nextUrl.searchParams;
-    
-    const q = searchParams.get('q') || '';
-    const category = searchParams.get('category');
-    const owner = searchParams.get('owner');
-    const sort = searchParams.get('sort') || 'recent';
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get("q") || "";
+    const category = searchParams.get("category");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const page = parseInt(searchParams.get("page") || "1");
+    const skip = (page - 1) * limit;
 
-    await connectToDatabase();
-    const ListModel = await getListModel();
+    // Build search query
+    const searchQuery: any = {
+      $and: [
+        {
+          $or: [
+            { title: { $regex: query, $options: "i" } },
+            { description: { $regex: query, $options: "i" } }
+          ]
+        }
+      ]
+    };
 
-    // Build match conditions for the aggregation pipeline
-    const matchConditions: FilterQuery<MongoListDocument>[] = [];
-
-    // Add search conditions
-    if (q) {
-      matchConditions.push({
-        $or: [
-          { title: { $regex: q, $options: 'i' } },
-          { description: { $regex: q, $options: 'i' } },
-          { 'items.title': { $regex: q, $options: 'i' } },
-          { 'items.properties.value': { $regex: q, $options: 'i' } },
-          { 'ownerDetails.username': { $regex: q, $options: 'i' } },
-          { 'ownerDetails.displayName': { $regex: q, $options: 'i' } }
-        ]
-      });
-    }
-
-    // Add category filter
+    // Add category filter if specified
     if (category) {
-      matchConditions.push({ category });
+      searchQuery.$and.push({ category });
     }
 
-    // Add visibility filter
-    if (userId) {
-      matchConditions.push({
+    // Add visibility conditions
+    if (user) {
+      searchQuery.$and.push({
         $or: [
-          { privacy: 'public' },
-          { privacy: 'private', 'owner.clerkId': userId },
-          { privacy: 'private', 'collaborators': { $elemMatch: { clerkId: userId, status: 'accepted' } } }
+          { privacy: "public" },
+          { "owner.clerkId": user.id },
+          {
+            collaborators: {
+              $elemMatch: {
+                clerkId: user.id,
+                status: "accepted"
+              }
+            }
+          }
         ]
       });
     } else {
-      matchConditions.push({ privacy: 'public' });
+      searchQuery.$and.push({ privacy: "public" });
     }
 
-    // Add owner filter
-    if (owner === 'owned' && userId) {
-      matchConditions.push({ 'owner.clerkId': userId });
-    } else if (owner === 'collaborated' && userId) {
-      matchConditions.push({
-        'collaborators.clerkId': userId,
-        'collaborators.status': 'accepted'
-      });
-    }
+    await connectToMongoDB();
+    const ListModel = await getListModel();
 
-    // Build sort options
-    const sortOptions: Record<string, 1 | -1> = {};
-    switch (sort) {
-      case 'views':
-        sortOptions['stats.viewCount'] = -1;
-        break;
-      case 'pins':
-        sortOptions['stats.pinCount'] = -1;
-        break;
-      case 'copies':
-        sortOptions['stats.copyCount'] = -1;
-        break;
-      default:
-        sortOptions.createdAt = -1;
-    }
-
-    const skip = (page - 1) * limit;
-
-    // Build aggregation pipeline
-    const pipeline = [
-      // Join with users collection to get owner details
-      {
-        $lookup: {
-          from: 'users',
-          let: { ownerClerkId: '$owner.clerkId' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$clerkId', '$$ownerClerkId'] }
-              }
-            },
-            {
-              $project: {
-                username: 1,
-                displayName: 1
-              }
-            }
-          ],
-          as: 'ownerDetails'
-        }
-      },
-      {
-        $unwind: '$ownerDetails'
-      },
-      // Match conditions
-      {
-        $match: matchConditions.length > 0 ? { $and: matchConditions } : {}
-      },
-      // Sort
-      { $sort: sortOptions },
-      // Pagination
-      { $skip: skip },
-      { $limit: limit }
-    ];
-
-    const countPipeline = [
-      // Join with users collection
-      {
-        $lookup: {
-          from: 'users',
-          let: { ownerClerkId: '$owner.clerkId' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$clerkId', '$$ownerClerkId'] }
-              }
-            },
-            {
-              $project: {
-                username: 1,
-                displayName: 1
-              }
-            }
-          ],
-          as: 'ownerDetails'
-        }
-      },
-      {
-        $unwind: '$ownerDetails'
-      },
-      // Match conditions
-      {
-        $match: matchConditions.length > 0 ? { $and: matchConditions } : {}
-      },
-      // Count
-      { $count: 'total' }
-    ];
-
-    const [lists, [countResult]] = await Promise.all([
-      ListModel.aggregate(pipeline),
-      ListModel.aggregate(countPipeline)
+    // Get lists with pagination
+    const [total, { lists }] = await Promise.all([
+      ListModel.countDocuments(searchQuery),
+      getEnhancedLists(searchQuery, { skip, limit, sort: { createdAt: -1 } })
     ]);
 
-    const total = countResult?.total || 0;
-
-    // Convert MongoDB documents to List type
-    const serializedLists = lists.map((list: MongoListDocument & { ownerDetails: { username: string; displayName: string } }) => ({
-      id: list._id.toString(),
-      title: list.title,
-      description: list.description,
-      category: list.category,
-      privacy: list.privacy,
-      owner: {
-        ...list.owner,
-        username: list.ownerDetails.username,
-        displayName: list.ownerDetails.displayName
-      },
-      items: list.items,
-      stats: list.stats,
-      collaborators: list.collaborators,
-      lastEditedAt: list.lastEditedAt,
-      createdAt: list.createdAt,
-      updatedAt: list.updatedAt,
-      editedAt: list.editedAt
-    }));
-
     return NextResponse.json({
-      lists: serializedLists,
-      pagination: {
-        total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit)
-      }
+      lists,
+      total,
+      page,
+      pageSize: limit
     });
   } catch (error) {
     console.error("Error searching lists:", error);
-    return NextResponse.json(
-      { error: "Failed to search lists" },
-      { status: 500 }
-    );
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 } 
