@@ -46,7 +46,6 @@ export interface UserProfileBaseProps {
   onClick?: () => void;
   profilePath?: string;
   showEditButton?: boolean;
-  extraButtons?: React.ReactNode;
   actions?: React.ReactNode;
 }
 
@@ -87,7 +86,6 @@ export function UserProfileBase({
   onClick,
   profilePath,
   showEditButton = false,
-  extraButtons,
   actions,
 }: UserProfileBaseProps) {
   const displayName = formatDisplayName(firstName, lastName, username);
@@ -129,7 +127,6 @@ export function UserProfileBase({
                     </Button>
                   </Link>
                 )}
-                {extraButtons}
                 {!hideFollow && (
                   <FollowButton
                     username={username}

@@ -2,6 +2,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { UserNav } from "@/components/layout/nav/user-nav";
 import { useRouter } from "next/navigation";
 
 interface SubNavbarProps {
@@ -32,7 +33,9 @@ export function SubNavbar({ title }: SubNavbarProps) {
           </h1>
 
           {/* Remaining space */}
-          <div className="flex-1" />
+          <div className="flex-1">
+              <UserNav />
+          </div>
         </div>
       </div>
     </header>

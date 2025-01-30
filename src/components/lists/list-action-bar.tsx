@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ListActionBarProps {
   listId: string;
@@ -42,14 +48,16 @@ export default function ListActionBar({
 
     try {
       setIsPinning(true);
-      const method = isPinned ? "DELETE" : "POST";
       const response = await fetch(`/api/lists/${listId}/pin`, {
-        method,
+        method: "POST",
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to update pin");
+        if (response.headers.get("content-type")?.includes("application/json")) {
+          const data = await response.json();
+          throw new Error(data.error || "Failed to update pin");
+        }
+        throw new Error("Failed to update pin");
       }
 
       onPinChange?.(!isPinned);
@@ -75,13 +83,13 @@ export default function ListActionBar({
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to copy list");
+        const errorData = await response.text();
+        throw new Error(errorData || "Failed to copy list");
       }
 
       const data = await response.json();
       toast.success("List copied successfully");
-      router.push(`/${data.username}/lists/${data.id}/edit`);
+      router.push(`/profile/lists/edit/${data.list.id}`);
     } catch (error) {
       console.error("Failed to copy list:", error);
       toast.error(error instanceof Error ? error.message : "Failed to copy list");
@@ -91,33 +99,55 @@ export default function ListActionBar({
   };
 
   return (
-    <div className="flex gap-2">
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={handleShare}
-        title="Share list"
-      >
-        <Share2 className="h-4 w-4" />
-      </Button>
-      <Button
-        variant={isPinned ? "default" : "outline"}
-        size="icon"
-        onClick={handlePin}
-        disabled={isPinning}
-        title={isPinned ? "Unpin list" : "Pin list"}
-      >
-        <Pin className={`h-4 w-4 ${isPinned ? "fill-current" : ""}`} />
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={handleCopy}
-        disabled={isCopying}
-        title="Copy list"
-      >
-        <Copy className="h-4 w-4" />
-      </Button>
-    </div>
+    <TooltipProvider>
+      <div className="flex gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleShare}
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Share list</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={isPinned ? "default" : "outline"}
+              size="icon"
+              onClick={handlePin}
+              disabled={isPinning}
+            >
+              <Pin className={`h-4 w-4 ${isPinned ? "fill-current" : ""}`} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{isPinned ? "Unpin list" : "Pin list"}</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleCopy}
+              disabled={isCopying}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Copy list</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
   );
 } 

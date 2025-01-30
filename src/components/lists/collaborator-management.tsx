@@ -11,8 +11,10 @@ import { useAuth } from "@clerk/nextjs";
 
 interface Collaborator {
   userId: string;
+  clerkId: string;
   username: string;
   email?: string;
+  imageUrl?: string;
   role: 'owner' | 'admin' | 'editor' | 'viewer';
   status?: 'pending' | 'accepted' | 'rejected';
   _isEmailInvite?: boolean;
@@ -62,13 +64,32 @@ export function CollaboratorManagement({
     });
   }, []);
 
+  // Function to fetch collaborators
+  const fetchCollaborators = async () => {
+    setIsLoadingCollaborators(true);
+    try {
+      const response = await fetch(`/api/lists/${listId}/collaborators`);
+      if (!response.ok) throw new Error();
+      const data = await response.json();
+      setCollaborators(data.collaborators || []);
+    } catch (error) {
+      toast.error("Failed to load collaborators");
+    } finally {
+      setIsLoadingCollaborators(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCollaborators();
+  }, [listId]);
+
   useEffect(() => {
     const fetchFollowing = async () => {
       try {
         const response = await fetch('/api/users/following');
         if (!response.ok) throw new Error();
         const data = await response.json();
-        setFollowingIds(data.results.map((result: FollowingResult) => result.followingId));
+        setFollowingIds(data.following.map((result: FollowingResult) => result.followingId));
       } catch (error) {
         console.error('Failed to fetch following:', error);
         toast.error("Failed to load following users");
@@ -80,30 +101,12 @@ export function CollaboratorManagement({
     fetchFollowing();
   }, []);
 
-  useEffect(() => {
-    const fetchCollaborators = async () => {
-      setIsLoadingCollaborators(true);
-      try {
-        const response = await fetch(`/api/lists/${listId}/collaborators`);
-        if (!response.ok) throw new Error();
-        const data = await response.json();
-        setCollaborators(data);
-      } catch (error) {
-        toast.error("Failed to load collaborators");
-      } finally {
-        setIsLoadingCollaborators(false);
-      }
-    };
-
-    fetchCollaborators();
-  }, [listId]);
-
   const handleClose = () => {
     setIsOpen(false);
     setTimeout(onClose, 300); // Wait for animation to complete
   };
 
-  const handleInvite = async (value: { type: 'user', userId: string, username: string } | { type: 'email', email: string }) => {
+  const handleInvite = async (value: { type: 'user' | 'email', userId?: string, username?: string, email?: string }) => {
     const toastId = toast.loading(
       value.type === 'user' 
         ? 'Adding collaborator...' 
@@ -126,7 +129,6 @@ export function CollaboratorManagement({
         body: JSON.stringify({
           ...value,
           role: 'viewer',
-          // Automatically accept if it's an app user
           status: value.type === 'user' ? 'accepted' : 'pending'
         })
       });
@@ -135,8 +137,9 @@ export function CollaboratorManagement({
         throw new Error('Failed to add collaborator');
       }
 
-      const data = await response.json();
-      setCollaborators(prev => [...prev, data]);
+      // Fetch fresh collaborator data to ensure we have all the latest information including images
+      await fetchCollaborators();
+
       toast.success(
         value.type === 'user' 
           ? 'Collaborator added successfully' 
@@ -227,11 +230,12 @@ export function CollaboratorManagement({
 
       // Refresh collaborators list
       const updatedResponse = await fetch(`/api/lists/${listId}/collaborators`);
-      if (updatedResponse.ok) {
-        const data = await updatedResponse.json();
-        setCollaborators(data);
+      if (!updatedResponse.ok) {
+        throw new Error('Failed to fetch updated collaborators');
       }
 
+      const data = await updatedResponse.json();
+      setCollaborators(data.collaborators || []);
       toast.success("Role updated!", { id: toastId });
     } catch (error) {
       if (error instanceof Error) {
@@ -245,55 +249,63 @@ export function CollaboratorManagement({
   };
 
   const handleRemoveCollaborator = async (collaboratorId: string) => {
+    const toastId = toast.loading('Removing collaborator...');
     const isCurrentUser = collaboratorId === userId;
-    const toastId = toast.loading(
-      isCurrentUser ? 'Leaving list...' : 'Removing collaborator...'
-    );
-    setIsLoading(true);
+    
     try {
-      const currentCollaborator = collaborators.find(c => c.userId === collaboratorId);
-      
-      // Only allow removal if:
-      // 1. The user is removing themselves, OR
-      // 2. The user is the owner or admin
-      if (!isCurrentUser && !canManageCollaborators) {
+      setIsLoading(true);
+
+      // Check if user has permission to remove collaborators
+      if (!canManageCollaborators && !isCurrentUser) {
         throw new Error("You don't have permission to remove other collaborators");
       }
 
-      // Don't allow the owner to remove themselves
-      if (isCurrentUser && currentCollaborator?.role === 'owner') {
-        throw new Error("The owner cannot leave the list");
+      const targetCollaborator = collaborators.find(c => c.userId === collaboratorId);
+      if (targetCollaborator?.role === 'owner') {
+        throw new Error("Cannot remove the owner");
       }
 
-      const response = await fetch(`/api/lists/${listId}/collaborators/${collaboratorId}`, {
-        method: "DELETE",
+      // Use clerkId for the API call
+      const clerkId = targetCollaborator?.clerkId || collaboratorId;
+      const response = await fetch(`/api/lists/${listId}/collaborators/${clerkId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
       if (!response.ok) {
-        throw new Error();
+        throw new Error('Failed to remove collaborator');
       }
 
+      // After successful deletion, fetch the updated collaborators list
+      const updatedResponse = await fetch(`/api/lists/${listId}/collaborators`);
+      if (!updatedResponse.ok) {
+        throw new Error('Failed to fetch updated collaborators');
+      }
+
+      const data = await updatedResponse.json();
+      if (!Array.isArray(data.collaborators)) {
+        throw new Error('Invalid collaborators data received');
+      }
+
+      setCollaborators(data.collaborators);
+      
       // If the user removed themselves, close the sheet
       if (isCurrentUser) {
-        handleClose();
-        toast.success("You left the list", { id: toastId });
-        return;
+        onClose();
       }
 
-      // Otherwise refresh collaborators list
-      const updatedResponse = await fetch(`/api/lists/${listId}/collaborators`);
-      if (updatedResponse.ok) {
-        const data = await updatedResponse.json();
-        setCollaborators(data);
-      }
-
-      toast.success("Collaborator removed!", { id: toastId });
+      toast.success(
+        isCurrentUser ? 'You left the list' : 'Collaborator removed successfully',
+        { id: toastId }
+      );
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message, { id: toastId });
       } else {
         toast.error(
-          isCurrentUser ? "Failed to leave list" : "Failed to remove collaborator",
+          isCurrentUser ? 'Failed to leave list' : 'Failed to remove collaborator',
           { id: toastId }
         );
       }
@@ -383,7 +395,10 @@ export function CollaboratorManagement({
                       onSelect={handleInvite}
                       disabled={isLoading || isLoadingFollowing}
                       userIds={followingIds}
-                      excludeUserIds={collaborators.map(c => c.userId)}
+                      excludeUserIds={collaborators
+                        .filter(c => !c._isEmailInvite && c.clerkId)
+                        .map(c => c.clerkId)
+                      }
                     />
                   </div>
                   <div className="h-[1px] bg-border" />
@@ -393,28 +408,30 @@ export function CollaboratorManagement({
               {/* Collaborators list */}
               <div className="space-y-4">
                 {isLoadingCollaborators ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <CollaboratorCard
-                        userId="loading"
-                        username="loading"
-                        role="viewer"
-                        linkToProfile={false}
-                      />
-                    </div>
-                  ))
+                  <CollaboratorCard
+                    key="loading-collaborator"
+                    userId="loading-collaborator"
+                    username="loading"
+                    role="viewer"
+                    linkToProfile={false}
+                    className="animate-pulse"
+                  />
                 ) : collaborators.map((collaborator) => {
                   const isCurrentUser = collaborator.userId === userId;
                   const canManageRoles = canManageCollaborators && collaborator.role !== 'owner';
+                  const uniqueKey = collaborator._isEmailInvite 
+                    ? `email-invite-${collaborator.email}-${collaborator.userId}`
+                    : `collaborator-${collaborator.userId}`;
                   return (
                     <CollaboratorCard
-                      key={collaborator.userId}
+                      key={uniqueKey}
                       userId={collaborator.userId}
                       username={collaborator.username}
                       email={collaborator.email}
+                      imageUrl={collaborator.imageUrl}
                       role={collaborator.role}
                       status={collaborator.status}
-                      clerkId={!collaborator._isEmailInvite ? collaborator.userId : undefined}
+                      clerkId={!collaborator._isEmailInvite ? collaborator.clerkId : undefined}
                       canManageRoles={canManageRoles}
                       isOwner={isOwner}
                       currentUserRole={isCurrentUser ? collaborator.role : undefined}

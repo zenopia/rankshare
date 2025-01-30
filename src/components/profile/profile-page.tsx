@@ -24,6 +24,10 @@ import { z } from "zod";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProtectedPageWrapper } from "@/components/auth/protected-page-wrapper";
 import { useClerk } from "@clerk/nextjs";
+import { ProfileUpdateInput } from '@/lib/validations/api';
+
+const genderEnum = z.enum(['male', 'female', 'other', 'prefer-not-to-say']);
+type Gender = z.infer<typeof genderEnum>;
 
 // Remove validation schema since fields are no longer required
 const profileSchema = z.object({
@@ -302,7 +306,7 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
                   <Label htmlFor="gender">Gender</Label>
                   <Select
                     value={profileData.gender || ''}
-                    onValueChange={(value) => handleChange('gender', value)}
+                    onValueChange={(value) => handleChange('gender', value as 'male' | 'female' | 'other' | 'prefer-not-to-say')}
                   >
                     <SelectTrigger 
                       className="bg-background"

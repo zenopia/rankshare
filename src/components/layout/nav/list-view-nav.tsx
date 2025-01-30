@@ -2,12 +2,18 @@
 
 import { ArrowLeft, UserPlus, MessageSquare } from "lucide-react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
+import { UserNav } from "@/components/layout/nav/user-nav";
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useUsers } from "@/hooks/use-users"
 import { ListCollaborator } from "@/types/list"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipTrigger,
+  TooltipProvider 
+} from "@/components/ui/tooltip"
 import Link from "next/link"
 
 interface ListViewNavProps {
@@ -71,69 +77,63 @@ export function ListViewNav({
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-lg font-semibold truncate">{title}</h1>
+        <FeedbackButton />
       </div>
       
       <div className="flex items-center gap-2">
         {(isOwner || isCollaborator) && (
-          <>
-            {acceptedCollaborators.length > 0 && userData && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={onCollaboratorsClick}
-                className={cn(
-                  "h-10 px-3 min-w-fit flex items-center gap-3 whitespace-nowrap",
-                  showCollaborators && "bg-accent"
-                )}
-              >
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex -space-x-3 mr-2">
-                      {acceptedCollaborators.length > 5 ? (
-                        <>
-                          {userData.slice(0, 5).map((user) => (
+          <TooltipProvider>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onCollaboratorsClick}
+              className={cn(
+                "h-10 px-3 min-w-fit flex items-center gap-3 whitespace-nowrap mr-4",
+                showCollaborators && "bg-accent"
+              )}
+            >
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center">
+                    {acceptedCollaborators.length > 0 && userData && (
+                      <div className="flex -space-x-3 mr-3">
+                        {acceptedCollaborators.length > 5 ? (
+                          <>
+                            {userData.slice(0, 5).map((user) => (
+                              <Avatar key={user.id} className="h-6 w-6 border-2 border-background ring-0">
+                                <AvatarImage src={user.imageUrl ?? undefined} alt={user.username || ''} />
+                                <AvatarFallback>{user.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+                              </Avatar>
+                            ))}
+                            <div className="h-6 w-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
+                              +{acceptedCollaborators.length - 5}
+                            </div>
+                          </>
+                        ) : (
+                          userData.map((user) => (
                             <Avatar key={user.id} className="h-6 w-6 border-2 border-background ring-0">
                               <AvatarImage src={user.imageUrl ?? undefined} alt={user.username || ''} />
                               <AvatarFallback>{user.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
                             </Avatar>
-                          ))}
-                          <Avatar className="h-6 w-6 border-2 border-background ring-0 bg-muted">
-                            <AvatarFallback className="text-xs text-[#801CCC]">+{acceptedCollaborators.length - 5}</AvatarFallback>
-                          </Avatar>
-                        </>
-                      ) : (
-                        userData.map((user) => (
-                          <Avatar key={user.id} className="h-6 w-6 border-2 border-background ring-0">
-                            <AvatarImage src={user.imageUrl ?? undefined} alt={user.username || ''} />
-                            <AvatarFallback>{user.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
-                          </Avatar>
-                        ))
-                      )}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-sm">{acceptedCollaborators.length} collaborators</p>
-                  </TooltipContent>
-                </Tooltip>
-                <UserPlus className="h-4 w-4 flex-shrink-0" />
-              </Button>
-            )}
-            {!acceptedCollaborators.length && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={onCollaboratorsClick}
-                className={cn(
-                  "h-10",
-                  showCollaborators && "bg-accent"
-                )}
-              >
-                <UserPlus className="h-4 w-4" />
-              </Button>
-            )}
-          </>
+                          ))
+                        )}
+                      </div>
+                    )}
+                    {isOwner && (
+                      <div className="flex items-center">
+                        <UserPlus className="h-4 w-4" />
+                      </div>
+                    )}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isOwner ? "Manage collaborators" : "View collaborators"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </Button>
+          </TooltipProvider>
         )}
-        <FeedbackButton />
+        <UserNav />
       </div>
     </div>
   );

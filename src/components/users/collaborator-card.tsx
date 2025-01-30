@@ -21,6 +21,7 @@ export interface CollaboratorCardProps {
   userId: string;
   username?: string;
   email?: string;
+  imageUrl?: string;
   role: 'owner' | 'admin' | 'editor' | 'viewer';
   status?: 'pending' | 'accepted' | 'rejected';
   clerkId?: string;
@@ -42,6 +43,7 @@ export function CollaboratorCard({
   userId, 
   username, 
   email,
+  imageUrl,
   role,
   clerkId,
   linkToProfile = true,
@@ -57,13 +59,13 @@ export function CollaboratorCard({
   className
 }: CollaboratorCardProps) {
   const isEmailInvite = !clerkId;
-  const { data: users, isLoading } = useUsers([userId]);
+  const { data: users, isLoading } = useUsers(isEmailInvite ? [] : [userId]);
   const userData = isEmailInvite ? null : users?.[0];
   const pathname = usePathname();
   const relativePath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
-  const usernameWithAt = username.startsWith('@') ? username : `@${username}`;
+  const usernameWithAt = username ? (username.startsWith('@') ? username : `@${username}`) : '';
 
-  if (isLoading) {
+  if (isLoading && !imageUrl) {
     return (
       <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
         <div className="flex items-center gap-3 min-w-0">
@@ -166,10 +168,10 @@ export function CollaboratorCard({
           </div>
         ) : (
           <UserProfileBase
-            username={userData?.username || username || ''}
+            username={username || userData?.username || ''}
             firstName={firstName}
             lastName={lastName}
-            imageUrl={userData?.imageUrl}
+            imageUrl={imageUrl || userData?.imageUrl}
             variant="compact"
             hideFollow={true}
             linkToProfile={false}

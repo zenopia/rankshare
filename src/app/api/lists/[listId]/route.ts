@@ -91,8 +91,8 @@ export async function PUT(
   { params }: { params: { listId: string } }
 ) {
   try {
-    const { userId } = auth();
-    if (!userId) {
+    const currentUser = await AuthService.getCurrentUser();
+    if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -100,6 +100,7 @@ export async function PUT(
     const data = await request.json();
     const { title, description, category, privacy, items } = data;
 
+    await connectToMongoDB();
     const ListModel = await getListModel();
     const UserModel = await getUserModel();
 
@@ -113,7 +114,7 @@ export async function PUT(
     }
 
     // Check edit permissions
-    if (!await canEditList(list, userId)) {
+    if (!await canEditList(list, currentUser.id)) {
       return NextResponse.json(
         { error: "Not authorized to edit this list" },
         { status: 403 }
@@ -121,8 +122,8 @@ export async function PUT(
     }
 
     // Get user for username
-    const user = await UserModel.findOne({ clerkId: list.owner.clerkId }).lean();
-    if (!user) {
+    const ownerUser = await UserModel.findOne({ clerkId: list.owner.clerkId }).lean();
+    if (!ownerUser) {
       return NextResponse.json(
         { error: "List owner not found" },
         { status: 404 }
@@ -169,7 +170,7 @@ export async function PUT(
     const responseList = {
       ...rest,
       id: _id.toString(),
-      username: user.username,
+      username: ownerUser.username,
       createdAt: updatedList.createdAt?.toISOString(),
       updatedAt: updatedList.updatedAt?.toISOString(),
       editedAt: updatedList.editedAt?.toISOString(),

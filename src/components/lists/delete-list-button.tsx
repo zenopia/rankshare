@@ -43,7 +43,7 @@ export function DeleteListButton({ listId }: DeleteListButtonProps) {
       }
 
       toast.success("List deleted successfully");
-      router.push("/my-lists");
+      router.push("/profile/lists");
       router.refresh();
     } catch (error) {
       console.error("Error deleting list:", error);
