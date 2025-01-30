@@ -218,7 +218,7 @@ export default async function ListPage({ params, searchParams }: PageProps) {
     return (
       <ListPageContent
         list={enhancedList}
-        isOwner={userId === owner.id}
+        isOwner={!!userId && userId === owner.id}
         isPinned={!!pinDoc}
         isFollowing={!!followStatus}
         isCollaborator={isCollaborator}
