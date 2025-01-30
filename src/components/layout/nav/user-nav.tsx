@@ -3,19 +3,15 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth.context";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Settings, LogOut } from "lucide-react";
+import { useState } from "react";
+import { Portal } from "@radix-ui/react-portal";
+import { cn } from "@/lib/utils";
 
 export function UserNav() {
   const { isSignedIn, isLoaded, user, signOut } = useAuth();
+  const [open, setOpen] = useState(false);
 
   if (!isLoaded) {
     return null;
@@ -38,43 +34,87 @@ export function UserNav() {
     : user.username?.[0]?.toUpperCase() || "U";
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={user.imageUrl || undefined} alt={user.fullName || user.username || ""} />
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.fullName || user.username}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
-            </p>
+    <>
+      <Button
+        variant="ghost"
+        className="relative h-8 w-8 rounded-full"
+        onClick={() => setOpen(true)}
+      >
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={user.imageUrl || undefined} alt={user.fullName || user.username || ""} />
+          <AvatarFallback>{initials}</AvatarFallback>
+        </Avatar>
+      </Button>
+
+      <Portal>
+        {/* Backdrop */}
+        <div 
+          className={cn(
+            "fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity duration-300",
+            open ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+          onClick={() => setOpen(false)}
+          style={{ zIndex: 9999 }}
+        />
+
+        {/* User Menu Side Sheet */}
+        <div 
+          className={cn(
+            "fixed inset-y-0 right-0 h-full w-[280px] bg-white dark:bg-background p-6 shadow-lg transition-transform duration-300 ease-in-out border-l",
+            open ? "translate-x-0" : "translate-x-full"
+          )}
+          style={{ zIndex: 10000 }}
+        >
+          <div className="flex flex-col h-full">
+            <div className="flex flex-col items-end space-y-2 mb-6">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={user.imageUrl || undefined} alt={user.fullName || user.username || ""} />
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col items-end">
+                <p className="text-sm font-medium leading-none">{user.fullName || user.username}</p>
+                <p className="text-xs leading-none text-muted-foreground mt-1">
+                  {user.email}
+                </p>
+              </div>
+            </div>
+
+            <div className="h-px bg-border my-4" />
+
+            <nav className="flex flex-col space-y-4">
+              <Link
+                href={`/profile/${user.username}`}
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+              >
+                <User className="h-4 w-4" />
+                <span>Profile</span>
+              </Link>
+              <Link
+                href="/profile/settings"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent"
+              >
+                <Settings className="h-4 w-4" />
+                <span>Settings</span>
+              </Link>
+
+              <div className="h-px bg-border my-2" />
+
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  signOut();
+                }}
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent w-full text-left"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sign out</span>
+              </button>
+            </nav>
           </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href={`/profile/${user.username}`}>
-            <User className="mr-2 h-4 w-4" />
-            Profile
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/profile/settings">
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => signOut()}>
-          <LogOut className="mr-2 h-4 w-4" />
-          Sign out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </div>
+      </Portal>
+    </>
   );
 } 

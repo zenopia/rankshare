@@ -2,7 +2,7 @@
 
 import { ArrowLeft, UserPlus, MessageSquare } from "lucide-react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
-import { UserNav } from "@/components/layout/nav/user-nav";
+
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -133,7 +133,7 @@ export function ListViewNav({
             </Button>
           </TooltipProvider>
         )}
-        <UserNav />
+        
       </div>
     </div>
   );

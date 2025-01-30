@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { DraggableProvidedDragHandleProps } from "@hello-pangea/dnd";
 import { GripVertical, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,6 @@ interface DraggableListItemProps {
     id: string;
     title: string;
     comment?: string;
-    rank: number;
     properties?: Array<{
       id: string;
       type?: 'text' | 'link';
@@ -20,11 +19,11 @@ interface DraggableListItemProps {
       value: string;
     }>;
   };
+  index: number;
   dragHandleProps?: DraggableProvidedDragHandleProps | null;
   onUpdate: (updates: Partial<{
     title: string;
     comment?: string;
-    rank: number;
     properties?: Array<{
       id: string;
       type?: 'text' | 'link';
@@ -38,23 +37,13 @@ interface DraggableListItemProps {
 
 export function DraggableListItem({
   item,
+  index,
   dragHandleProps,
   onUpdate,
   onRemove,
   disabled
 }: DraggableListItemProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [shouldAnimate, setShouldAnimate] = useState(false);
-  const prevRankRef = useRef(item.rank);
-
-  useEffect(() => {
-    if (item.rank !== prevRankRef.current) {
-      setShouldAnimate(true);
-      const timer = setTimeout(() => setShouldAnimate(false), 1000);
-      prevRankRef.current = item.rank;
-      return () => clearTimeout(timer);
-    }
-  }, [item.rank]);
 
   return (
     <div
@@ -64,16 +53,10 @@ export function DraggableListItem({
       `}
     >
       <div 
-        className={cn(
-          "flex items-center justify-center min-w-[3rem] bg-muted rounded-l-lg",
-          shouldAnimate && "animate-flash"
-        )}
-        style={{
-          animationDuration: "1s"
-        }}
+        className="flex items-center justify-center min-w-[3rem] bg-muted rounded-l-lg"
       >
         <span className="text-base font-medium">
-          {item.rank}
+          {index + 1}
         </span>
       </div>
 

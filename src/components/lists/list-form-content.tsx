@@ -28,14 +28,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { DraggableListItem } from "@/components/lists/draggable-list-item";
 
 interface ListItem {
   id: string;
   title: string;
   comment?: string;
-  rank: number;
   properties?: Array<{
     id: string;
     type?: 'text' | 'link';
@@ -60,7 +66,6 @@ export interface ListFormProps {
       id: string;
       title: string;
       comment?: string;
-      rank: number;
       properties?: Array<{
         id: string;
         type?: 'text' | 'link';
@@ -106,15 +111,24 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [items, setItems] = useState<ListItem[]>(() => {
-    const existingItems = defaultValues?.items || [];
-    return existingItems.map((item, index) => ({
-      ...item,
-      rank: index + 1,
-      properties: (item.properties || []).map(prop => ({
-        ...prop,
-        id: prop.id || Math.random().toString(36).substr(2, 9)
-      }))
-    }));
+    if (defaultValues?.items && defaultValues.items.length > 0) {
+      return defaultValues.items.map(item => ({
+        ...item,
+        properties: (item.properties || []).map(prop => ({
+          ...prop,
+          id: prop.id || Math.random().toString(36).substr(2, 9)
+        }))
+      }));
+    }
+    // Initialize with an empty item in create mode
+    if (mode === 'create') {
+      return [{
+        id: Math.random().toString(36).substr(2, 9),
+        title: '',
+        properties: []
+      }];
+    }
+    return [];
   });
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -149,9 +163,9 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
     try {
       const payload = {
         ...data,
-        items: items.map((item, index) => ({
+        listType: 'ordered',
+        items: items.map(item => ({
           title: item.title,
-          rank: index + 1,
           comment: item.comment,
           properties: item.properties?.map(prop => ({
             type: prop.type || 'text',
@@ -214,31 +228,13 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
     const [removed] = reorderedItems.splice(result.source.index, 1);
     reorderedItems.splice(result.destination.index, 0, removed);
 
-    const oldRanks = items.reduce((acc, item) => {
-      acc[item.id] = item.rank;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const updatedItems = reorderedItems.map((item, index) => ({
-      ...item,
-      rank: index + 1
-    }));
-
-    const finalItems = updatedItems.map(item => {
-      if (oldRanks[item.id] !== item.rank) {
-        return { ...item };
-      }
-      return item;
-    });
-
-    setItems(finalItems);
+    setItems(reorderedItems);
   };
 
   const addItem = (title: string = "") => {
     const newItem: ListItem = {
       id: Math.random().toString(36).substr(2, 9),
       title,
-      rank: items.length + 1,
       properties: [] as Array<{
         id: string;
         type?: 'text' | 'link';
@@ -259,7 +255,6 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
       .map((line, index) => ({
         id: Math.random().toString(36).substr(2, 9),
         title: line.trim(),
-        rank: items.length + index + 1,
         properties: []
       }));
 
@@ -283,31 +278,16 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
 
   const removeItem = (id: string) => {
     const _itemIndex = items.findIndex(item => item.id === id);
-    const oldRanks = items.reduce((acc, item) => {
-      acc[item.id] = item.rank;
-      return acc;
-    }, {} as Record<string, number>);
 
     const filteredItems = items
-      .filter(item => item.id !== id)
-      .map((item, index) => ({
-        ...item,
-        rank: index + 1
-      }));
+      .filter(item => item.id !== id);
 
-    const updatedItems = filteredItems.map(item => {
-      if (oldRanks[item.id] !== item.rank) {
-        return { ...item };
-      }
-      return item;
-    });
-
-    setItems(updatedItems);
+    setItems(filteredItems);
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         <div className="max-w-4xl mx-auto space-y-8">
           <div className="space-y-4">
             <FormField
@@ -318,7 +298,7 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
                   <FormControl>
                     <Input
                       placeholder="List title"
-                      className="text-lg font-medium h-12"
+                      className="text-4xl font-bold h-14 text-foreground"
                       {...field}
                     />
                   </FormControl>
@@ -416,53 +396,63 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-medium">Items</h3>
               <div className="flex gap-2">
-                <Sheet open={quickAddOpen} onOpenChange={setQuickAddOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="sm">
+                <Dialog open={quickAddOpen} onOpenChange={setQuickAddOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      disabled={isSubmitting}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
                       Quick Add
                     </Button>
-                  </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[50vh]">
-                    <SheetHeader>
-                      <SheetTitle>Quick Add Items</SheetTitle>
-                      <SheetDescription>
-                        Enter one item per line
-                      </SheetDescription>
-                    </SheetHeader>
-                    <div className="mt-4 space-y-4">
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Quick Add Multiple Items</DialogTitle>
+                      <DialogDescription>
+                        Enter one item per line. Each line will be added as a separate item.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-4">
                       <Textarea
-                        className="min-h-[200px]"
-                        placeholder={`Item 1
-Item 2
-Item 3`}
+                        placeholder="Enter items (one per line)"
                         value={quickAddText}
                         onChange={(e) => setQuickAddText(e.target.value)}
+                        className="min-h-[200px]"
                       />
-                      <div className="flex justify-end gap-2">
+                      <div className="mt-4 flex justify-end gap-2">
                         <Button
+                          type="button"
                           variant="outline"
                           onClick={() => setQuickAddOpen(false)}
                         >
                           Cancel
                         </Button>
                         <Button
-                          onClick={() => quickAddItems(quickAddText)}
-                          disabled={!quickAddText.trim()}
+                          type="button"
+                          onClick={() => {
+                            quickAddItems(quickAddText);
+                            setQuickAddText('');
+                            setQuickAddOpen(false);
+                          }}
                         >
                           Add Items
                         </Button>
                       </div>
                     </div>
-                  </SheetContent>
-                </Sheet>
+                  </DialogContent>
+                </Dialog>
                 
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
                   onClick={() => addItem()}
+                  className="w-full"
+                  disabled={isSubmitting}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="mr-2 h-4 w-4" />
                   Add Item
                 </Button>
               </div>
@@ -477,18 +467,15 @@ Item 3`}
                     className="space-y-2"
                   >
                     {items.map((item, index) => (
-                      <Draggable
-                        key={item.id}
-                        draggableId={item.id}
-                        index={index}
-                      >
-                        {(provided, _snapshot) => (
+                      <Draggable key={item.id} draggableId={item.id} index={index}>
+                        {(provided) => (
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                           >
                             <DraggableListItem
                               item={item}
+                              index={index}
                               dragHandleProps={provided.dragHandleProps}
                               onUpdate={(updates) => updateItem(item.id, updates)}
                               onRemove={() => removeItem(item.id)}

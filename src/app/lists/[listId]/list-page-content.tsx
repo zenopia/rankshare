@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import type { EnhancedList } from "@/types/list";
+import { ListLayout } from "@/components/layout/list-layout";
 
 interface ListPageContentProps {
   list: EnhancedList;
@@ -32,34 +33,7 @@ export function ListPageContent({
 }: ListPageContentProps) {
   const [showCollaborators, setShowCollaborators] = useState(false);
 
-  if (isLoading) {
-    return (
-      <div className="container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 space-y-8">
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-full max-w-[600px]" />
-        </div>
-        <div className="space-y-4">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  return (
+  const content = (
     <>
       <ListViewNav 
         returnPath={returnPath} 
@@ -85,4 +59,37 @@ export function ListPageContent({
       </div>
     </>
   );
+
+  if (isLoading) {
+    return (
+      <ListLayout>
+        <div className="container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 space-y-8">
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-full max-w-[600px]" />
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+          </div>
+        </div>
+      </ListLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <ListLayout>
+        <div className="container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </div>
+      </ListLayout>
+    );
+  }
+
+  return <ListLayout>{content}</ListLayout>;
 } 

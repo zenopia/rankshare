@@ -11,8 +11,7 @@ export const itemPropertySchema = z.object({
 export const listItemSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
   comment: z.string().max(1000, 'Comment is too long').optional(),
-  properties: z.array(itemPropertySchema).optional(),
-  rank: z.number().int().positive()
+  properties: z.array(itemPropertySchema).optional()
 });
 
 export const listSchema = z.object({
@@ -20,6 +19,7 @@ export const listSchema = z.object({
   category: z.enum(['movies', 'tv-shows', 'books', 'restaurants', 'recipes', 'things-to-do', 'other'] as const) satisfies z.ZodType<ListCategory>,
   description: z.string().max(500, 'Description is too long').optional(),
   privacy: z.enum(['public', 'private'] as const) satisfies z.ZodType<ListPrivacy>,
+  listType: z.enum(['ordered', 'bullets']).default('ordered'),
   items: z.array(listItemSchema)
     .min(1, 'List must have at least one item')
     .max(100, 'List cannot have more than 100 items'),

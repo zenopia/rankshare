@@ -2,7 +2,7 @@
 
 import { ArrowLeft, MessageSquare } from "lucide-react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { UserNav } from "@/components/layout/nav/user-nav";
+
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useUser } from "@clerk/clerk-react";
@@ -59,19 +59,22 @@ export function SubLayout({ children, title = "Page", action }: SubLayoutProps) 
 
     // If we're on a following/followers page
     if (pathname.includes('/following') || pathname.includes('/followers')) {
-      // Extract the username from the path
-      const username = pathname.split('/')[1];
-      // Go to the user's profile with the original from parameter preserved
-      router.push(`/${username}${from ? `?from=${from}` : ''}`);
+      // Extract the username from the path segments
+      const pathSegments = pathname.split('/');
+      const username = pathSegments[2]; // profile/[username]/following or followers
+      // Go to the user's profile with the from parameter preserved if it exists
+      router.push(`/profile/${username}${from ? `?from=${from}` : ''}`);
     } 
     // If we're on a profile page
-    else if (pathname.split('/').length === 2) {
+    else if (pathname.startsWith('/profile') && pathname.split('/').length === 3) {
       if (from) {
         // If there's a from parameter, go there
-        router.push(`/${from}`);
+        // Ensure we don't duplicate /profile/ prefix
+        const destination = from.startsWith('profile/') ? `/${from}` : from;
+        router.push(decodeURIComponent(destination));
       } else {
-        // If no from parameter, go to the signed-in user's following page
-        router.push(`/${user?.username}/following`);
+        // If no from parameter, go to the lists page
+        router.push('/profile/lists');
       }
     }
     // For any other page
@@ -106,7 +109,7 @@ export function SubLayout({ children, title = "Page", action }: SubLayoutProps) 
               </Button>
             </Link>
           )}
-          <UserNav />
+          
         </div>
       </div>
       <main className="flex-1">

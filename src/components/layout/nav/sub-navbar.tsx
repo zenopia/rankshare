@@ -34,7 +34,7 @@ export function SubNavbar({ title }: SubNavbarProps) {
 
           {/* Remaining space */}
           <div className="flex-1">
-              <UserNav />
+            <UserNav />
           </div>
         </div>
       </div>

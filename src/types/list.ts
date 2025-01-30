@@ -29,11 +29,13 @@ export const OWNER_FILTER_OPTIONS = [
   { value: 'collaborated', label: 'Collaborated Lists' }
 ] as const;
 
+export type ListPrivacy = 'public' | 'private';
+export type ListType = 'ordered' | 'bullets';
+
 export interface ListItem {
   id: string;
   title: string;
   comment?: string;
-  rank: number;
   properties?: Array<{
     id: string;
     type?: 'text' | 'link';
@@ -71,7 +73,8 @@ export interface List {
   title: string;
   description?: string;
   category: ListCategory;
-  privacy: 'public' | 'private';
+  privacy: ListPrivacy;
+  listType: ListType;
   owner: ListOwner;
   items?: ListItem[];
   stats: ListStats;

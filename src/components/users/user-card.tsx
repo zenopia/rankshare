@@ -135,36 +135,38 @@ export function UserCard({ username, displayName, imageUrl, isFollowing: initial
   }
 
   return (
-    <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-      <Link 
-        href={`/profile/${usernameWithAt}?from=${pathname.startsWith('/') ? pathname.slice(1) : pathname}`}
-        className="flex items-center gap-3 min-w-0"
-      >
-        <UserProfileBase
-          username={username}
-          firstName={displayName}
-          imageUrl={imageUrl}
-          variant="compact"
-          hideFollow={true}
-          linkToProfile={false}
-        />
-      </Link>
-      {!hideFollow && isSignedIn && (
-        <Button
-          variant={isFollowing ? "outline" : "default"}
-          size="sm"
-          className="flex-shrink-0"
-          onClick={handleFollowClick}
-          disabled={isLoading || !isReady}
-        >
-          {isLoading ? 'Loading...' : (isFollowing ? (
-            <>
-              <Check className="h-4 w-4 mr-2" />
-              Following
-            </>
-          ) : 'Follow')}
-        </Button>
-      )}
-    </div>
+    <Link 
+      href={`/profile/${usernameWithAt}?from=${pathname.startsWith('/') ? pathname.slice(1) : pathname}`}
+      className="block"
+    >
+      <div className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+        <div className="flex items-center gap-3 min-w-0">
+          <UserProfileBase
+            username={username}
+            firstName={displayName}
+            imageUrl={imageUrl}
+            variant="compact"
+            hideFollow={true}
+            linkToProfile={false}
+          />
+        </div>
+        {!hideFollow && isSignedIn && (
+          <Button
+            variant={isFollowing ? "outline" : "default"}
+            size="sm"
+            className="flex-shrink-0"
+            onClick={handleFollowClick}
+            disabled={isLoading || !isReady}
+          >
+            {isLoading ? 'Loading...' : (isFollowing ? (
+              <>
+                <Check className="h-4 w-4 mr-2" />
+                Following
+              </>
+            ) : 'Follow')}
+          </Button>
+        )}
+      </div>
+    </Link>
   );
 } 

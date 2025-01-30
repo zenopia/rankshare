@@ -306,7 +306,7 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
                   <Label htmlFor="gender">Gender</Label>
                   <Select
                     value={profileData.gender || ''}
-                    onValueChange={(value) => handleChange('gender', value as 'male' | 'female' | 'other' | 'prefer-not-to-say')}
+                    onValueChange={(value: string) => handleChange('gender', value as 'male' | 'female' | 'other' | 'prefer-not-to-say')}
                   >
                     <SelectTrigger 
                       className="bg-background"
@@ -326,7 +326,7 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
                   <Label htmlFor="living-status">Living Status</Label>
                   <Select
                     value={profileData.livingStatus || ''}
-                    onValueChange={(value) => handleChange('livingStatus', value)}
+                    onValueChange={(value: string) => handleChange('livingStatus', value as 'single' | 'couple' | 'family' | 'shared' | 'other')}
                   >
                     <SelectTrigger 
                       className="bg-background"

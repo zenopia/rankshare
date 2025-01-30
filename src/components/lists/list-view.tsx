@@ -28,45 +28,19 @@ export function ListView({
   list, 
   isOwner, 
   isCollaborator,
-  isPinned: initialIsPinned, 
+  isPinned, 
   isFollowing,
   showCollaborators,
   onCollaboratorsClick 
 }: ListViewProps) {
-  const [isPinned, setIsPinned] = useState(initialIsPinned);
   const { user } = useUser();
-  const userId = user?.id;
-
-  const handlePinChange = (newIsPinned: boolean) => {
-    setIsPinned(newIsPinned);
-  };
-
-  // Get current user's role from collaborators array
-  const currentUserRole: CollaboratorRole | undefined = isOwner ? 'owner' : userId ? list.collaborators?.find(c => 
-    c.clerkId === userId && 
-    c.status === 'accepted'
-  )?.role as CollaboratorRole : undefined;
-
-  // Check if user has edit permissions (owner, admin, or editor)
-  const canEdit = isOwner || (isCollaborator && userId && list.collaborators?.some(c => 
-    c.clerkId === userId && 
-    c.status === 'accepted' && 
-    ['admin', 'editor'].includes(c.role)
+  const canEdit = isOwner || (isCollaborator && list.collaborators?.some(
+    c => c.clerkId === user?.id && c.status === 'accepted' && ['owner', 'admin', 'editor'].includes(c.role)
   ));
+  const currentUserRole = user ? list.collaborators?.find(c => c.clerkId === user.id)?.role : undefined;
 
   return (
-    <div key="root" className="space-y-8">
-      <div key="user-section" className="user-section">
-        <UserCard
-          username={list.owner.username}
-          firstName={list.owner.displayName.split(' ')[0] || ''}
-          lastName={list.owner.displayName.split(' ').slice(1).join(' ') || ''}
-          imageUrl={list.owner.imageUrl || ''}
-          isFollowing={isFollowing}
-          hideFollow={isOwner}
-        />
-      </div>
-
+    <div className="space-y-8">
       {showCollaborators && (
         <div key="collaborators-section" className="collaborators-section">
           <ErrorBoundaryWrapper>
@@ -90,6 +64,15 @@ export function ListView({
       )}
 
       <div key="header-section" className="header-section space-y-4">
+        <div key="user-card" className="mb-4">
+          <UserCard
+            username={list.owner.username}
+            displayName={list.owner.displayName}
+            imageUrl={list.owner.imageUrl || ''}
+            isFollowing={isFollowing}
+          />
+        </div>
+
         <div key="header-content" className="flex items-start justify-between gap-4">
           <div key="title-description" className="space-y-1">
             <h1 className="text-2xl font-bold">{list.title}</h1>
@@ -110,7 +93,7 @@ export function ListView({
         <h2 className="text-xl font-semibold">Items</h2>
         {Array.isArray(list.items) && list.items.length > 0 ? (
           <ul className="space-y-2">
-            {list.items.map((item: ListItem, index: number) => {
+            {list.items.map((item, index) => {
               const itemKey = `item-${item.id}-${index}`;
               return (
                 <li key={itemKey} className="flex items-stretch rounded-lg border bg-card">
@@ -126,7 +109,7 @@ export function ListView({
                     )}
                     {Array.isArray(item.properties) && item.properties.length > 0 && (
                       <ul className="mt-2 flex flex-wrap gap-2">
-                        {item.properties.map((prop: { id: string; type?: 'text' | 'link'; label: string; value: string; }) => {
+                        {item.properties.map((prop) => {
                           const propKey = `${itemKey}-prop-${prop.id}`;
                           return (
                             <li key={propKey} className="text-sm text-muted-foreground">
@@ -197,11 +180,13 @@ export function ListView({
           </div>
         </div>
 
-        <ListActionBar
-          listId={list.id}
-          isPinned={isPinned}
-          onPinChange={handlePinChange}
-        />
+        {user && (
+          <ListActionBar
+            listId={list.id}
+            isPinned={isPinned}
+            onPinChange={() => {}}
+          />
+        )}
       </div>
 
       {canEdit && (

@@ -17,10 +17,10 @@ export default async function CreateListPage() {
         fullName: user.fullName || null,
         imageUrl: user.imageUrl || "",
       }}
-      layoutType="main"
+      layoutType="sub"
       title="Create List"
     >
-      <div className="px-4 md:px-6 lg:px-8 py-8">
+      <div>
         <div className="max-w-3xl mx-auto">
           <ListFormContent mode="create" />
         </div>

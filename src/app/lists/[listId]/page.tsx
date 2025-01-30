@@ -5,7 +5,7 @@ import { getUserModel } from "@/lib/db/models-v2/user";
 import { getPinModel } from "@/lib/db/models-v2/pin";
 import { getListViewModel } from "@/lib/db/models-v2/list-view";
 import { connectToMongoDB } from "@/lib/db/client";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { EnhancedList, ListCategory } from "@/types/list";
 import { ListPageContent } from "./list-page-content";
 import { Metadata } from "next";
@@ -98,6 +98,20 @@ export default async function ListPage({ params, searchParams }: PageProps) {
       notFound();
     }
 
+    // If list is private, check access
+    if (list.privacy === 'private') {
+      if (!userId) {
+        redirect('/sign-in');
+      }
+
+      const isOwner = userId === list.owner.clerkId;
+      const isCollaborator = list.collaborators?.some(c => c.clerkId === userId && c.status === 'accepted');
+
+      if (!isOwner && !isCollaborator) {
+        notFound();
+      }
+    }
+
     // Get owner from Clerk
     let owner;
     try {
@@ -141,11 +155,11 @@ export default async function ListPage({ params, searchParams }: PageProps) {
       description: list.description,
       category: list.category as ListCategory,
       privacy: list.privacy,
+      listType: list.listType || 'bullets',
       items: list.items?.map(item => ({
         id: Math.random().toString(36).slice(2),
         title: item.title,
         comment: item.comment,
-        rank: item.rank,
         properties: item.properties?.map(prop => ({
           id: Math.random().toString(36).slice(2),
           type: prop.type,
@@ -161,7 +175,7 @@ export default async function ListPage({ params, searchParams }: PageProps) {
       collaborators: list.collaborators?.map(c => ({
         id: Math.random().toString(36).slice(2),
         clerkId: c.clerkId || '',
-        username: c.username || '',
+        username: '',
         email: c.email,
         role: c.role,
         status: c.status,

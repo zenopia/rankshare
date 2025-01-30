@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { title, description, category, privacy, items } = body;
+    const { title, description, category, privacy, items, listType = 'ordered' } = body;
 
     if (!title || !category || !privacy) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -63,6 +63,7 @@ export async function POST(request: Request) {
       description,
       category,
       privacy,
+      listType,
       items: items || [],
       owner: {
         clerkId: user.id,
