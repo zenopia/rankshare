@@ -34,14 +34,14 @@ export function ListView({
   onCollaboratorsClick 
 }: ListViewProps) {
   const { user } = useUser();
-  const canEdit = isOwner || (isCollaborator && list.collaborators?.some(
+  const canEdit = user && (isOwner || (isCollaborator && list.collaborators?.some(
     c => c.clerkId === user?.id && c.status === 'accepted' && ['owner', 'admin', 'editor'].includes(c.role)
-  ));
+  )));
   const currentUserRole = user ? list.collaborators?.find(c => c.clerkId === user.id)?.role : undefined;
 
   return (
     <div className="space-y-8">
-      {showCollaborators && (
+      {user && showCollaborators && (
         <div key="collaborators-section" className="collaborators-section">
           <ErrorBoundaryWrapper>
             <CollaboratorManagement

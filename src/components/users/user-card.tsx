@@ -56,6 +56,7 @@ export function UserCard({ username, displayName, imageUrl, isFollowing: initial
   useEffect(() => {
     const checkFollowStatus = async () => {
       if (!isSignedIn || !isReady) {
+        setIsFollowing(false);
         return;
       }
       
@@ -78,11 +79,7 @@ export function UserCard({ username, displayName, imageUrl, isFollowing: initial
       }
     };
 
-    if (isSignedIn && isReady) {
-      checkFollowStatus();
-    } else {
-      setIsFollowing(initialIsFollowing);
-    }
+    checkFollowStatus();
   }, [username, isSignedIn, isReady, getToken, initialIsFollowing]);
 
   const handleFollowClick = async (e: React.MouseEvent) => {
