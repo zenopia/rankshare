@@ -5,6 +5,7 @@ import type { User } from "@clerk/backend";
 import { notFound } from "next/navigation";
 import { PeoplePageLayout } from "@/components/users/people-page-layout";
 import type { Follow } from "@/types/follow";
+import { getUserModel } from "@/lib/db/models-v2/user";
 
 interface PageProps {
   params: { username: string };
@@ -58,26 +59,35 @@ export default async function UserFollowersPage({ params, searchParams }: PagePr
     notFound();
   }
 
-  // Get followers
+  // Get follower IDs for the profile user
   const followModel = await getFollowModel();
-  const query = { followingId: profileUser.id, status: 'accepted' };
   const followers = await followModel
-    .find(query)
+    .find({ followingId: profileUser.id, status: 'accepted' })
     .select("followerId")
     .lean();
   const followerIds = followers.map((f: Follow) => f.followerId);
 
-  // Get enhanced user data with search filter if needed
+  // Get all users that match the search query
+  const userModel = await getUserModel();
   const filter = searchQuery 
     ? { 
-        clerkId: { $in: followerIds }, 
         $or: [
           { username: { $regex: searchQuery, $options: "i" } },
           { displayName: { $regex: searchQuery, $options: "i" } }
         ]
       }
-    : { clerkId: { $in: followerIds } };
+    : {};
+  
+  // Get enhanced user data
   const users = await getEnhancedUsers(filter);
+
+  // Filter users to show only those who are followers if there's no search query
+  const filteredUsers = searchQuery 
+    ? users.map(user => ({
+        ...user,
+        isFollowing: followerIds.includes(user.clerkId)
+      }))
+    : users.filter(user => followerIds.includes(user.clerkId));
 
   // Get follow counts
   const followerCount = await followModel.countDocuments({ followingId: profileUser.id, status: 'accepted' });
@@ -93,7 +103,7 @@ export default async function UserFollowersPage({ params, searchParams }: PagePr
       username={username}
       followerCount={followerCount}
       followingCount={followingCount}
-      users={users}
+      users={filteredUsers}
       searchQuery={searchQuery}
     />
   );

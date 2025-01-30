@@ -5,6 +5,7 @@ import type { User } from "@clerk/backend";
 import { notFound } from "next/navigation";
 import { PeoplePageLayout } from "@/components/users/people-page-layout";
 import type { Follow } from "@/types/follow";
+import { getUserModel } from "@/lib/db/models-v2/user";
 
 interface PageProps {
   params: { username: string };
@@ -58,26 +59,35 @@ export default async function UserFollowingPage({ params, searchParams }: PagePr
     notFound();
   }
 
-  // Get following
+  // Get following IDs for the profile user
   const followModel = await getFollowModel();
-  const query = { followerId: profileUser.id, status: 'accepted' };
   const following = await followModel
-    .find(query)
+    .find({ followerId: profileUser.id, status: 'accepted' })
     .select("followingId")
     .lean();
   const followingIds = following.map((f: Follow) => f.followingId);
 
-  // Get enhanced user data with search filter if needed
+  // Get all users that match the search query
+  const userModel = await getUserModel();
   const filter = searchQuery 
     ? { 
-        clerkId: { $in: followingIds }, 
         $or: [
           { username: { $regex: searchQuery, $options: "i" } },
           { displayName: { $regex: searchQuery, $options: "i" } }
         ]
       }
-    : { clerkId: { $in: followingIds } };
+    : {};
+  
+  // Get enhanced user data
   const users = await getEnhancedUsers(filter);
+
+  // Filter users to show only those being followed if there's no search query
+  const filteredUsers = searchQuery 
+    ? users.map(user => ({
+        ...user,
+        isFollowing: followingIds.includes(user.clerkId)
+      }))
+    : users.filter(user => followingIds.includes(user.clerkId));
 
   // Get follow counts
   const followerCount = await followModel.countDocuments({ followingId: profileUser.id, status: 'accepted' });
@@ -93,7 +103,7 @@ export default async function UserFollowingPage({ params, searchParams }: PagePr
       username={username}
       followerCount={followerCount}
       followingCount={followingCount}
-      users={users}
+      users={filteredUsers}
       searchQuery={searchQuery}
     />
   );
