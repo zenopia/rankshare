@@ -11,7 +11,6 @@ export interface ListCollaborator {
   userId?: mongoose.Types.ObjectId;
   clerkId?: string;
   email?: string;
-  username?: string;
   role: 'admin' | 'editor' | 'viewer';
   status: 'pending' | 'accepted' | 'rejected';
   invitedAt: Date;
@@ -61,7 +60,6 @@ const listSchema = new Schema<ListDocument>({
     userId: { type: Schema.Types.ObjectId, ref: 'User' },
     clerkId: { type: String },
     email: { type: String },
-    username: { type: String },
     role: { type: String, enum: ['admin', 'editor', 'viewer'], required: true },
     status: { type: String, enum: ['pending', 'accepted', 'rejected'], required: true },
     invitedAt: { type: Date, required: true },

@@ -36,6 +36,11 @@ interface CollaboratorManagementProps {
   onClose: () => void;
   onPrivacyChange?: (privacy: 'public' | 'private') => void;
   currentUserRole?: 'owner' | 'admin' | 'editor' | 'viewer';
+  owner: {
+    clerkId: string;
+    username: string;
+    imageUrl?: string;
+  };
 }
 
 export function CollaboratorManagement({ 
@@ -44,7 +49,8 @@ export function CollaboratorManagement({
   privacy: initialPrivacy,
   onClose,
   onPrivacyChange,
-  currentUserRole
+  currentUserRole,
+  owner
 }: CollaboratorManagementProps) {
   const { userId } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -336,9 +342,9 @@ export function CollaboratorManagement({
         <div className="flex flex-col h-full relative">
           <div className="flex items-center justify-between p-6 pb-0">
             <div>
-              <h2 className="text-lg font-semibold">Manage Access</h2>
+              <h2 className="text-lg font-semibold">List Access</h2>
               <p className="text-sm text-muted-foreground">
-                Control who can access this list.
+                Admins can edit access to this list.
               </p>
             </div>
             <Button
@@ -416,30 +422,48 @@ export function CollaboratorManagement({
                     linkToProfile={false}
                     className="animate-pulse"
                   />
-                ) : collaborators.map((collaborator) => {
-                  const isCurrentUser = collaborator.userId === userId;
-                  const canManageRoles = canManageCollaborators && collaborator.role !== 'owner';
-                  const uniqueKey = collaborator._isEmailInvite 
-                    ? `email-invite-${collaborator.email}-${collaborator.userId}`
-                    : `collaborator-${collaborator.userId}`;
-                  return (
+                ) : (
+                  <>
+                    {/* Show owner first */}
                     <CollaboratorCard
-                      key={uniqueKey}
-                      userId={collaborator.userId}
-                      username={collaborator.username}
-                      email={collaborator.email}
-                      imageUrl={collaborator.imageUrl}
-                      role={collaborator.role}
-                      status={collaborator.status}
-                      clerkId={!collaborator._isEmailInvite ? collaborator.clerkId : undefined}
-                      canManageRoles={canManageRoles}
+                      key={`owner-${owner.clerkId}`}
+                      userId={owner.clerkId}
+                      username={owner.username}
+                      imageUrl={owner.imageUrl}
+                      role="owner"
+                      status="accepted"
+                      clerkId={owner.clerkId}
+                      canManageRoles={false}
                       isOwner={isOwner}
-                      currentUserRole={isCurrentUser ? collaborator.role : undefined}
-                      onRoleChange={(newRole) => handleRoleChange(collaborator.userId, newRole)}
-                      onRemove={() => handleRemoveCollaborator(collaborator.userId)}
                     />
-                  );
-                })}
+
+                    {/* Show other collaborators */}
+                    {collaborators.filter(c => c.role !== 'owner').map(collaborator => {
+                      const isCurrentUser = collaborator.userId === userId;
+                      const canManageRoles = canManageCollaborators && collaborator.role !== 'owner';
+                      const uniqueKey = collaborator._isEmailInvite 
+                        ? `email-invite-${collaborator.email}-${collaborator.userId}`
+                        : `collaborator-${collaborator.userId}`;
+                      return (
+                        <CollaboratorCard
+                          key={uniqueKey}
+                          userId={collaborator.userId}
+                          username={collaborator.username}
+                          email={collaborator.email}
+                          imageUrl={collaborator.imageUrl}
+                          role={collaborator.role}
+                          status={collaborator.status}
+                          clerkId={!collaborator._isEmailInvite ? collaborator.clerkId : undefined}
+                          canManageRoles={canManageRoles}
+                          isOwner={isOwner}
+                          currentUserRole={isCurrentUser ? collaborator.role : undefined}
+                          onRoleChange={(newRole) => handleRoleChange(collaborator.userId, newRole)}
+                          onRemove={() => handleRemoveCollaborator(collaborator.userId)}
+                        />
+                      );
+                    })}
+                  </>
+                )}
               </div>
             </div>
           </div>

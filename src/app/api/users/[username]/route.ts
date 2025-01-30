@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { clerkClient } from "@clerk/clerk-sdk-node";
+import { connectToMongoDB } from "@/lib/db/client";
+import { getUserModel } from "@/lib/db/models-v2/user";
 
 interface UserResponse {
   id: string;
-  username: string | null;
-  firstName: string | null;
-  lastName: string | null;
+  username: string;
+  displayName: string;
   imageUrl: string | null;
 }
 
@@ -21,11 +21,10 @@ export async function GET(
     // Remove @ if present and decode the username
     const username = decodeURIComponent(params.username).replace(/^@/, '');
 
-    // Get user from Clerk
-    const users = await clerkClient.users.getUserList({
-      username: [username]
-    });
-    const user = users[0];
+    // Get user from our database
+    await connectToMongoDB();
+    const UserModel = await getUserModel();
+    const user = await UserModel.findOne({ username }).lean();
 
     if (!user) {
       return NextResponse.json<ErrorResponse>(
@@ -35,10 +34,9 @@ export async function GET(
     }
     
     const response: UserResponse = {
-      id: user.id,
+      id: user.clerkId,
       username: user.username,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      displayName: user.displayName,
       imageUrl: user.imageUrl
     };
     

@@ -22,9 +22,11 @@ export async function GET(request: Request) {
     const UserModel = await getUserModel();
     const FollowModel = await getFollowModel();
 
+    console.log('Searching for users with query:', query);
     const users = await UserModel.find({
       searchIndex: { $regex: query, $options: 'i' }
     }).limit(20).lean();
+    console.log('Found users:', users.length);
 
     // Get follow status for each user
     const usersWithFollowStatus = await Promise.all(

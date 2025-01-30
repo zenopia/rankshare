@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { clerkClient } from "@clerk/clerk-sdk-node";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { connectToMongoDB } from "@/lib/db/client";
@@ -14,23 +13,20 @@ export async function GET(
     // Remove @ if present and decode the username
     const username = decodeURIComponent(params.username).replace(/^@/, '');
 
-    // Get user from Clerk first
-    const users = await clerkClient.users.getUserList({
-      username: [username]
-    });
-    const profileUser = users[0];
+    await connectToMongoDB();
+    const UserModel = await getUserModel();
+    const FollowModel = await getFollowModel();
+
+    // Get user from our database
+    const profileUser = await UserModel.findOne({ username }).lean();
 
     if (!profileUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    await connectToMongoDB();
-    const FollowModel = await getFollowModel();
-    const UserModel = await getUserModel();
-
     // Get follower relationships
     const follows = await FollowModel.find({
-      followingId: profileUser.id,
+      followingId: profileUser.clerkId,
       status: 'accepted'
     })
       .sort({ createdAt: -1 })
@@ -41,7 +37,7 @@ export async function GET(
     const followerUsers = await UserModel.find({
       clerkId: { $in: follows.map(f => f.followerId) }
     })
-      .select('clerkId username displayName')
+      .select('clerkId username displayName imageUrl')
       .lean();
 
     // Create a map for easy lookup
@@ -63,7 +59,7 @@ export async function GET(
       total: follows.length
     });
   } catch (error) {
-    console.error('Error fetching followers:', error);
+    console.error("Error fetching followers:", error);
     return NextResponse.json(
       { error: "Failed to fetch followers" },
       { status: 500 }

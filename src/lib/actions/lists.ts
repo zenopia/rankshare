@@ -36,7 +36,7 @@ export async function getEnhancedLists(
 
   // Fetch user data for all owners in one query
   const UserCacheModel = await getUserCacheModel();
-  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+  const CACHE_TTL = 1 * 60 * 60 * 1000; // 1 hour instead of 24 hours
   let userCaches = await UserCacheModel.find({
     clerkId: { $in: ownerIds },
     lastSynced: { $gt: new Date(Date.now() - CACHE_TTL) }

@@ -12,8 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface UserCardProps {
   username: string;
-  firstName?: string;
-  lastName?: string;
+  displayName: string;
   imageUrl: string;
   isFollowing?: boolean;
   hideFollow?: boolean;
@@ -34,7 +33,7 @@ function UserCardSkeleton() {
   );
 }
 
-export function UserCard({ username, firstName, lastName, imageUrl, isFollowing: initialIsFollowing = false, hideFollow = false }: UserCardProps) {
+export function UserCard({ username, displayName, imageUrl, isFollowing: initialIsFollowing = false, hideFollow = false }: UserCardProps) {
   const { isSignedIn, getToken, isLoaded, isReady } = useAuthGuard();
   const [isLoading, setIsLoading] = useState(false);
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
@@ -143,8 +142,7 @@ export function UserCard({ username, firstName, lastName, imageUrl, isFollowing:
       >
         <UserProfileBase
           username={username}
-          firstName={firstName}
-          lastName={lastName}
+          firstName={displayName}
           imageUrl={imageUrl}
           variant="compact"
           hideFollow={true}

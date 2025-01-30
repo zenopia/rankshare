@@ -13,8 +13,8 @@ export default async function FeedbackPage() {
 
   return (
     <SubLayout title="Feedback">
-      <div className="space-y-8">
-        <div>
+      <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
+        <div  className="pb-20 sm:pb-8">
           <h1 className="text-3xl font-bold">Feedback</h1>
           <p className="text-muted-foreground mt-2">
             Help us improve Favely by sharing your thoughts and suggestions

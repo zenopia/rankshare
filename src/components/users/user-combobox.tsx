@@ -111,7 +111,7 @@ export function UserCombobox({
         setIsLoading(true);
         const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchValue)}`);
         if (!response.ok) throw new Error();
-        const data = await response.json();
+        const { users: data } = await response.json();
         setUsers(data
           .filter((user: ApiUser) => !excludeUserIds.includes(user.clerkId))
           .map((user: ApiUser) => ({

@@ -69,7 +69,13 @@ export default async function UserFollowingPage({ params, searchParams }: PagePr
 
   // Get enhanced user data with search filter if needed
   const filter = searchQuery 
-    ? { clerkId: { $in: followingIds }, username: { $regex: searchQuery, $options: "i" } }
+    ? { 
+        clerkId: { $in: followingIds }, 
+        $or: [
+          { username: { $regex: searchQuery, $options: "i" } },
+          { displayName: { $regex: searchQuery, $options: "i" } }
+        ]
+      }
     : { clerkId: { $in: followingIds } };
   const users = await getEnhancedUsers(filter);
 

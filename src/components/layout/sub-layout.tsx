@@ -2,6 +2,7 @@
 
 import { ArrowLeft, MessageSquare } from "lucide-react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { UserNav } from "@/components/layout/nav/user-nav";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useUser } from "@clerk/clerk-react";
@@ -50,6 +51,12 @@ export function SubLayout({ children, title = "Page", action }: SubLayoutProps) 
       return;
     }
 
+    // If we're on the feedback page and have a from parameter
+    if (pathname === '/feedback' && from) {
+      router.push(decodeURIComponent(from));
+      return;
+    }
+
     // If we're on a following/followers page
     if (pathname.includes('/following') || pathname.includes('/followers')) {
       // Extract the username from the path
@@ -87,7 +94,7 @@ export function SubLayout({ children, title = "Page", action }: SubLayoutProps) 
           </Button>
           {title && (
             <div>
-              <h1 className="text-lg font-semibold leading-tight">{title}</h1>
+              <h1 className="text-lg font-semibold leading-tight">{title} <FeedbackButton /></h1>
             </div>
           )}
         </div>
@@ -99,7 +106,7 @@ export function SubLayout({ children, title = "Page", action }: SubLayoutProps) 
               </Button>
             </Link>
           )}
-          <FeedbackButton />
+          <UserNav />
         </div>
       </div>
       <main className="flex-1">

@@ -5,7 +5,9 @@ export interface UserDocument extends Document {
   clerkId: string;
   username: string;
   displayName: string;
+  imageUrl: string;
   searchIndex: string;
+  email?: string;
   bio?: string;
   location?: string;
   dateOfBirth?: Date;
@@ -27,7 +29,9 @@ const userSchema = new Schema<UserDocument>({
   clerkId: { type: String, required: true, unique: true },
   username: { type: String, required: true, unique: true },
   displayName: { type: String, required: true },
+  imageUrl: { type: String, required: true },
   searchIndex: { type: String },
+  email: { type: String },
   bio: { type: String },
   location: { type: String },
   dateOfBirth: { type: Date },

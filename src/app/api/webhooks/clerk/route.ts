@@ -67,6 +67,7 @@ export async function POST(req: Request) {
         clerkId: id,
         username: username || '',
         displayName,
+        imageUrl: image_url,
         searchIndex,
         email: primaryEmail,
         followersCount: 0,
@@ -112,7 +113,8 @@ export async function POST(req: Request) {
             username: username || '',
             displayName,
             searchIndex: `${username} ${displayName}`.toLowerCase(),
-            email: primaryEmail
+            email: primaryEmail,
+            imageUrl: image_url
           }
         }
       );
@@ -136,7 +138,8 @@ export async function POST(req: Request) {
         { 'owner.clerkId': id },
         { 
           $set: { 
-            'owner.username': username || ''
+            'owner.username': username || '',
+            'owner.imageUrl': image_url
           }
         }
       );
@@ -145,7 +148,8 @@ export async function POST(req: Request) {
         { 'collaborators.clerkId': id },
         { 
           $set: { 
-            'collaborators.$.username': username || ''
+            'collaborators.$.username': username || '',
+            'collaborators.$.imageUrl': image_url
           }
         }
       );
@@ -156,7 +160,8 @@ export async function POST(req: Request) {
         {
           $set: {
             'followerInfo.username': username || '',
-            'followerInfo.displayName': displayName
+            'followerInfo.displayName': displayName,
+            'followerInfo.imageUrl': image_url
           }
         }
       );
@@ -166,7 +171,8 @@ export async function POST(req: Request) {
         {
           $set: {
             'followingInfo.username': username || '',
-            'followingInfo.displayName': displayName
+            'followingInfo.displayName': displayName,
+            'followingInfo.imageUrl': image_url
           }
         }
       );

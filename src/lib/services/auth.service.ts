@@ -1,7 +1,9 @@
-import { auth as getAuth, clerkClient } from "@clerk/nextjs/server";
+import { auth as getAuth } from "@clerk/nextjs/server";
 import { useAuth as useClerkAuth, useUser, useClerk } from "@clerk/nextjs";
 import type { User } from "@clerk/backend";
 import { AuthUser } from "@/types/auth";
+import { connectToMongoDB } from "@/lib/db/client";
+import { getUserModel } from "@/lib/db/models-v2/user";
 
 export class AuthService {
   static async getCurrentUser(): Promise<AuthUser | null> {
@@ -9,8 +11,21 @@ export class AuthService {
     if (!userId) return null;
 
     try {
-      const user = await clerkClient.users.getUser(userId);
-      return this.transformClerkUser(user);
+      await connectToMongoDB();
+      const UserModel = await getUserModel();
+      const user = await UserModel.findOne({ clerkId: userId }).lean();
+      
+      if (!user) return null;
+      
+      return {
+        id: user.clerkId,
+        email: user.email || null,
+        username: user.username,
+        firstName: null, // We don't store these separately
+        lastName: null,  // We don't store these separately
+        fullName: user.displayName,
+        imageUrl: user.imageUrl,
+      };
     } catch (error) {
       console.error("Error getting current user:", error);
       return null;
@@ -19,12 +34,21 @@ export class AuthService {
 
   static async getUserByUsername(username: string): Promise<AuthUser | null> {
     try {
-      const users = await clerkClient.users.getUserList({
-        username: [username],
-      });
+      await connectToMongoDB();
+      const UserModel = await getUserModel();
+      const user = await UserModel.findOne({ username }).lean();
       
-      if (users.length === 0) return null;
-      return this.transformClerkUser(users[0]);
+      if (!user) return null;
+      
+      return {
+        id: user.clerkId,
+        email: user.email || null,
+        username: user.username,
+        firstName: null, // We don't store these separately
+        lastName: null,  // We don't store these separately
+        fullName: user.displayName,
+        imageUrl: user.imageUrl,
+      };
     } catch (error) {
       console.error("Error getting user by username:", error);
       return null;

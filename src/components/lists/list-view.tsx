@@ -79,6 +79,11 @@ export function ListView({
                 list.privacy = newPrivacy;
               }}
               currentUserRole={currentUserRole}
+              owner={{
+                clerkId: list.owner.clerkId,
+                username: list.owner.username,
+                imageUrl: list.owner.imageUrl || undefined
+              }}
             />
           </ErrorBoundaryWrapper>
         </div>

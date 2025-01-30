@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { usePathname } from "next/navigation";
-import { useUser } from "@/hooks/use-user";
 
 export interface CollaboratorCardProps {
   userId: string;

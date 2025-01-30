@@ -19,6 +19,7 @@ export async function GET(
   try {
     await connectToMongoDB();
     const ListModel = await getListModel();
+    const UserModel = await getUserModel();
 
     const list = await ListModel.findById(params.listId).lean();
     if (!list) {
@@ -36,33 +37,26 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Get all non-email collaborators' Clerk IDs
-    const clerkIds = list.collaborators
-      ?.filter(c => !c._isEmailInvite && c.clerkId)
-      .map(c => c.clerkId) || [];
-
-    // Fetch current user data from Clerk if we have any Clerk IDs
-    const clerkUsers = clerkIds.length > 0 
-      ? await clerkClient.users.getUserList({ userId: clerkIds })
-      : [];
-
-    // Create a map of Clerk IDs to image URLs
-    const imageUrlMap = new Map(
-      clerkUsers.map(user => [user.id, user.imageUrl])
-    );
-
-    // Update collaborators with current image URLs
-    const updatedCollaborators = list.collaborators?.map(collaborator => {
+    // Get all non-email collaborators' user data
+    const collaboratorsWithUserData = await Promise.all((list.collaborators || []).map(async (collaborator) => {
       if (collaborator._isEmailInvite || !collaborator.clerkId) {
         return collaborator;
       }
+
+      const userData = await UserModel.findOne({ clerkId: collaborator.clerkId }).lean();
+      if (!userData) {
+        return collaborator;
+      }
+
       return {
         ...collaborator,
-        imageUrl: imageUrlMap.get(collaborator.clerkId) || collaborator.imageUrl
+        username: userData.username,
+        displayName: userData.displayName,
+        imageUrl: userData.imageUrl
       };
-    }) || [];
+    }));
 
-    return NextResponse.json({ collaborators: updatedCollaborators });
+    return NextResponse.json({ collaborators: collaboratorsWithUserData });
   } catch (error) {
     console.error("Error fetching collaborators:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
@@ -110,13 +104,62 @@ export async function POST(
 
       // Check if email is already a collaborator
       const existingEmailCollaborator = list.collaborators?.find(
-        (c) => c.email === email
+        (c) => c.email === email || (c.clerkId && c.email === email)
       );
       if (existingEmailCollaborator) {
         return new NextResponse("This email is already a collaborator", { status: 400 });
       }
 
-      // Add email collaborator
+      // Check if the email corresponds to an existing user
+      const existingUser = await clerkClient.users.getUserList({
+        emailAddress: [email].filter((e): e is string => !!e)
+      });
+
+      if (existingUser.length > 0) {
+        const clerkUser = existingUser[0];
+        const targetUser = await UserModel.findOne({ clerkId: clerkUser.id }).lean();
+        
+        if (!targetUser) {
+          return new NextResponse("User not found", { status: 404 });
+        }
+
+        // Add as a regular user collaborator instead of email invite
+        const collaborator: {
+          userId: any;
+          clerkId: string;
+          username: string;
+          email: string | undefined;
+          role: string;
+          status: 'accepted';
+          invitedAt: Date;
+          acceptedAt: Date;
+        } = {
+          userId: targetUser._id,
+          clerkId: clerkUser.id,
+          username: clerkUser.username || '',
+          email: email,
+          role,
+          status: 'accepted',
+          invitedAt: new Date(),
+          acceptedAt: new Date()
+        };
+
+        const updatedList = await ListModel.findByIdAndUpdate(
+          params.listId,
+          {
+            $push: {
+              collaborators: collaborator
+            },
+          },
+          { new: true }
+        );
+
+        return NextResponse.json({
+          collaborators: updatedList?.collaborators || [],
+        });
+      }
+
+      // If no existing user found, proceed with email invite
       const updatedList = await ListModel.findByIdAndUpdate(
         params.listId,
         {
@@ -134,7 +177,12 @@ export async function POST(
       );
 
       // Send invitation email
-      await sendCollaborationInviteEmail(email, list.name, user.username);
+      await sendCollaborationInviteEmail({
+        to: email,
+        inviterName: user.username || '',
+        listTitle: list.title || '',
+        listUrl: `${process.env.NEXT_PUBLIC_APP_URL}/lists/${list._id}`
+      });
 
       return NextResponse.json({
         collaborators: updatedList?.collaborators || [],
@@ -171,7 +219,6 @@ export async function POST(
               userId: targetUser._id,
               clerkId: userId,
               username,
-              imageUrl: clerkUser.imageUrl,
               role,
               status: 'accepted',
               invitedAt: new Date(),

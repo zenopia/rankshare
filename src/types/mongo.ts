@@ -17,6 +17,8 @@ export interface MongoListDocument {
     userId: Types.ObjectId;
     clerkId: string;
     username: string;
+    displayName: string;
+    imageUrl?: string;
     role: 'viewer' | 'editor' | 'admin';
     status: 'pending' | 'accepted' | 'rejected';
     invitedAt: Date;
