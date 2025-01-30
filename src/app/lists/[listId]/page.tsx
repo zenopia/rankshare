@@ -98,20 +98,6 @@ export default async function ListPage({ params, searchParams }: PageProps) {
       notFound();
     }
 
-    // If list is private, check access
-    if (list.privacy === 'private') {
-      if (!userId) {
-        redirect('/sign-in');
-      }
-
-      const isOwner = userId === list.owner.clerkId;
-      const isCollaborator = list.collaborators?.some(c => c.clerkId === userId && c.status === 'accepted');
-
-      if (!isOwner && !isCollaborator) {
-        notFound();
-      }
-    }
-
     // Get owner from Clerk
     let owner;
     try {
@@ -124,6 +110,20 @@ export default async function ListPage({ params, searchParams }: PageProps) {
     if (!owner) {
       console.error(`Owner not found in Clerk: ${list.owner.clerkId}`);
       notFound();
+    }
+
+    // Check access based on privacy and authentication
+    if (list.privacy === 'private') {
+      if (!userId) {
+        redirect('/sign-in');
+      }
+
+      const isOwner = userId === list.owner.clerkId;
+      const isCollaborator = list.collaborators?.some(c => c.clerkId === userId && c.status === 'accepted');
+
+      if (!isOwner && !isCollaborator) {
+        notFound();
+      }
     }
 
     // Track list view if user is logged in and has access
