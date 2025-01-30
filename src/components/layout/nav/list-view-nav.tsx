@@ -2,6 +2,7 @@
 
 import { ArrowLeft, UserPlus, MessageSquare } from "lucide-react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
+import { useUser } from "@clerk/nextjs"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -53,17 +54,18 @@ export function ListViewNav({
   isCollaborator,
   collaborators = []
 }: ListViewNavProps) {
-  const router = useRouter()
-  const acceptedCollaborators = collaborators.filter(c => c.status === 'accepted')
-  const { data: userData } = useUsers(acceptedCollaborators.map(c => c.clerkId).filter((id): id is string => !!id))
+  const router = useRouter();
+  const { user } = useUser();
+  const acceptedCollaborators = collaborators.filter(c => c.status === 'accepted');
+  const { data: userData } = useUsers(acceptedCollaborators.map(c => c.clerkId).filter((id): id is string => !!id));
 
   const handleBack = () => {
     if (returnPath) {
-      router.push(decodeURIComponent(returnPath))
+      router.push(decodeURIComponent(returnPath));
     } else {
-      router.back()
+      router.back();
     }
-  }
+  };
 
   return (
     <div className="flex items-center justify-between h-14 px-4 border-b">
@@ -81,7 +83,7 @@ export function ListViewNav({
       </div>
       
       <div className="flex items-center gap-2">
-        {(isOwner || isCollaborator) && (
+        {user && (isOwner || isCollaborator) && (
           <TooltipProvider>
             <Button
               variant="outline"
@@ -119,7 +121,7 @@ export function ListViewNav({
                         )}
                       </div>
                     )}
-                    {isOwner && (
+                    {user && isOwner && (
                       <div className="flex items-center">
                         <UserPlus className="h-4 w-4" />
                       </div>
@@ -133,7 +135,6 @@ export function ListViewNav({
             </Button>
           </TooltipProvider>
         )}
-        
       </div>
     </div>
   );

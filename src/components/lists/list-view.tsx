@@ -34,10 +34,6 @@ export function ListView({
   onCollaboratorsClick 
 }: ListViewProps) {
   const { user } = useUser();
-  const canEdit = user && (isOwner || (isCollaborator && list.collaborators?.some(
-    c => c.clerkId === user?.id && c.status === 'accepted' && ['owner', 'admin', 'editor'].includes(c.role)
-  )));
-  const currentUserRole = user ? list.collaborators?.find(c => c.clerkId === user.id)?.role : undefined;
 
   return (
     <div className="space-y-8">
@@ -52,7 +48,7 @@ export function ListView({
               onPrivacyChange={(newPrivacy) => {
                 list.privacy = newPrivacy;
               }}
-              currentUserRole={currentUserRole}
+              currentUserRole={user ? list.collaborators?.find(c => c.clerkId === user.id)?.role : undefined}
               owner={{
                 clerkId: list.owner.clerkId,
                 username: list.owner.username,
@@ -189,7 +185,7 @@ export function ListView({
         )}
       </div>
 
-      {canEdit && (
+      {user && isOwner && (
         <div key="fab-section" className="fab-section">
           <EditListFAB 
             listId={list.id} 
