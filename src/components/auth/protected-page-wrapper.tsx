@@ -57,6 +57,27 @@ export function ProtectedPageWrapper({
         
         if (mounted) {
           if (!token) {
+            // Store the current URL for return after sign in
+            const currentPath = window.location.pathname;
+            if (currentPath !== '/' && currentPath !== '/sign-in') {
+              sessionStorage.setItem('returnUrl', currentPath);
+            }
+            
+            // Special handling for mobile browsers
+            if (/Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
+              console.debug('Mobile browser detected, attempting session refresh before redirect');
+              try {
+                // Try to refresh the session one last time
+                const refreshedToken = await getToken();
+                if (refreshedToken) {
+                  setIsValidated(true);
+                  return;
+                }
+              } catch (e) {
+                console.warn('Mobile session refresh failed:', e);
+              }
+            }
+            
             // If no valid token, redirect to sign in
             router.push('/sign-in');
             return;
@@ -65,6 +86,10 @@ export function ProtectedPageWrapper({
           // Verify user matches
           if (user.id !== initialUser.id) {
             console.warn('User mismatch, redirecting to sign in');
+            const currentPath = window.location.pathname;
+            if (currentPath !== '/' && currentPath !== '/sign-in') {
+              sessionStorage.setItem('returnUrl', currentPath);
+            }
             router.push('/sign-in');
             return;
           }
@@ -74,6 +99,11 @@ export function ProtectedPageWrapper({
       } catch (error) {
         console.error('Session validation failed:', error);
         if (mounted) {
+          // Store return URL before redirecting
+          const currentPath = window.location.pathname;
+          if (currentPath !== '/' && currentPath !== '/sign-in') {
+            sessionStorage.setItem('returnUrl', currentPath);
+          }
           router.push('/sign-in');
         }
       }

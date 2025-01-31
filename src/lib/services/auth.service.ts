@@ -197,15 +197,33 @@ export function useAuthService() {
         }
       }
 
+      // Check for stored return URL
+      const storedReturnUrl = typeof window !== 'undefined' ? 
+        sessionStorage.getItem('returnUrl') : null;
+      const finalReturnUrl = returnUrl || storedReturnUrl || "/";
+      
+      // Clear stored return URL
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('returnUrl');
+      }
+
+      // Special handling for mobile browsers in production
+      const isMobile = typeof window !== 'undefined' && 
+        /Mobile|Android|iPhone/i.test(window.navigator.userAgent);
+      
       await clerk.openSignIn({
-        redirectUrl: returnUrl || "/",
+        redirectUrl: finalReturnUrl,
         // Ensure we always get a fresh session in production
         appearance: {
           variables: {
-            // Force dark mode in sign-in modal for consistency
             colorPrimary: '#0F172A',
           }
-        }
+        },
+        // Additional options for mobile production
+        ...(isMobile && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.') ? {
+          afterSignInUrl: finalReturnUrl,
+          afterSignUpUrl: finalReturnUrl,
+        } : {})
       });
     } catch (error) {
       console.error("Sign in error:", error);
@@ -224,15 +242,33 @@ export function useAuthService() {
         }
       }
 
+      // Check for stored return URL
+      const storedReturnUrl = typeof window !== 'undefined' ? 
+        sessionStorage.getItem('returnUrl') : null;
+      const finalReturnUrl = returnUrl || storedReturnUrl || "/";
+      
+      // Clear stored return URL
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('returnUrl');
+      }
+
+      // Special handling for mobile browsers in production
+      const isMobile = typeof window !== 'undefined' && 
+        /Mobile|Android|iPhone/i.test(window.navigator.userAgent);
+
       await clerk.openSignUp({
-        redirectUrl: returnUrl || "/",
+        redirectUrl: finalReturnUrl,
         // Ensure we always get a fresh session in production
         appearance: {
           variables: {
-            // Force dark mode in sign-up modal for consistency
             colorPrimary: '#0F172A',
           }
-        }
+        },
+        // Additional options for mobile production
+        ...(isMobile && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.') ? {
+          afterSignInUrl: finalReturnUrl,
+          afterSignUpUrl: finalReturnUrl,
+        } : {})
       });
     } catch (error) {
       console.error("Sign up error:", error);
