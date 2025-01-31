@@ -5,7 +5,7 @@ import { Share2, Pin, Copy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState } from "react";
-import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useUser } from "@clerk/nextjs";
 import {
   Tooltip,
   TooltipContent,
@@ -25,9 +25,9 @@ export default function ListActionBar({
   onPinChange,
 }: ListActionBarProps) {
   const router = useRouter();
+  const { user } = useUser();
   const [isPinning, setIsPinning] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
-  const { isSignedIn } = useAuthGuard();
 
   const handleShare = async () => {
     try {
@@ -41,7 +41,7 @@ export default function ListActionBar({
   };
 
   const handlePin = async () => {
-    if (!isSignedIn) {
+    if (!user) {
       router.push(`/sign-in?returnUrl=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
@@ -71,7 +71,7 @@ export default function ListActionBar({
   };
 
   const handleCopy = async () => {
-    if (!isSignedIn) {
+    if (!user) {
       router.push(`/sign-in?returnUrl=${encodeURIComponent(window.location.pathname)}`);
       return;
     }

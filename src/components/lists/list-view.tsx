@@ -60,6 +60,15 @@ export function ListView({
       )}
 
       <div key="header-section" className="header-section space-y-4">
+        <div key="user-card" className="mb-4">
+          <UserCard
+            username={list.owner.username}
+            displayName={list.owner.displayName}
+            imageUrl={list.owner.imageUrl || ''}
+            isFollowing={isFollowing}
+          />
+        </div>
+
         <div key="header-content" className="flex items-start justify-between gap-4">
           <div key="title-description" className="space-y-1">
             <h1 className="text-2xl font-bold">{list.title}</h1>
