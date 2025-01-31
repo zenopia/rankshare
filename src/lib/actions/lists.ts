@@ -124,6 +124,7 @@ export async function getEnhancedLists(
       description: list.description,
       category: list.category as List['category'],
       privacy: list.privacy,
+      listType: list.listType || 'bullets',
       owner: {
         id: list.owner.userId.toString(),
         clerkId: list.owner.clerkId,
@@ -194,10 +195,24 @@ export async function getSharedLists(userId: string) {
   // Ensure database connection
   await connectToDatabase();
 
-  // Get lists where the user is a collaborator
+  // Get lists where:
+  // 1. The user is a collaborator with accepted status OR
+  // 2. The user is the owner AND the list has at least one accepted collaborator
   const ListModel = await getListModel();
   return getEnhancedLists({
-    'collaborators.clerkId': userId,
-    'collaborators.status': 'accepted'
+    $or: [
+      {
+        'collaborators.clerkId': userId,
+        'collaborators.status': 'accepted'
+      },
+      {
+        'owner.clerkId': userId,
+        collaborators: {
+          $elemMatch: {
+            status: 'accepted'
+          }
+        }
+      }
+    ]
   });
 } 

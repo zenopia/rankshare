@@ -1,5 +1,5 @@
 import type { Types } from 'mongoose';
-import type { ListCategory } from './list';
+import type { ListCategory, ListType } from './list';
 
 export interface MongoListDocument {
   _id: Types.ObjectId;
@@ -7,6 +7,7 @@ export interface MongoListDocument {
   description?: string;
   category: ListCategory;
   privacy: 'public' | 'private';
+  listType?: ListType;
   owner: {
     userId: Types.ObjectId;
     clerkId: string;
