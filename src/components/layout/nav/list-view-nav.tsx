@@ -61,7 +61,15 @@ export function ListViewNav({
 
   const handleBack = () => {
     if (returnPath) {
-      router.push(decodeURIComponent(returnPath));
+      const path = decodeURIComponent(returnPath);
+      
+      if (path.startsWith('http')) {
+        window.location.href = path;
+        return;
+      }
+      
+      const fullPath = path.startsWith('/') ? path : `/${path}`;
+      router.push(fullPath);
     } else {
       router.back();
     }
