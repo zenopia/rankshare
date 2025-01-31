@@ -33,33 +33,6 @@ export function ListPageContent({
 }: ListPageContentProps) {
   const [showCollaborators, setShowCollaborators] = useState(false);
 
-  const content = (
-    <>
-      <ListViewNav 
-        returnPath={returnPath} 
-        title={list.title}
-        isOwner={isOwner}
-        isCollaborator={isCollaborator}
-        showCollaborators={showCollaborators}
-        onCollaboratorsClick={() => setShowCollaborators(!showCollaborators)}
-        collaborators={list.collaborators}
-      />
-      <div className="container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        <ErrorBoundaryWrapper>
-          <ListView
-            list={list}
-            isOwner={isOwner}
-            isPinned={isPinned}
-            isFollowing={isFollowing}
-            isCollaborator={isCollaborator}
-            showCollaborators={showCollaborators}
-            onCollaboratorsClick={() => setShowCollaborators(!showCollaborators)}
-          />
-        </ErrorBoundaryWrapper>
-      </div>
-    </>
-  );
-
   if (isLoading) {
     return (
       <ListLayout>
@@ -91,5 +64,32 @@ export function ListPageContent({
     );
   }
 
-  return <ListLayout>{content}</ListLayout>;
+  return (
+    <ListLayout>
+      <div className="flex flex-col min-h-[calc(100vh-64px)]">
+        <ListViewNav 
+          returnPath={returnPath} 
+          title={list.title}
+          isOwner={isOwner}
+          isCollaborator={isCollaborator}
+          showCollaborators={showCollaborators}
+          onCollaboratorsClick={() => setShowCollaborators(!showCollaborators)}
+          collaborators={list.collaborators}
+        />
+        <div className="flex-1 container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 overflow-y-auto">
+          <ErrorBoundaryWrapper>
+            <ListView
+              list={list}
+              isOwner={isOwner}
+              isPinned={isPinned}
+              isFollowing={isFollowing}
+              isCollaborator={isCollaborator}
+              showCollaborators={showCollaborators}
+              onCollaboratorsClick={() => setShowCollaborators(!showCollaborators)}
+            />
+          </ErrorBoundaryWrapper>
+        </div>
+      </div>
+    </ListLayout>
+  );
 } 

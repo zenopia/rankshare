@@ -1,15 +1,18 @@
-export interface ListLayoutProps {
-  children?: React.ReactNode;
+"use client";
+
+import { cn } from "@/lib/utils";
+
+interface ListLayoutProps {
+  children: React.ReactNode;
+  className?: string;
 }
 
-export function ListLayout({ children }: ListLayoutProps) {
+export function ListLayout({ children, className }: ListLayoutProps) {
   return (
-    <div className="relative min-h-screen">
-      <div className="flex">
-        <main className="flex-1">
-          {children}
-        </main>
-      </div>
+    <div className={cn("flex flex-col min-h-screen bg-background", className)}>
+      <main className="flex-1 flex flex-col">
+        {children}
+      </main>
     </div>
   );
 } 
