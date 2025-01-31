@@ -155,7 +155,7 @@ export function UserCard({ username, displayName, imageUrl, isFollowing: initial
             linkToProfile={false}
           />
         </div>
-        {!hideFollow && user && (
+        {!hideFollow && user && user.username !== username && (
           <Button
             variant={isFollowing ? "outline" : "default"}
             size="sm"
