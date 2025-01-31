@@ -5,6 +5,7 @@ import { AuthUser } from "@/types/auth";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import type { ActiveSessionResource, TokenResource } from '@clerk/types';
+import React from 'react';
 
 export class AuthService {
   static async getCurrentUser(): Promise<AuthUser | null> {
@@ -78,10 +79,27 @@ export function useAuthService() {
   const user = clerkUser ? AuthService.transformClerkUser(clerkUser as unknown as User) : null;
   const isSignedIn = clerkIsSignedIn ?? false;
 
+  // Log state changes
+  React.useEffect(() => {
+    console.debug('[Auth] State changed:', {
+      isLoaded,
+      isSignedIn,
+      hasUser: !!user,
+      hasSession: !!clerk.session,
+      sessionId: clerk.session?.id
+    });
+  }, [isLoaded, isSignedIn, user, clerk.session]);
+
   const getToken = async () => {
     try {
+      console.debug('[Auth] Getting token, current state:', {
+        hasSession: !!clerk.session,
+        sessionId: clerk.session?.id,
+        isSignedIn
+      });
+
       if (!clerk.session) {
-        console.warn("No clerk session found");
+        console.warn("[Auth] No clerk session found");
         return null;
       }
 
@@ -90,19 +108,25 @@ export function useAuthService() {
         try {
           // First try to get the token directly
           const token = await clerk.session?.getToken();
-          if (token) return token;
+          if (token) {
+            console.debug('[Auth] Got token directly');
+            return token;
+          }
 
-          // If no token, try to restore the session
-          console.debug('No token, attempting to restore session...');
+          console.debug('[Auth] No token, attempting to restore session...');
           await clerk.session?.touch();
           
           // Wait for session to be touched
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           // Try to get token again
-          return await clerk.session?.getToken();
+          const newToken = await clerk.session?.getToken();
+          if (newToken) {
+            console.debug('[Auth] Got token after session touch');
+          }
+          return newToken;
         } catch (error) {
-          console.warn('Error in getTokenWithPersistence:', error);
+          console.warn('[Auth] Error in getTokenWithPersistence:', error);
           return null;
         }
       };
@@ -111,54 +135,73 @@ export function useAuthService() {
 
       // If still no token and we're on mobile, try more aggressive recovery
       if (!token && /Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
-        console.debug('Mobile browser detected, attempting aggressive session recovery...');
+        console.debug('[Auth] Mobile browser detected, attempting aggressive session recovery...');
         
         try {
           // Try to force a new session
           await clerk.session?.end();
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 500));
           
-          // Get the active session
-          const activeSession = clerk.session;
-          
-          if (activeSession) {
-            await activeSession.touch();
-            token = await activeSession.getToken();
-          } else {
-            // If no active session, try to create one
-            const lastActiveSession = await clerk.session?.lastActiveToken;
-            if (lastActiveSession && typeof lastActiveSession === 'string') {
-              await clerk.setActive({ session: lastActiveSession });
-              token = await getTokenWithPersistence();
+          // Try to get current session
+          if (clerk.session) {
+            try {
+              console.debug('[Auth] Trying to restore session:', clerk.session.id);
+              await clerk.session.touch();
+              await new Promise(resolve => setTimeout(resolve, 500));
+              token = await clerk.session.getToken();
+              if (token) {
+                console.debug('[Auth] Successfully recovered session:', clerk.session.id);
+              }
+            } catch (e) {
+              console.warn('[Auth] Failed to restore session:', clerk.session.id, e);
             }
           }
+
+          // If still no token, try to sign in again
+          if (!token) {
+            console.debug('[Auth] No valid session found, redirecting to sign in');
+            await clerk.openSignIn({
+              redirectUrl: window.location.href,
+              appearance: {
+                variables: {
+                  colorPrimary: '#0F172A',
+                }
+              }
+            });
+          }
         } catch (error) {
-          console.warn('Aggressive session recovery failed:', error);
+          console.warn('[Auth] Aggressive session recovery failed:', error);
         }
       }
 
       // If we still don't have a token, try one last session refresh
       if (!token) {
         try {
+          console.debug('[Auth] Final attempt to refresh session');
           await clerk.session?.touch();
           token = await clerk.session?.getToken();
+          if (token) {
+            console.debug('[Auth] Got token after final refresh');
+          }
         } catch (error) {
-          console.warn('Final session refresh failed:', error);
+          console.warn('[Auth] Final session refresh failed:', error);
         }
       }
 
       return token;
     } catch (error) {
-      console.error("Error getting token:", error);
+      console.error("[Auth] Error getting token:", error);
       return null;
     }
   };
 
   const handleSignIn = async (returnUrl?: string) => {
     try {
+      console.debug('[Auth] Starting sign in process');
       // Store the current URL for return after sign in
       if (typeof window !== 'undefined' && returnUrl) {
         sessionStorage.setItem('returnUrl', returnUrl);
+        console.debug('[Auth] Stored return URL:', returnUrl);
       }
 
       // Special handling for mobile browsers
@@ -166,23 +209,25 @@ export function useAuthService() {
         /Mobile|Android|iPhone/i.test(window.navigator.userAgent);
 
       if (isMobile && clerk.session) {
-        // For mobile, ensure we have a clean session state
+        console.debug('[Auth] Mobile browser detected, cleaning up session');
         try {
           await clerk.session.end();
         } catch (e) {
-          // Ignore end session errors
+          console.warn('[Auth] Error cleaning up session:', e);
         }
       }
 
       const storedReturnUrl = typeof window !== 'undefined' ? 
         sessionStorage.getItem('returnUrl') : null;
       const finalReturnUrl = returnUrl || storedReturnUrl || "/";
+      console.debug('[Auth] Final return URL:', finalReturnUrl);
 
       // Clear stored return URL
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('returnUrl');
       }
 
+      console.debug('[Auth] Opening sign in modal');
       await clerk.openSignIn({
         redirectUrl: finalReturnUrl,
         appearance: {
@@ -192,27 +237,30 @@ export function useAuthService() {
         }
       });
     } catch (error) {
-      console.error("Sign in error:", error);
+      console.error("[Auth] Sign in error:", error);
       throw error;
     }
   };
 
   const handleSignOut = async () => {
     try {
+      console.debug('[Auth] Starting sign out process');
       // End current session to ensure clean state
       if (clerk.session) {
+        console.debug('[Auth] Ending session:', clerk.session.id);
         await clerk.session.end();
       }
       
       // Perform the sign out
       await clerkSignOut();
+      console.debug('[Auth] Signed out successfully');
       
       // Force a page reload to ensure clean state
       if (typeof window !== 'undefined') {
         window.location.href = '/';
       }
     } catch (error) {
-      console.error("Sign out error:", error);
+      console.error("[Auth] Sign out error:", error);
       // Force a reload anyway to ensure clean state
       if (typeof window !== 'undefined') {
         window.location.href = '/';
