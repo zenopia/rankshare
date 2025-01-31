@@ -113,14 +113,15 @@ export default async function ListPage({ params, searchParams }: PageProps) {
     // Get auth state
     const { userId } = await auth();
 
+    // Check list access
+    const isOwner = userId === list.owner.clerkId;
+    const isCollaborator = userId ? list.collaborators?.some(c => c.clerkId === userId && c.status === 'accepted') : false;
+
     // For private lists, check authentication and access
     if (list.privacy === 'private') {
       if (!userId) {
         redirect('/sign-in');
       }
-
-      const isOwner = userId === list.owner.clerkId;
-      const isCollaborator = list.collaborators?.some(c => c.clerkId === userId && c.status === 'accepted');
 
       if (!isOwner && !isCollaborator) {
         notFound();
@@ -128,7 +129,6 @@ export default async function ListPage({ params, searchParams }: PageProps) {
     }
 
     // Increment view count if viewer is not the owner
-    const isOwner = userId === list.owner.clerkId;
     if (!isOwner) {
       await ListModel.findByIdAndUpdate(params.listId, {
         $inc: { "stats.viewCount": 1 }
@@ -137,7 +137,6 @@ export default async function ListPage({ params, searchParams }: PageProps) {
 
     // Track list view if user is logged in and has access
     if (userId) {
-      const isCollaborator = list.collaborators?.some(c => c.clerkId === userId && c.status === 'accepted');
       const isPinned = await PinModel.exists({ listId: params.listId, clerkId: userId });
 
       if (isOwner || isCollaborator || isPinned) {
@@ -223,11 +222,6 @@ export default async function ListPage({ params, searchParams }: PageProps) {
       followingId: owner.id
     }).lean();
 
-    // Check if user is a collaborator
-    const isCollaborator = enhancedList.collaborators?.some(
-      c => c.clerkId === userId && c.status === 'accepted'
-    ) ?? false;
-
     // Check if list is pinned by current user
     const pinDoc = await PinModel.findOne({
       listId: params.listId,
@@ -240,7 +234,7 @@ export default async function ListPage({ params, searchParams }: PageProps) {
     return (
       <ListPageContent
         list={enhancedList}
-        isOwner={userId === owner.id}
+        isOwner={isOwner}
         isPinned={!!pinDoc}
         isFollowing={!!followStatus}
         isCollaborator={isCollaborator}
