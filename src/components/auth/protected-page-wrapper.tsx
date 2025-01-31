@@ -6,6 +6,7 @@ import { MainLayout } from "@/components/layout/main-layout";
 import { SubLayout } from "@/components/layout/sub-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
 
 interface ProtectedPageWrapperProps {
   children: React.ReactNode;
@@ -42,10 +43,12 @@ export function ProtectedPageWrapper({
   const [shouldShowSkeleton, setShouldShowSkeleton] = useState(false);
   const [isValidated, setIsValidated] = useState(false);
   const router = useRouter();
+  const clerk = useClerk();
 
   // Validate session token
   useEffect(() => {
     let mounted = true;
+    let retryTimeout: NodeJS.Timeout;
 
     const validateSession = async () => {
       try {
@@ -62,59 +65,86 @@ export function ProtectedPageWrapper({
 
         // Get token with retries for mobile
         let token = null;
-        if (isMobile) {
-          let retryCount = 0;
-          const maxRetries = 3;
-          
-          while (retryCount < maxRetries) {
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        const tryGetToken = async () => {
+          try {
+            // Try to get a fresh session first
+            if (isMobile && clerk.session) {
+              await clerk.session.touch();
+              // Small delay to allow session update
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
             token = await getToken();
-            if (token) break;
             
-            // Wait before retry with exponential backoff
-            await new Promise(resolve => 
-              setTimeout(resolve, Math.min(100 * Math.pow(2, retryCount), 1000))
-            );
-            retryCount++;
-          }
-        } else {
-          token = await getToken();
-        }
-
-        if (mounted) {
-          if (!token) {
-            // Store current path for return after sign in
-            if (typeof window !== 'undefined' && window.location.pathname !== '/' && !window.location.pathname.startsWith('/sign-in')) {
-              sessionStorage.setItem('returnUrl', window.location.pathname);
+            if (!token && retryCount < maxRetries) {
+              retryCount++;
+              // Exponential backoff
+              const delay = Math.min(100 * Math.pow(2, retryCount), 1000);
+              retryTimeout = setTimeout(tryGetToken, delay);
+              return;
             }
-            router.push('/sign-in');
-            return;
-          }
 
-          // Verify user matches with retry for mobile
-          if (user.id !== initialUser.id) {
-            if (isMobile) {
-              // On mobile, try one more token refresh before redirecting
-              try {
-                const refreshedToken = await getToken();
-                if (refreshedToken && user.id === initialUser.id) {
-                  setIsValidated(true);
-                  return;
-                }
-              } catch (e) {
-                console.warn('Mobile user verification failed:', e);
+            if (!token) {
+              // Store current path for return after sign in
+              if (typeof window !== 'undefined' && window.location.pathname !== '/' && !window.location.pathname.startsWith('/sign-in')) {
+                sessionStorage.setItem('returnUrl', window.location.pathname);
               }
+
+              // For mobile browsers, try to force a new sign-in session
+              if (isMobile) {
+                try {
+                  // Remove the current session
+                  await clerk.session?.remove();
+                  // Open sign-in with the current URL as return URL
+                  const returnUrl = window.location.pathname;
+                  await clerk.openSignIn({
+                    redirectUrl: returnUrl,
+                    appearance: {
+                      variables: {
+                        colorPrimary: '#0F172A',
+                      }
+                    }
+                  });
+                  return;
+                } catch (e) {
+                  console.warn('Failed to handle mobile sign-in:', e);
+                }
+              }
+
+              router.push('/sign-in');
+              return;
             }
 
-            console.warn('User mismatch, redirecting to sign in');
-            if (typeof window !== 'undefined' && window.location.pathname !== '/' && !window.location.pathname.startsWith('/sign-in')) {
-              sessionStorage.setItem('returnUrl', window.location.pathname);
+            // Verify user matches
+            if (user.id !== initialUser.id) {
+              console.warn('User mismatch, redirecting to sign in');
+              if (typeof window !== 'undefined' && window.location.pathname !== '/' && !window.location.pathname.startsWith('/sign-in')) {
+                sessionStorage.setItem('returnUrl', window.location.pathname);
+              }
+              router.push('/sign-in');
+              return;
             }
-            router.push('/sign-in');
-            return;
+
+            if (mounted) {
+              setIsValidated(true);
+            }
+          } catch (error) {
+            console.error('Token fetch failed:', error);
+            if (retryCount < maxRetries) {
+              retryCount++;
+              // Exponential backoff
+              const delay = Math.min(100 * Math.pow(2, retryCount), 1000);
+              retryTimeout = setTimeout(tryGetToken, delay);
+            } else {
+              throw error;
+            }
           }
+        };
 
-          setIsValidated(true);
-        }
+        await tryGetToken();
       } catch (error) {
         console.error('Session validation failed:', error);
         if (mounted) {
@@ -131,8 +161,11 @@ export function ProtectedPageWrapper({
 
     return () => {
       mounted = false;
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
     };
-  }, [isLoaded, user, initialUser.id, router, getToken]);
+  }, [isLoaded, user, initialUser.id, router, getToken, clerk]);
 
   // Only show skeleton after a delay if still loading
   useEffect(() => {
