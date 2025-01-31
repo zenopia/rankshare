@@ -10,6 +10,7 @@ interface UseAuthGuardProps {
 export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed = false }: UseAuthGuardProps = {}) {
   const { isLoaded, isSignedIn, getToken, user } = useAuth();
   const [isReady, setIsReady] = useState(false);
+  const [isValidating, setIsValidating] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -17,66 +18,86 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
   const isAuthPage = pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up');
   
   useEffect(() => {
-    // Auth pages are always ready and don't need token validation
-    if (isAuthPage) {
-      setIsReady(true);
-      return;
-    }
-
-    // Reset ready state when session changes
-    if (!isLoaded) {
-      setIsReady(false);
-      return;
-    }
-
-    // Handle sign-out
-    if (isLoaded && !isSignedIn && !isAuthPage && !user) {
-      router.push('/');
-      return;
-    }
-
-    // Reset ready state when session changes
-    if (!user) {
-      setIsReady(false);
-      return;
-    }
-
-    const checkAuth = async () => {
+    let mounted = true;
+    
+    const validateSession = async () => {
       try {
-        // Get fresh token to validate session
-        const token = await getToken();
-        
-        if (isProtected && !isSignedIn) {
-          // Redirect to sign in if trying to access protected route while not signed in
-          const returnUrl = encodeURIComponent(pathname);
-          router.push(`/sign-in?returnUrl=${returnUrl}`);
+        // Skip validation for auth pages
+        if (isAuthPage) {
+          if (mounted) {
+            setIsValidating(false);
+            setIsReady(true);
+          }
           return;
         }
 
-        if (redirectIfAuthed && isSignedIn) {
-          // Redirect to home if trying to access auth pages while signed in
+        // Reset ready state when session changes
+        if (!isLoaded) {
+          if (mounted) {
+            setIsReady(false);
+            setIsValidating(true);
+          }
+          return;
+        }
+
+        // Handle sign-out
+        if (isLoaded && !isSignedIn && !isAuthPage && !user) {
           router.push('/');
           return;
         }
 
-        // Only set ready if we have a valid token
-        if (token) {
-          setIsReady(true);
+        // Reset ready state when session changes
+        if (!user) {
+          if (mounted) {
+            setIsReady(false);
+            setIsValidating(true);
+          }
+          return;
+        }
+
+        // Validate token
+        const token = await getToken();
+        
+        if (mounted) {
+          setIsValidating(false);
+          
+          if (isProtected && !token) {
+            // Redirect to sign in if trying to access protected route without valid token
+            const returnUrl = encodeURIComponent(pathname);
+            router.push(`/sign-in?returnUrl=${returnUrl}`);
+            return;
+          }
+
+          if (redirectIfAuthed && token) {
+            // Redirect to home if trying to access auth pages with valid token
+            router.push('/');
+            return;
+          }
+
+          // Only set ready if we have a valid token or it's not required
+          setIsReady(!isProtected || !!token);
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
-        setIsReady(false);
-        if (isProtected) {
-          router.push('/sign-in');
+        console.error('Auth validation failed:', error);
+        if (mounted) {
+          setIsValidating(false);
+          setIsReady(false);
+          if (isProtected) {
+            router.push('/sign-in');
+          }
         }
       }
     };
 
-    checkAuth();
+    validateSession();
+
+    return () => {
+      mounted = false;
+    };
   }, [isLoaded, isSignedIn, user, isProtected, redirectIfAuthed, pathname, router, getToken, isAuthPage]);
 
   return {
-    isReady: isAuthPage || (isLoaded && isReady),
+    isReady: isAuthPage || (isLoaded && isReady && !isValidating),
     isSignedIn,
     isLoaded,
     getToken

@@ -77,29 +77,155 @@ export function useAuthService() {
   const user = clerkUser ? AuthService.transformClerkUser(clerkUser as unknown as User) : null;
   const isSignedIn = clerkIsSignedIn ?? false;
 
+  const getToken = async () => {
+    try {
+      if (!clerk.session) {
+        console.warn("No clerk session found");
+        return null;
+      }
+
+      // Add retry logic for mobile browsers with production-specific handling
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          // First try to get the token directly
+          const token = await clerk.session.getToken();
+          if (token) {
+            return token;
+          }
+
+          // If no token, try to refresh the session in production
+          if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
+            try {
+              await clerk.session.touch();
+              const refreshedToken = await clerk.session.getToken();
+              if (refreshedToken) {
+                return refreshedToken;
+              }
+            } catch (refreshError) {
+              console.warn('Session refresh failed:', refreshError);
+            }
+          }
+
+          retryCount++;
+          // Exponential backoff for retries
+          await new Promise(resolve => setTimeout(resolve, Math.min(100 * Math.pow(2, retryCount), 1000)));
+        } catch (error) {
+          console.warn(`Token fetch attempt ${retryCount + 1} failed:`, error);
+          
+          // Special handling for production token errors
+          if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
+            if (error instanceof Error && error.message?.includes('token')) {
+              console.warn('Production token error, attempting session refresh');
+              try {
+                await clerk.session.touch();
+              } catch (refreshError) {
+                console.warn('Session refresh failed:', refreshError);
+              }
+            }
+          }
+
+          retryCount++;
+          if (retryCount === maxRetries) {
+            throw error;
+          }
+          // Exponential backoff for retries
+          await new Promise(resolve => setTimeout(resolve, Math.min(100 * Math.pow(2, retryCount), 1000)));
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error("Error getting token:", error);
+      
+      // Special handling for production errors
+      if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
+        // Check if this is a session-related error
+        if (error instanceof Error && 
+            (error.message?.includes('session') || error.message?.includes('token'))) {
+          console.warn('Production session error, signing out and redirecting');
+          try {
+            // Force a complete session cleanup
+            await clerk.signOut({ sessionId: clerk.session?.id });
+          } catch (e) {
+            console.error("Error signing out:", e);
+          }
+        }
+      }
+      return null;
+    }
+  };
+
   const handleSignIn = async (returnUrl?: string) => {
-    await clerk.openSignIn({
-      redirectUrl: returnUrl || "/",
-    });
+    try {
+      // In production, ensure we clear any existing session data first
+      if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
+        try {
+          await clerk.signOut();
+        } catch (e) {
+          // Ignore signOut errors
+        }
+      }
+
+      await clerk.openSignIn({
+        redirectUrl: returnUrl || "/",
+        // Ensure we always get a fresh session in production
+        appearance: {
+          variables: {
+            // Force dark mode in sign-in modal for consistency
+            colorPrimary: '#0F172A',
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Sign in error:", error);
+      throw error;
+    }
   };
 
   const handleSignUp = async (returnUrl?: string) => {
-    await clerk.openSignUp({
-      redirectUrl: returnUrl || "/",
-    });
+    try {
+      // In production, ensure we clear any existing session data first
+      if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
+        try {
+          await clerk.signOut();
+        } catch (e) {
+          // Ignore signOut errors
+        }
+      }
+
+      await clerk.openSignUp({
+        redirectUrl: returnUrl || "/",
+        // Ensure we always get a fresh session in production
+        appearance: {
+          variables: {
+            // Force dark mode in sign-up modal for consistency
+            colorPrimary: '#0F172A',
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Sign up error:", error);
+      throw error;
+    }
   };
 
   const handleSignOut = async () => {
-    await clerkSignOut();
-  };
-
-  const getToken = async () => {
     try {
-      if (!clerk.session) return null;
-      return await clerk.session.getToken();
+      if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
+        // In production, ensure we clear the specific session
+        await clerk.signOut({ sessionId: clerk.session?.id });
+      } else {
+        await clerkSignOut();
+      }
     } catch (error) {
-      console.error("Error getting token:", error);
-      return null;
+      console.error("Sign out error:", error);
+      // Force a reload in production to ensure clean state
+      if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
+        window.location.href = '/';
+      }
     }
   };
 
