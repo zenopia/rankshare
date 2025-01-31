@@ -12,6 +12,7 @@ import { ListLayout } from "@/components/layout/list-layout";
 import { useProtectedFetch } from "@/hooks/use-protected-fetch";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 interface ListPageContentProps {
   list: EnhancedList;
@@ -34,6 +35,7 @@ export function ListPageContent({
   isLoading: initialIsLoading,
   error: initialError
 }: ListPageContentProps) {
+  const router = useRouter();
   const [showCollaborators, setShowCollaborators] = useState(false);
   const [isPinned, setIsPinned] = useState(initialIsPinned);
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
@@ -63,6 +65,21 @@ export function ListPageContent({
 
     fetchStatus();
   }, [list.id, isSignedIn, user, fetchWithAuth]);
+
+  const handlePinChange = (newPinned: boolean) => {
+    setIsPinned(newPinned);
+    // Update the server state in the background
+    fetch(`/api/lists/${list.id}/pin`, {
+      method: 'POST'
+    }).then(() => {
+      // Only refresh the page data after the server update is complete
+      router.refresh();
+    }).catch(error => {
+      console.error('Error updating pin status:', error);
+      // Revert the local state if the server update fails
+      setIsPinned(!newPinned);
+    });
+  };
 
   if (initialIsLoading) {
     return (
@@ -123,6 +140,7 @@ export function ListPageContent({
               isCollaborator={isCollaborator}
               showCollaborators={showCollaborators}
               onCollaboratorsClick={() => setShowCollaborators(!showCollaborators)}
+              onPinChange={handlePinChange}
             />
           </ErrorBoundaryWrapper>
         </div>

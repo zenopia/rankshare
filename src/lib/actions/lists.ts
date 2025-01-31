@@ -206,17 +206,27 @@ export async function getPinnedLists(userId: string) {
   // Ensure database connection
   await connectToDatabase();
 
-  // Get pinned lists for the user
-  const ListViewModel = await getListViewModel();
-  const listViews = await ListViewModel.find({ 
-    clerkId: userId,
-    accessType: 'pin'
-  }).lean() as unknown as ListViewDocument[];
-  const listIds = listViews.map(view => view.listId);
+  // Get pinned lists for the user using the Pin model
+  const PinModel = await getPinModel();
+  const pins = await PinModel.find({ 
+    clerkId: userId 
+  }).lean();
+  
+  const listIds = pins.map(pin => pin.listId);
 
-  return getEnhancedLists({
+  // Get the enhanced lists with pin status
+  const enhancedLists = await getEnhancedLists({
     _id: { $in: listIds }
   });
+
+  // Mark all lists as pinned since they're coming from the pinned lists query
+  return {
+    ...enhancedLists,
+    lists: enhancedLists.lists.map(list => ({
+      ...list,
+      isPinned: true
+    }))
+  };
 }
 
 export async function getSharedLists(userId: string) {

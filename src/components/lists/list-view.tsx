@@ -22,6 +22,7 @@ interface ListViewProps {
   isCollaborator: boolean;
   showCollaborators: boolean;
   onCollaboratorsClick: () => void;
+  onPinChange?: (isPinned: boolean) => void;
 }
 
 export function ListView({ 
@@ -31,7 +32,8 @@ export function ListView({
   isPinned, 
   isFollowing,
   showCollaborators,
-  onCollaboratorsClick 
+  onCollaboratorsClick,
+  onPinChange
 }: ListViewProps) {
   const { user, isSignedIn } = useUser();
   const [localIsPinned, setLocalIsPinned] = useState(isPinned);
@@ -46,6 +48,7 @@ export function ListView({
   const handlePinChange = (newPinned: boolean) => {
     setLocalIsPinned(newPinned);
     setLocalPinCount(prev => newPinned ? prev + 1 : prev - 1);
+    onPinChange?.(newPinned);
   };
 
   return (
