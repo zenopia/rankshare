@@ -4,6 +4,7 @@ import type { User } from "@clerk/backend";
 import { AuthUser } from "@/types/auth";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
+import type { ActiveSessionResource, TokenResource } from '@clerk/types';
 
 export class AuthService {
   static async getCurrentUser(): Promise<AuthUser | null> {
@@ -84,128 +85,111 @@ export function useAuthService() {
         return null;
       }
 
-      // First try to get the token directly
-      let token = await clerk.session.getToken();
-      
-      // If we have a token, check if it's about to expire
-      if (token) {
+      // Try to get token with persistence
+      const getTokenWithPersistence = async () => {
         try {
-          const [, payload] = token.split('.');
-          const decodedPayload = JSON.parse(atob(payload));
-          const expiryTime = decodedPayload.exp * 1000;
-          const now = Date.now();
+          // First try to get the token directly
+          const token = await clerk.session?.getToken();
+          if (token) return token;
+
+          // If no token, try to restore the session
+          console.debug('No token, attempting to restore session...');
+          await clerk.session?.touch();
           
-          // If token expires in less than 30 seconds, try to refresh it
-          if (expiryTime - now < 30000) {
-            console.debug('Token near expiry, refreshing session...');
-            await clerk.session.touch();
-            token = await clerk.session.getToken();
+          // Wait for session to be touched
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Try to get token again
+          return await clerk.session?.getToken();
+        } catch (error) {
+          console.warn('Error in getTokenWithPersistence:', error);
+          return null;
+        }
+      };
+
+      let token = await getTokenWithPersistence();
+
+      // If still no token and we're on mobile, try more aggressive recovery
+      if (!token && /Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
+        console.debug('Mobile browser detected, attempting aggressive session recovery...');
+        
+        try {
+          // Try to force a new session
+          await clerk.session?.end();
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Get the active session
+          const activeSession = clerk.session;
+          
+          if (activeSession) {
+            await activeSession.touch();
+            token = await activeSession.getToken();
+          } else {
+            // If no active session, try to create one
+            const lastActiveSession = await clerk.session?.lastActiveToken;
+            if (lastActiveSession && typeof lastActiveSession === 'string') {
+              await clerk.setActive({ session: lastActiveSession });
+              token = await getTokenWithPersistence();
+            }
           }
-        } catch (e) {
-          console.warn('Error checking token expiry:', e);
+        } catch (error) {
+          console.warn('Aggressive session recovery failed:', error);
         }
       }
 
-      // If still no token, try to refresh the session
+      // If we still don't have a token, try one last session refresh
       if (!token) {
-        // Add retry logic for mobile browsers with production-specific handling
-        let retryCount = 0;
-        const maxRetries = 3;
-        
-        while (retryCount < maxRetries) {
-          try {
-            // Force a session touch
-            await clerk.session.touch();
-            // Small delay to allow session update
-            await new Promise(resolve => setTimeout(resolve, 100));
-            token = await clerk.session.getToken();
-            if (token) {
-              return token;
-            }
-          } catch (refreshError) {
-            console.warn('Session refresh failed:', refreshError);
-            // On mobile, try to get a new session
-            if (/Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
-              try {
-                await clerk.session.remove();
-                await clerk.openSignIn();
-                token = await clerk.session?.getToken();
-                if (token) {
-                  return token;
-                }
-              } catch (e) {
-                console.warn('New session creation failed:', e);
-              }
-            }
-          }
-
-          retryCount++;
-          // Exponential backoff for retries
-          await new Promise(resolve => setTimeout(resolve, Math.min(100 * Math.pow(2, retryCount), 1000)));
+        try {
+          await clerk.session?.touch();
+          token = await clerk.session?.getToken();
+        } catch (error) {
+          console.warn('Final session refresh failed:', error);
         }
       }
 
       return token;
     } catch (error) {
       console.error("Error getting token:", error);
-      
-      // Special handling for production errors
-      if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
-        // Check if this is a session-related error
-        if (error instanceof Error && 
-            (error.message?.includes('session') || error.message?.includes('token'))) {
-          console.warn('Production session error, signing out and redirecting');
-          try {
-            // Force a complete session cleanup
-            await clerk.session?.remove();
-            await clerk.signOut();
-          } catch (e) {
-            console.error("Error signing out:", e);
-          }
-        }
-      }
       return null;
     }
   };
 
   const handleSignIn = async (returnUrl?: string) => {
     try {
-      // In production, ensure we clear any existing session data first
-      if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
+      // Store the current URL for return after sign in
+      if (typeof window !== 'undefined' && returnUrl) {
+        sessionStorage.setItem('returnUrl', returnUrl);
+      }
+
+      // Special handling for mobile browsers
+      const isMobile = typeof window !== 'undefined' && 
+        /Mobile|Android|iPhone/i.test(window.navigator.userAgent);
+
+      if (isMobile && clerk.session) {
+        // For mobile, ensure we have a clean session state
         try {
-          await clerk.signOut();
+          await clerk.session.end();
         } catch (e) {
-          // Ignore signOut errors
+          // Ignore end session errors
         }
       }
 
-      // Check for stored return URL
       const storedReturnUrl = typeof window !== 'undefined' ? 
         sessionStorage.getItem('returnUrl') : null;
       const finalReturnUrl = returnUrl || storedReturnUrl || "/";
-      
+
       // Clear stored return URL
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('returnUrl');
       }
 
-      // Special handling for mobile browsers in production
-      const isMobile = typeof window !== 'undefined' && 
-        /Mobile|Android|iPhone/i.test(window.navigator.userAgent);
-      
       await clerk.openSignIn({
         redirectUrl: finalReturnUrl,
-        // Ensure we always get a fresh session in production
         appearance: {
           variables: {
             colorPrimary: '#0F172A',
           }
-        },
-        // Additional options for mobile production
-        ...(isMobile && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.') ? {
-          afterSignInUrl: finalReturnUrl,
-          afterSignUpUrl: finalReturnUrl,
-        } : {})
+        }
       });
     } catch (error) {
       console.error("Sign in error:", error);
@@ -213,63 +197,24 @@ export function useAuthService() {
     }
   };
 
-  const handleSignUp = async (returnUrl?: string) => {
-    try {
-      // In production, ensure we clear any existing session data first
-      if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
-        try {
-          await clerk.signOut();
-        } catch (e) {
-          // Ignore signOut errors
-        }
-      }
-
-      // Check for stored return URL
-      const storedReturnUrl = typeof window !== 'undefined' ? 
-        sessionStorage.getItem('returnUrl') : null;
-      const finalReturnUrl = returnUrl || storedReturnUrl || "/";
-      
-      // Clear stored return URL
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('returnUrl');
-      }
-
-      // Special handling for mobile browsers in production
-      const isMobile = typeof window !== 'undefined' && 
-        /Mobile|Android|iPhone/i.test(window.navigator.userAgent);
-
-      await clerk.openSignUp({
-        redirectUrl: finalReturnUrl,
-        // Ensure we always get a fresh session in production
-        appearance: {
-          variables: {
-            colorPrimary: '#0F172A',
-          }
-        },
-        // Additional options for mobile production
-        ...(isMobile && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.') ? {
-          afterSignInUrl: finalReturnUrl,
-          afterSignUpUrl: finalReturnUrl,
-        } : {})
-      });
-    } catch (error) {
-      console.error("Sign up error:", error);
-      throw error;
-    }
-  };
-
   const handleSignOut = async () => {
     try {
-      if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
-        // In production, ensure we clear the specific session
-        await clerk.signOut({ sessionId: clerk.session?.id });
-      } else {
-        await clerkSignOut();
+      // End current session to ensure clean state
+      if (clerk.session) {
+        await clerk.session.end();
+      }
+      
+      // Perform the sign out
+      await clerkSignOut();
+      
+      // Force a page reload to ensure clean state
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
       }
     } catch (error) {
       console.error("Sign out error:", error);
-      // Force a reload in production to ensure clean state
-      if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
+      // Force a reload anyway to ensure clean state
+      if (typeof window !== 'undefined') {
         window.location.href = '/';
       }
     }
@@ -280,7 +225,6 @@ export function useAuthService() {
     isSignedIn,
     user,
     signIn: handleSignIn,
-    signUp: handleSignUp,
     signOut: handleSignOut,
     getToken,
   };
