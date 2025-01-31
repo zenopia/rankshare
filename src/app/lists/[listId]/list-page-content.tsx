@@ -35,8 +35,6 @@ export function ListPageContent({
   error: initialError
 }: ListPageContentProps) {
   const [showCollaborators, setShowCollaborators] = useState(false);
-  const [isLoading, setIsLoading] = useState(initialIsLoading);
-  const [error, setError] = useState(initialError);
   const [isPinned, setIsPinned] = useState(initialIsPinned);
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isCollaborator, setIsCollaborator] = useState(initialIsCollaborator);
@@ -66,7 +64,7 @@ export function ListPageContent({
     fetchStatus();
   }, [list.id, isSignedIn, user, fetchWithAuth]);
 
-  if (isLoading) {
+  if (initialIsLoading) {
     return (
       <ListLayout>
         <div className="container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 space-y-8">
@@ -84,13 +82,13 @@ export function ListPageContent({
     );
   }
 
-  if (error) {
+  if (initialError) {
     return (
       <ListLayout>
         <div className="container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{initialError}</AlertDescription>
           </Alert>
         </div>
       </ListLayout>
@@ -112,7 +110,13 @@ export function ListPageContent({
         <div className="flex-1 container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 overflow-y-auto">
           <ErrorBoundaryWrapper>
             <ListView
-              list={list}
+              list={{
+                ...list,
+                stats: {
+                  ...list.stats,
+                  pinCount: isPinned ? list.stats.pinCount : list.stats.pinCount - 1
+                }
+              }}
               isOwner={isOwner}
               isPinned={isPinned}
               isFollowing={isFollowing}

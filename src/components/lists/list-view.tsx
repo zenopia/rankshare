@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EnhancedList, ListItem } from "@/types/list";
 import { CategoryBadge } from "@/components/lists/category-badge";
 import ListActionBar from "@/components/lists/list-action-bar";
@@ -34,6 +34,19 @@ export function ListView({
   onCollaboratorsClick 
 }: ListViewProps) {
   const { user, isSignedIn } = useUser();
+  const [localIsPinned, setLocalIsPinned] = useState(isPinned);
+  const [localPinCount, setLocalPinCount] = useState(list.stats.pinCount);
+
+  // Update local state when props change
+  useEffect(() => {
+    setLocalIsPinned(isPinned);
+    setLocalPinCount(list.stats.pinCount);
+  }, [isPinned, list.stats.pinCount]);
+
+  const handlePinChange = (newPinned: boolean) => {
+    setLocalIsPinned(newPinned);
+    setLocalPinCount(prev => newPinned ? prev + 1 : prev - 1);
+  };
 
   return (
     <div className="space-y-8 pb-24">
@@ -147,7 +160,7 @@ export function ListView({
             </div>
             <div key="pins" className="flex items-center gap-1">
               <Pin className="h-3 w-3" />
-              {list.stats.pinCount}
+              {localPinCount}
             </div>
             <div key="copies" className="flex items-center gap-1">
               <Copy className="h-3 w-3" />
@@ -180,8 +193,8 @@ export function ListView({
         {isSignedIn && user && (
           <ListActionBar
             listId={list.id}
-            isPinned={isPinned}
-            onPinChange={() => {}}
+            isPinned={localIsPinned}
+            onPinChange={handlePinChange}
           />
         )}
       </div>

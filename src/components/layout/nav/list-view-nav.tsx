@@ -60,7 +60,11 @@ export function ListViewNav({
   const { data: userData } = useUsers(acceptedCollaborators.map(c => c.clerkId).filter((id): id is string => !!id));
 
   const handleBack = () => {
-    router.back();
+    if (returnPath) {
+      router.push(returnPath);
+    } else {
+      router.back();
+    }
   };
 
   return (

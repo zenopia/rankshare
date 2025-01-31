@@ -55,6 +55,12 @@ export function SubLayout({ children, title = "Page", action }: SubLayoutProps) 
       return;
     }
 
+    // If we're on the edit page, just use browser history
+    if (pathname.includes('/profile/lists/edit/')) {
+      router.back();
+      return;
+    }
+
     // If we're on a following/followers page
     if (pathname.includes('/following') || pathname.includes('/followers')) {
       // Extract the username from the path segments
@@ -66,8 +72,10 @@ export function SubLayout({ children, title = "Page", action }: SubLayoutProps) 
     // If we're on a profile page
     else if (pathname.startsWith('/profile/') || pathname.startsWith('/profile/@')) {
       if (from) {
-        // go to the from parameter if it exists
-        router.push(`/${decodeURIComponent(from)}`);
+        // Ensure the from parameter starts with a slash
+        const decodedPath = decodeURIComponent(from);
+        const path = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`;
+        router.push(path);
       } else {
         // If no from parameter, go to the lists page
         router.push('/lists');
