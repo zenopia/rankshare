@@ -197,18 +197,43 @@ export async function getSharedLists(userId: string) {
 
   // Get lists where:
   // 1. The user is a collaborator with accepted status OR
-  // 2. The user is the owner AND the list has any collaborators (regardless of status)
+  // 2. The user is the owner AND the list has any collaborators
   const ListModel = await getListModel();
-  return getEnhancedLists({
+  
+  // Debug: Log the query we're about to run
+  const query = {
     $or: [
       {
         'collaborators.clerkId': userId,
         'collaborators.status': 'accepted'
       },
       {
-        'owner.clerkId': userId,
-        collaborators: { $exists: true, $not: { $size: 0 } }
+        $and: [
+          { 'owner.clerkId': userId },
+          { collaborators: { $type: 'array', $ne: [] } }
+        ]
       }
     ]
-  });
+  };
+  console.log('Shared Lists Query:', JSON.stringify(query, null, 2));
+  console.log('User ID:', userId);
+
+  // First get raw lists to check what's being returned from MongoDB
+  const rawLists = await ListModel.find(query).lean();
+  console.log('Raw Lists Count:', rawLists.length);
+  if (rawLists.length === 0) {
+    // If no lists found, let's check if the user exists and has any lists at all
+    const userLists = await ListModel.find({ 'owner.clerkId': userId }).lean();
+    console.log('User Total Lists:', userLists.length);
+    console.log('User Lists with Collaborators:', userLists.filter(l => l.collaborators?.length > 0).length);
+  } else {
+    console.log('Raw Lists:', JSON.stringify(rawLists.map(l => ({
+      id: l._id,
+      title: l.title,
+      owner: l.owner.clerkId,
+      collaborators: l.collaborators?.length || 0
+    })), null, 2));
+  }
+
+  return getEnhancedLists(query);
 } 
