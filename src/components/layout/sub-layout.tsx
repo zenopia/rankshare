@@ -69,9 +69,7 @@ export function SubLayout({ children, title = "Page", action }: SubLayoutProps) 
     else if (pathname.startsWith('/profile') && pathname.split('/').length === 3) {
       if (from) {
         // If there's a from parameter, go there
-        // Ensure we don't duplicate /profile/ prefix
-        const destination = from.startsWith('profile/') ? `/${from}` : from;
-        router.push(decodeURIComponent(destination));
+        router.push(decodeURIComponent(from));
       } else {
         // If no from parameter, go to the lists page
         router.push('/profile/lists');
