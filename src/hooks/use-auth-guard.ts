@@ -40,14 +40,23 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
           return;
         }
 
-        // Handle sign-out
-        if (isLoaded && !isSignedIn && !isAuthPage && !user) {
+        // Only redirect to home if this is a protected route
+        if (isProtected && isLoaded && !isSignedIn && !isAuthPage && !user) {
           router.push('/');
           return;
         }
 
-        // Reset ready state when session changes
-        if (!user) {
+        // For non-protected routes, we're ready if the auth state is loaded
+        if (!isProtected) {
+          if (mounted) {
+            setIsValidating(false);
+            setIsReady(true);
+          }
+          return;
+        }
+
+        // Reset ready state when session changes on protected routes
+        if (!user && isProtected) {
           if (mounted) {
             setIsReady(false);
             setIsValidating(true);
