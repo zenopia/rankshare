@@ -6,6 +6,7 @@ import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { getUserCacheModel } from "@/lib/db/models-v2/user-cache";
 import { getListViewModel } from "@/lib/db/models-v2/list-view";
+import { getPinModel } from "@/lib/db/models-v2/pin";
 import { FilterQuery, Types, QueryOptions } from "mongoose";
 import { EnhancedList, List, ListItem, ListCollaborator } from "@/types/list";
 import { MongoListDocument } from "@/types/mongo";
@@ -16,6 +17,12 @@ interface ListViewDocument {
   clerkId: string;
   lastViewedAt: Date;
   accessType: 'pin' | 'owner' | 'collaborator';
+}
+
+interface PinDocument {
+  listId: Types.ObjectId;
+  clerkId: string;
+  lastViewedAt: Date;
 }
 
 export async function getEnhancedLists(
@@ -102,18 +109,34 @@ export async function getEnhancedLists(
     }])
   );
 
-  // If authenticated, get list view data to create lastViewedMap
+  // If authenticated, get list view data and pin data
   let lastViewedMap: Record<string, Date> | undefined;
+  let pinnedListIds: Set<string> | undefined;
+  
   if (user) {
-    const ListViewModel = await getListViewModel();
-    const listViews = await ListViewModel.find({
-      clerkId: user.id,
-      listId: { $in: lists.map(list => list._id) }
-    }).lean() as unknown as ListViewDocument[];
+    const [ListViewModel, PinModel] = await Promise.all([
+      getListViewModel(),
+      getPinModel()
+    ]);
 
+    const [listViews, pins] = await Promise.all([
+      ListViewModel.find({
+        clerkId: user.id,
+        listId: { $in: lists.map(list => list._id) }
+      }).lean() as unknown as ListViewDocument[],
+      PinModel.find({
+        clerkId: user.id,
+        listId: { $in: lists.map(list => list._id) }
+      }).lean() as unknown as PinDocument[]
+    ]);
+
+    // Create map of last viewed times
     lastViewedMap = Object.fromEntries(
       listViews.map(view => [view.listId.toString(), view.lastViewedAt])
     );
+
+    // Create set of pinned list IDs
+    pinnedListIds = new Set(pins.map(pin => pin.listId.toString()));
   }
 
   // Enhance lists with owner data
@@ -157,7 +180,8 @@ export async function getEnhancedLists(
       lastEditedAt: list.editedAt?.toISOString(),
       createdAt: list.createdAt.toISOString(),
       updatedAt: list.updatedAt.toISOString(),
-      editedAt: list.editedAt?.toISOString()
+      editedAt: list.editedAt?.toISOString(),
+      isPinned: pinnedListIds?.has(list._id.toString()) || false
     };
 
     const enhanced: EnhancedList = {

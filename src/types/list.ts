@@ -83,6 +83,7 @@ export interface List {
   createdAt: string;
   updatedAt: string;
   editedAt?: string;
+  isPinned?: boolean;
 }
 
 export interface ItemDetails {
@@ -103,4 +104,5 @@ export interface EnhancedListOwner extends ListOwner {
 
 export interface EnhancedList extends Omit<List, 'owner'> {
   owner: EnhancedListOwner;
+  isPinned?: boolean;
 }
