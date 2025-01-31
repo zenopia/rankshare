@@ -13,23 +13,38 @@ interface PageProps {
 }
 
 export default async function CollaborativeListsPage({ searchParams }: PageProps) {
+  console.log('Accessing Collaborative Lists Page');
   const { userId } = auth();
 
   if (!userId) {
+    console.log('No user found, redirecting to sign-in');
     redirect('/sign-in');
   }
 
   try {
+    console.log('Fetching data for user:', userId);
     const [user, { lists: unsortedLists }] = await Promise.all([
       clerkClient.users.getUser(userId),
       getEnhancedLists(
         { 
-          'collaborators.clerkId': userId,
-          'collaborators.status': 'accepted'
+          $or: [
+            {
+              'collaborators.clerkId': userId,
+              'collaborators.status': 'accepted'
+            },
+            {
+              $and: [
+                { 'owner.clerkId': userId },
+                { collaborators: { $type: 'array', $ne: [] } }
+              ]
+            }
+          ]
         },
         { lean: true }
       )
     ]);
+    
+    console.log('Found lists:', unsortedLists.length);
     
     // Apply sorting
     const sortedLists = [...unsortedLists].sort((a, b) => {
@@ -44,6 +59,8 @@ export default async function CollaborativeListsPage({ searchParams }: PageProps
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
     });
+
+    console.log('Lists after sorting:', sortedLists.length);
     
     return (
       <MyListsLayout 
