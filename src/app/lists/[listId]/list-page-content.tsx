@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ListView } from "@/components/lists/list-view";
 import { ListViewNav } from "@/components/layout/nav/list-view-nav";
 import { ErrorBoundaryWrapper } from "@/components/error-boundary-wrapper";
@@ -9,6 +9,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import type { EnhancedList } from "@/types/list";
 import { ListLayout } from "@/components/layout/list-layout";
+import { useProtectedFetch } from "@/hooks/use-protected-fetch";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 interface ListPageContentProps {
   list: EnhancedList;
@@ -24,14 +26,41 @@ interface ListPageContentProps {
 export function ListPageContent({
   list,
   isOwner,
-  isPinned,
-  isFollowing,
-  isCollaborator,
+  isPinned: initialIsPinned,
+  isFollowing: initialIsFollowing,
+  isCollaborator: initialIsCollaborator,
   returnPath,
-  isLoading,
-  error
+  isLoading: initialIsLoading,
+  error: initialError
 }: ListPageContentProps) {
   const [showCollaborators, setShowCollaborators] = useState(false);
+  const [isLoading, setIsLoading] = useState(initialIsLoading);
+  const [error, setError] = useState(initialError);
+  const [isPinned, setIsPinned] = useState(initialIsPinned);
+  const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
+  const [isCollaborator, setIsCollaborator] = useState(initialIsCollaborator);
+  const { fetchWithAuth } = useProtectedFetch();
+  const { isReady } = useAuthGuard();
+
+  // Fetch latest status when component mounts
+  useEffect(() => {
+    const fetchStatus = async () => {
+      if (!isReady) return;
+      
+      try {
+        const response = await fetchWithAuth(`/api/lists/${list.id}/status`);
+        const data = await response.json();
+        setIsPinned(data.isPinned);
+        setIsFollowing(data.isFollowing);
+        setIsCollaborator(data.isCollaborator);
+      } catch (error) {
+        console.error('Error fetching list status:', error);
+        // Don't show error UI, just keep initial values
+      }
+    };
+
+    fetchStatus();
+  }, [list.id, isReady, fetchWithAuth]);
 
   if (isLoading) {
     return (

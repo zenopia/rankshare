@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProtectedPageWrapper } from "@/components/auth/protected-page-wrapper";
 import { useClerk } from "@clerk/nextjs";
 import { ProfileUpdateInput } from '@/lib/validations/api';
+import { useProtectedFetch } from "@/hooks/use-protected-fetch";
 
 const genderEnum = z.enum(['male', 'female', 'other', 'prefer-not-to-say']);
 type Gender = z.infer<typeof genderEnum>;
@@ -80,9 +81,10 @@ function ProfileSkeleton() {
 }
 
 export function ProfilePage({ initialUser }: ProfilePageProps) {
-  const { isReady, getToken } = useAuthGuard({ protected: true });
+  const { isReady } = useAuthGuard({ protected: true });
   const { user: clerkUser } = useUser();
   const { openUserProfile } = useClerk();
+  const { fetchWithAuth } = useProtectedFetch();
   const [isLoading, setIsLoading] = useState(false);
   const [isProfileComplete, setIsProfileComplete] = useState(true);
   const [shouldShowSkeleton, setShouldShowSkeleton] = useState(false);
@@ -109,15 +111,7 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
   useEffect(() => {
     async function checkProfile() {
       try {
-        const token = await getToken();
-        const response = await fetch('/api/profile', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (!response.ok) throw new Error('Failed to fetch profile');
-        
+        const response = await fetchWithAuth('/api/profile');
         const { user, profile } = await response.json();
         
         if (user) {
@@ -139,7 +133,7 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
     if (clerkUser && isReady) {
       checkProfile();
     }
-  }, [clerkUser, isReady, getToken]);
+  }, [clerkUser, isReady, fetchWithAuth]);
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -152,18 +146,11 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
         livingStatus: profileData.livingStatus,
       });
 
-      const token = await getToken();
-      const response = await fetch('/api/profile', {
+      const response = await fetchWithAuth('/api/profile', {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        },
         body: JSON.stringify(profileData),
       });
 
-      if (!response.ok) throw new Error('Failed to update profile');
-      
       const { user } = await response.json();
       
       if (user) {
