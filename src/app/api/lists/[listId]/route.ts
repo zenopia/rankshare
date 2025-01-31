@@ -79,7 +79,16 @@ export async function GET(
       return new NextResponse("List not found", { status: 404 });
     }
 
-    return NextResponse.json({ list: lists[0] });
+    const list = lists[0];
+
+    // Increment view count if viewer is not the owner
+    if (!user || user.id !== list.owner.clerkId) {
+      await ListModel.findByIdAndUpdate(listId, {
+        $inc: { "stats.viewCount": 1 }
+      });
+    }
+
+    return NextResponse.json({ list });
   } catch (error) {
     console.error("Error fetching list:", error);
     return new NextResponse("Internal Server Error", { status: 500 });

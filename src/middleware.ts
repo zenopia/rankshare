@@ -118,7 +118,10 @@ export default authMiddleware({
       (url.pathname.startsWith('/api/') && 
        !url.pathname.startsWith('/api/lists/') && 
        !url.pathname.startsWith('/api/users/') &&
-       !url.pathname.startsWith('/api/webhooks/'));
+       !url.pathname.startsWith('/api/webhooks/') &&
+       // Allow access to following/followers API routes
+       !url.pathname.includes('/following') &&
+       !url.pathname.includes('/followers'));
 
     if (isProtectedRoute && !auth.userId) {
       // Store the return URL in the URL parameters
