@@ -105,6 +105,18 @@ export default authMiddleware({
       response.headers.set('Expires', '0');
     }
 
+    // Handle protected routes
+    const url = new URL(req.url);
+    const isProtectedRoute = url.pathname.startsWith('/profile/lists') || 
+                           url.pathname.includes('/pinned') || 
+                           url.pathname.includes('/collab');
+
+    if (isProtectedRoute && !auth.userId) {
+      // Store the return URL in the URL parameters
+      const returnUrl = encodeURIComponent(url.pathname + url.search);
+      return NextResponse.redirect(new URL(`/sign-in?returnUrl=${returnUrl}`, req.url));
+    }
+
     return response;
   }
 });
