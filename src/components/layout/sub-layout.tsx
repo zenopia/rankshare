@@ -69,8 +69,7 @@ export function SubLayout({ children, title = "Page", action }: SubLayoutProps) 
     else if (pathname.startsWith('/profile/') || pathname.startsWith('/profile/@')) {
       if (from) {
         // Remove any 'profile/' prefix from the from parameter if it exists
-        const cleanedFrom = from.replace(/^profile\//, '');
-        router.push(decodeURIComponent(cleanedFrom));
+        router.push(decodeURIComponent(from));
       } else {
         // If no from parameter, go to the lists page
         router.push('/lists');
