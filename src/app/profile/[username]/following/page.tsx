@@ -2,7 +2,7 @@ import { getEnhancedUsers } from "@/lib/actions/users";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { clerkClient, auth } from "@clerk/nextjs/server";
 import type { User } from "@clerk/backend";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { PeoplePageLayout } from "@/components/users/people-page-layout";
 import type { Follow } from "@/types/follow";
 import { getUserModel } from "@/lib/db/models-v2/user";
@@ -17,6 +17,12 @@ export default async function UserFollowingPage({ params, searchParams }: PagePr
   const username = decodeURIComponent(params.username).replace(/^@/, '');
   const searchQuery = searchParams.q;
   const { userId } = auth();
+
+  // Require authentication
+  if (!userId) {
+    const returnUrl = `/profile/${params.username}/following${searchParams.q ? `?q=${searchParams.q}` : ''}`;
+    redirect(`/sign-in?returnUrl=${encodeURIComponent(returnUrl)}`);
+  }
 
   // Get profile user
   let profileUser: User | undefined;
