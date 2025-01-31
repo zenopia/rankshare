@@ -54,7 +54,31 @@ export async function GET(
     await connectToMongoDB();
     const ListModel = await getListModel();
 
-    // Get the list with enhanced data
+    // First, get the basic list data to check ownership
+    const list = await ListModel.findById(listId).lean();
+    if (!list) {
+      return new NextResponse("List not found", { status: 404 });
+    }
+
+    // Check if the list is accessible
+    const hasAccess = list.privacy === "public" ||
+      (user && (
+        list.owner.clerkId === user.id ||
+        list.collaborators?.some(c => c.clerkId === user.id && c.status === "accepted")
+      ));
+
+    if (!hasAccess) {
+      return new NextResponse("List not found", { status: 404 });
+    }
+
+    // Increment view count if viewer is not the owner
+    if (!user || user.id !== list.owner.clerkId) {
+      await ListModel.findByIdAndUpdate(listId, {
+        $inc: { "stats.viewCount": 1 }
+      });
+    }
+
+    // Get the enhanced list data with updated view count
     const { lists } = await getEnhancedLists({
       _id: listId,
       $or: [
@@ -79,16 +103,7 @@ export async function GET(
       return new NextResponse("List not found", { status: 404 });
     }
 
-    const list = lists[0];
-
-    // Increment view count if viewer is not the owner
-    if (!user || user.id !== list.owner.clerkId) {
-      await ListModel.findByIdAndUpdate(listId, {
-        $inc: { "stats.viewCount": 1 }
-      });
-    }
-
-    return NextResponse.json({ list });
+    return NextResponse.json({ list: lists[0] });
   } catch (error) {
     console.error("Error fetching list:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
