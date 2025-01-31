@@ -44,44 +44,6 @@ export function ListPageContent({
   const { isSignedIn } = useAuthGuard({ protected: false }); // Don't force auth
   const { user } = useUser();
 
-  // Only fetch status if user is signed in
-  useEffect(() => {
-    const fetchStatus = async () => {
-      if (!isSignedIn || !user) return;
-      
-      try {
-        const response = await fetchWithAuth(`/api/lists/${list.id}/status`, {
-          requireAuth: false // Don't require auth for public lists
-        });
-        const data = await response.json();
-        setIsPinned(data.isPinned);
-        setIsFollowing(data.isFollowing);
-        setIsCollaborator(data.isCollaborator);
-      } catch (error) {
-        console.error('Error fetching list status:', error);
-        // Don't show error UI, just keep initial values
-      }
-    };
-
-    fetchStatus();
-  }, [list.id, isSignedIn, user, fetchWithAuth]);
-
-  const handlePinChange = (newPinned: boolean) => {
-    setIsPinned(newPinned);
-    // Update the server state in the background using fetchWithAuth
-    fetchWithAuth(`/api/lists/${list.id}/pin`, {
-      method: 'POST',
-      requireAuth: true
-    }).then(() => {
-      // Only refresh the page data after the server update is complete
-      router.refresh();
-    }).catch(error => {
-      console.error('Error updating pin status:', error);
-      // Revert the local state if the server update fails
-      setIsPinned(!newPinned);
-    });
-  };
-
   // Check pin status when component mounts
   useEffect(() => {
     const checkPinStatus = async () => {
@@ -101,6 +63,22 @@ export function ListPageContent({
 
     checkPinStatus();
   }, [list.id, isSignedIn, user, fetchWithAuth]);
+
+  const handlePinChange = (newPinned: boolean) => {
+    setIsPinned(newPinned);
+    // Update the server state in the background using fetchWithAuth
+    fetchWithAuth(`/api/lists/${list.id}/pin`, {
+      method: 'POST',
+      requireAuth: true
+    }).then(() => {
+      // Only refresh the page data after the server update is complete
+      router.refresh();
+    }).catch(error => {
+      console.error('Error updating pin status:', error);
+      // Revert the local state if the server update fails
+      setIsPinned(!newPinned);
+    });
+  };
 
   if (initialIsLoading) {
     return (
