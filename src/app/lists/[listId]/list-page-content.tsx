@@ -68,9 +68,10 @@ export function ListPageContent({
 
   const handlePinChange = (newPinned: boolean) => {
     setIsPinned(newPinned);
-    // Update the server state in the background
-    fetch(`/api/lists/${list.id}/pin`, {
-      method: 'POST'
+    // Update the server state in the background using fetchWithAuth
+    fetchWithAuth(`/api/lists/${list.id}/pin`, {
+      method: 'POST',
+      requireAuth: true
     }).then(() => {
       // Only refresh the page data after the server update is complete
       router.refresh();
@@ -80,6 +81,26 @@ export function ListPageContent({
       setIsPinned(!newPinned);
     });
   };
+
+  // Check pin status when component mounts
+  useEffect(() => {
+    const checkPinStatus = async () => {
+      if (!isSignedIn || !user) return;
+      
+      try {
+        const response = await fetchWithAuth(`/api/lists/${list.id}/pin`, {
+          method: 'GET',
+          requireAuth: false
+        });
+        const data = await response.json();
+        setIsPinned(data.pinned);
+      } catch (error) {
+        console.error('Error checking pin status:', error);
+      }
+    };
+
+    checkPinStatus();
+  }, [list.id, isSignedIn, user, fetchWithAuth]);
 
   if (initialIsLoading) {
     return (
