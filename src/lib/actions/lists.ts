@@ -5,16 +5,17 @@ import { clerkClient, User } from "@clerk/clerk-sdk-node";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { getUserCacheModel } from "@/lib/db/models-v2/user-cache";
-import { getPinModel } from "@/lib/db/models-v2/pin";
+import { getListViewModel } from "@/lib/db/models-v2/list-view";
 import { FilterQuery, Types, QueryOptions } from "mongoose";
 import { EnhancedList, List, ListItem, ListCollaborator } from "@/types/list";
 import { MongoListDocument } from "@/types/mongo";
 import { connectToDatabase } from "@/lib/db";
 
-interface MongoPinDocument {
+interface ListViewDocument {
   listId: Types.ObjectId;
   clerkId: string;
   lastViewedAt: Date;
+  accessType: 'pin' | 'owner' | 'collaborator';
 }
 
 export async function getEnhancedLists(
@@ -101,17 +102,17 @@ export async function getEnhancedLists(
     }])
   );
 
-  // If authenticated, get pin data to create lastViewedMap
+  // If authenticated, get list view data to create lastViewedMap
   let lastViewedMap: Record<string, Date> | undefined;
   if (user) {
-    const PinModel = await getPinModel();
-    const pins = await PinModel.find({
+    const ListViewModel = await getListViewModel();
+    const listViews = await ListViewModel.find({
       clerkId: user.id,
       listId: { $in: lists.map(list => list._id) }
-    }).lean() as unknown as MongoPinDocument[];
+    }).lean() as unknown as ListViewDocument[];
 
     lastViewedMap = Object.fromEntries(
-      pins.map(pin => [pin.listId.toString(), pin.lastViewedAt])
+      listViews.map(view => [view.listId.toString(), view.lastViewedAt])
     );
   }
 
@@ -182,9 +183,12 @@ export async function getPinnedLists(userId: string) {
   await connectToDatabase();
 
   // Get pinned lists for the user
-  const pinModel = await getPinModel();
-  const pins = await pinModel.find({ clerkId: userId }).lean() as unknown as MongoPinDocument[];
-  const listIds = pins.map(pin => pin.listId);
+  const ListViewModel = await getListViewModel();
+  const listViews = await ListViewModel.find({ 
+    clerkId: userId,
+    accessType: 'pin'
+  }).lean() as unknown as ListViewDocument[];
+  const listIds = listViews.map(view => view.listId);
 
   return getEnhancedLists({
     _id: { $in: listIds }
