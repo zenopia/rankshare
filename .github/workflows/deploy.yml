@@ -53,8 +53,27 @@ jobs:
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           
           cd /home/${{ steps.set-target.outputs.user }}/htdocs/${{ steps.set-target.outputs.host }}
+          
+          # Stop the application
+          pm2 delete ${{ steps.set-target.outputs.host }} || true
+          
+          # Clean up
+          rm -rf .next
+          rm -rf node_modules
+          
+          # Pull latest changes
           git pull origin ${{ github.ref_name }}
-          npm ci --production
+          
+          # Install all dependencies
+          npm ci
+          
+          # Build the application
           npm run build
-          pm2 reload ${{ steps.set-target.outputs.host }}
+          
+          # Remove dev dependencies
+          npm prune --production
+          
+          # Start the application
+          pm2 start ecosystem.config.js
+          pm2 save
               
