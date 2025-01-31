@@ -20,8 +20,9 @@ export function SessionRedirect() {
           console.warn('SessionStorage not available:', e);
         }
 
-        // Only redirect on the home page, not on other pages
-        if (window.location.pathname === '/') {
+        // Only redirect on the home page, and not on list pages
+        const path = window.location.pathname;
+        if (path === '/' && !path.match(/\/lists\/[^\/]+$/)) {
           router.push('/about');
         }
       }
