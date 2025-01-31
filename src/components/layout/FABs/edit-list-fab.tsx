@@ -14,15 +14,10 @@ export function EditListFAB({ listId }: EditListFABProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentPath = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
-  
-  // Get the full URL for the return path
-  const fullReturnUrl = typeof window !== 'undefined' 
-    ? `${window.location.origin}${currentPath}`
-    : currentPath;
 
   return (
     <Link 
-      href={`/profile/lists/edit/${listId}?from=${encodeURIComponent(fullReturnUrl)}`}
+      href={`/profile/lists/edit/${listId}?from=${encodeURIComponent(currentPath)}`}
       className="fixed bottom-20 right-4 z-[60] sm:bottom-8 sm:right-8"
     >
       <Button 
