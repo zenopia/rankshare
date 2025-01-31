@@ -66,14 +66,14 @@ export function SubLayout({ children, title = "Page", action }: SubLayoutProps) 
       router.push(`/profile/${username}${from ? `?from=${from}` : ''}`);
     } 
     // If we're on a profile page
-    else if ((pathname.startsWith('/profile') && pathname.split('/').length === 3) || 
-         (pathname.startsWith('/profile/@') && pathname.split('/').length === 3)) {
+    else if (pathname.startsWith('/profile/') || pathname.startsWith('/profile/@')) {
       if (from) {
-        // If there's a from parameter, go there
-        router.push(decodeURIComponent(from));
+        // Remove any 'profile/' prefix from the from parameter if it exists
+        const cleanedFrom = from.replace(/^profile\//, '');
+        router.push(decodeURIComponent(cleanedFrom));
       } else {
         // If no from parameter, go to the lists page
-        router.push('/profile/lists');
+        router.push('/lists');
       }
     }
     // For any other page
