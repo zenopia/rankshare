@@ -14,7 +14,8 @@ export default function AuthTestPage() {
   const [tokenState, setTokenState] = useState<{
     token: string | null;
     error: string | null;
-  }>({ token: null, error: null });
+    lastChecked: Date | null;
+  }>({ token: null, error: null, lastChecked: null });
 
   const addLog = (message: string) => {
     setLogs(prev => [`${new Date().toISOString()}: ${message}`, ...prev]);
@@ -24,12 +25,31 @@ export default function AuthTestPage() {
     try {
       addLog("Attempting to get token...");
       const token = await getToken();
-      addLog(token ? "Token retrieved successfully" : "No token available");
-      setTokenState({ token: token, error: null });
+      const now = new Date();
+      setTokenState({ token, error: null, lastChecked: now });
+      
+      if (token) {
+        // Parse the JWT to check its contents
+        try {
+          const [header, payload, signature] = token.split('.');
+          const decodedPayload = JSON.parse(atob(payload));
+          addLog(`Token retrieved successfully - Expires: ${new Date(decodedPayload.exp * 1000).toISOString()}`);
+          addLog(`Token issued at: ${new Date(decodedPayload.iat * 1000).toISOString()}`);
+          
+          // Check if token is expired
+          if (decodedPayload.exp * 1000 < Date.now()) {
+            addLog("WARNING: Token is expired!");
+          }
+        } catch (e) {
+          addLog("Warning: Could not decode token payload");
+        }
+      } else {
+        addLog("No token available");
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       addLog(`Error getting token: ${errorMessage}`);
-      setTokenState({ token: null, error: errorMessage });
+      setTokenState(prev => ({ ...prev, error: errorMessage }));
     }
   };
 
@@ -40,6 +60,15 @@ export default function AuthTestPage() {
         addLog(`Session found - ID: ${clerk.session.id}`);
         addLog(`Session status: ${clerk.session.status}`);
         addLog(`Last active: ${new Date(clerk.session.lastActiveAt).toISOString()}`);
+        addLog(`Session expires: ${new Date(clerk.session.lastActiveAt + (clerk.session.expireAt || 0)).toISOString()}`);
+        
+        // Check token from session directly
+        try {
+          const sessionToken = await clerk.session.getToken();
+          addLog(sessionToken ? "Session token available" : "No session token available");
+        } catch (e) {
+          addLog(`Error getting session token: ${e instanceof Error ? e.message : String(e)}`);
+        }
       } else {
         addLog("No active session found");
       }
@@ -56,6 +85,7 @@ export default function AuthTestPage() {
         await clerk.session.touch();
         addLog("Session refreshed successfully");
         await checkToken();
+        await checkSession();
       } else {
         addLog("No session to refresh");
       }
@@ -71,6 +101,7 @@ export default function AuthTestPage() {
       if (clerk.session) {
         await clerk.session.remove();
         addLog("Session cleared successfully");
+        setTokenState({ token: null, error: null, lastChecked: new Date() });
       } else {
         addLog("No session to clear");
       }
@@ -79,6 +110,30 @@ export default function AuthTestPage() {
       addLog(`Error clearing session: ${errorMessage}`);
     }
   };
+
+  // Continuous token monitoring
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (isSignedIn) {
+      interval = setInterval(async () => {
+        const now = new Date();
+        const lastCheck = tokenState.lastChecked;
+        
+        // Only log if more than 5 seconds have passed
+        if (!lastCheck || now.getTime() - lastCheck.getTime() > 5000) {
+          addLog("Periodic token check...");
+          await checkToken();
+        }
+      }, 5000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isSignedIn, tokenState.lastChecked]);
 
   useEffect(() => {
     // Log initial state
@@ -110,6 +165,7 @@ export default function AuthTestPage() {
               <li>isSignedIn: {String(isSignedIn)}</li>
               <li>Has User: {String(!!user)}</li>
               <li>Has Session: {String(!!clerk.session)}</li>
+              <li>Last Token Check: {tokenState.lastChecked?.toISOString() || 'Never'}</li>
             </ul>
           </div>
 
