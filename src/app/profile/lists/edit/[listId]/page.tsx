@@ -8,9 +8,12 @@ interface PageProps {
   params: {
     listId: string;
   };
+  searchParams: {
+    from?: string;
+  };
 }
 
-export default async function EditListPage({ params }: PageProps) {
+export default async function EditListPage({ params, searchParams }: PageProps) {
   const user = await AuthService.getCurrentUser();
   if (!user) {
     redirect('/sign-in');
@@ -55,7 +58,11 @@ export default async function EditListPage({ params }: PageProps) {
       >
         <div>
           <div className="max-w-7xl mx-auto">
-            <ListFormContent mode="edit" defaultValues={formValues} />
+            <ListFormContent 
+              mode="edit" 
+              defaultValues={formValues} 
+              returnPath={searchParams.from ? decodeURIComponent(searchParams.from) : `/lists/${list.id}`}
+            />
           </div>
         </div>
       </ProtectedPageWrapper>
