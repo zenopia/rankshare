@@ -61,7 +61,9 @@ export default async function EditListPage({ params, searchParams }: PageProps) 
             <ListFormContent 
               mode="edit" 
               defaultValues={formValues} 
-              returnPath={searchParams.from ? decodeURIComponent(searchParams.from) : `/lists/${list.id}`}
+              returnPath={searchParams.from ? 
+                (decodeURIComponent(searchParams.from).startsWith('/') ? decodeURIComponent(searchParams.from) : `/${decodeURIComponent(searchParams.from)}`)
+                : `/lists/${list.id}`}
             />
           </div>
         </div>
