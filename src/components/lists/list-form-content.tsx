@@ -288,7 +288,7 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        <div className="max-w-2xl mx-auto space-y-8">
+        <div className="max-w-2xl mx-auto space-y-8 pb-32">
           <div className="space-y-4">
             <FormField
               control={form.control}

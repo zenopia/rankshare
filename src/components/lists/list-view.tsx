@@ -36,7 +36,7 @@ export function ListView({
   const { user, isSignedIn } = useUser();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-24">
       {isSignedIn && user && showCollaborators && (
         <div key="collaborators-section" className="collaborators-section">
           <ErrorBoundaryWrapper>
