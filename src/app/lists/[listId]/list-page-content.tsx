@@ -41,7 +41,7 @@ export function ListPageContent({
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isCollaborator, setIsCollaborator] = useState(initialIsCollaborator);
   const { fetchWithAuth } = useProtectedFetch();
-  const { isSignedIn } = useAuthGuard();
+  const { isSignedIn } = useAuthGuard({ protected: false }); // Don't force auth
   const { user } = useUser();
 
   // Only fetch status if user is signed in

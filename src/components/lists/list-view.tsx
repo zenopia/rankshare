@@ -33,11 +33,11 @@ export function ListView({
   showCollaborators,
   onCollaboratorsClick 
 }: ListViewProps) {
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
 
   return (
     <div className="space-y-8">
-      {user && showCollaborators && (
+      {isSignedIn && user && showCollaborators && (
         <div key="collaborators-section" className="collaborators-section">
           <ErrorBoundaryWrapper>
             <CollaboratorManagement
@@ -65,7 +65,8 @@ export function ListView({
             username={list.owner.username}
             displayName={list.owner.displayName}
             imageUrl={list.owner.imageUrl || ''}
-            isFollowing={isFollowing}
+            isFollowing={isSignedIn ? isFollowing : false}
+            hideFollow={!isSignedIn}
           />
         </div>
 
@@ -176,7 +177,7 @@ export function ListView({
           </div>
         </div>
 
-        {user && (
+        {isSignedIn && user && (
           <ListActionBar
             listId={list.id}
             isPinned={isPinned}
@@ -185,7 +186,7 @@ export function ListView({
         )}
       </div>
 
-      {user && isOwner && (
+      {isSignedIn && user && isOwner && (
         <div key="fab-section" className="fab-section">
           <EditListFAB 
             listId={list.id} 

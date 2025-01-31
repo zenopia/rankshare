@@ -55,7 +55,7 @@ export function ListViewNav({
   collaborators = []
 }: ListViewNavProps) {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
   const acceptedCollaborators = collaborators.filter(c => c.status === 'accepted');
   const { data: userData } = useUsers(acceptedCollaborators.map(c => c.clerkId).filter((id): id is string => !!id));
 
@@ -79,11 +79,11 @@ export function ListViewNav({
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-lg font-semibold truncate">{title}</h1>
-        <FeedbackButton />
+        {isSignedIn && <FeedbackButton />}
       </div>
       
       <div className="flex items-center gap-2">
-        {user && (isOwner || isCollaborator) && (
+        {isSignedIn && user && (isOwner || isCollaborator) && (
           <TooltipProvider>
             <Button
               variant="outline"
