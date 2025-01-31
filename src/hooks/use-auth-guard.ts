@@ -55,13 +55,39 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
           return;
         }
 
-        // Validate token
-        const token = await getToken();
+        // Special handling for mobile browsers
+        const isMobile = typeof window !== 'undefined' && 
+          /Mobile|Android|iPhone/i.test(window.navigator.userAgent);
+
+        // Validate token with retries for mobile
+        let token = null;
+        if (isMobile) {
+          let retryCount = 0;
+          const maxRetries = 3;
+          
+          while (retryCount < maxRetries) {
+            token = await getToken();
+            if (token) break;
+            
+            // Wait before retry with exponential backoff
+            await new Promise(resolve => 
+              setTimeout(resolve, Math.min(100 * Math.pow(2, retryCount), 1000))
+            );
+            retryCount++;
+          }
+        } else {
+          token = await getToken();
+        }
         
         if (mounted) {
           setIsValidating(false);
           
           if (isProtected && !token) {
+            // Store current path for return after sign in
+            if (typeof window !== 'undefined' && pathname !== '/' && !pathname.startsWith('/sign-in')) {
+              sessionStorage.setItem('returnUrl', pathname);
+            }
+            
             // Redirect to sign in if trying to access protected route without valid token
             const returnUrl = encodeURIComponent(pathname);
             router.push(`/sign-in?returnUrl=${returnUrl}`);
@@ -69,8 +95,12 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
           }
 
           if (redirectIfAuthed && token) {
-            // Redirect to home if trying to access auth pages with valid token
-            router.push('/');
+            // Get stored return URL if available
+            const returnUrl = typeof window !== 'undefined' ? 
+              sessionStorage.getItem('returnUrl') : null;
+            
+            // Redirect to stored URL or home
+            router.push(returnUrl || '/');
             return;
           }
 
@@ -83,6 +113,10 @@ export function useAuthGuard({ protected: isProtected = false, redirectIfAuthed 
           setIsValidating(false);
           setIsReady(false);
           if (isProtected) {
+            // Store current path for return after sign in
+            if (typeof window !== 'undefined' && pathname !== '/' && !pathname.startsWith('/sign-in')) {
+              sessionStorage.setItem('returnUrl', pathname);
+            }
             router.push('/sign-in');
           }
         }

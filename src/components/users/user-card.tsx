@@ -9,6 +9,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { usePathname } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 interface UserCardProps {
   username: string;
@@ -35,6 +36,7 @@ function UserCardSkeleton() {
 
 export function UserCard({ username, displayName, imageUrl, isFollowing: initialIsFollowing = false, hideFollow = false }: UserCardProps) {
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuthGuard();
   const [isLoading, setIsLoading] = useState(false);
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const pathname = usePathname();
@@ -49,10 +51,32 @@ export function UserCard({ username, displayName, imageUrl, isFollowing: initial
       }
       
       try {
-        const response = await fetch(`/api/users/${username}/follow/status`);
+        // Get token with retry for mobile
+        let token = await getToken();
+        if (!token && /Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
+          // Try one more time for mobile browsers
+          await new Promise(resolve => setTimeout(resolve, 100));
+          token = await getToken();
+        }
+
+        if (!token) {
+          console.warn('No auth token available for follow status check');
+          return;
+        }
+
+        const response = await fetch(`/api/users/${username}/follow/status`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
         if (response.ok) {
           const data = await response.json();
           setIsFollowing(data.isFollowing);
+        } else if (response.status === 401) {
+          // Handle unauthorized specifically
+          console.warn('Unauthorized when checking follow status');
+          setIsFollowing(false);
         }
       } catch (error) {
         console.error("Error checking follow status:", error);
@@ -60,8 +84,10 @@ export function UserCard({ username, displayName, imageUrl, isFollowing: initial
       }
     };
 
-    checkFollowStatus();
-  }, [username, user]);
+    if (isLoaded && user) {
+      checkFollowStatus();
+    }
+  }, [username, user, isLoaded, getToken]);
 
   const handleFollowClick = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation when clicking the button
@@ -74,10 +100,23 @@ export function UserCard({ username, displayName, imageUrl, isFollowing: initial
 
     setIsLoading(true);
     try {
+      // Get token with retry for mobile
+      let token = await getToken();
+      if (!token && /Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
+        // Try one more time for mobile browsers
+        await new Promise(resolve => setTimeout(resolve, 100));
+        token = await getToken();
+      }
+
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
+
       const response = await fetch(`/api/users/${username}/follow`, {
         method: isFollowing ? "DELETE" : "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`
         }
       });
 

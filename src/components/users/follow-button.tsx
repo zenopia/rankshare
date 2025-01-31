@@ -21,6 +21,7 @@ export function FollowButton({
   size = "default"
 }: FollowButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const { isSignedIn, getToken } = useAuthGuard();
   const router = useRouter();
 
@@ -33,10 +34,22 @@ export function FollowButton({
 
     setIsLoading(true);
     try {
+      // Get token with retry for mobile
+      let token = await getToken();
+      if (!token && /Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
+        // Try one more time for mobile browsers
+        await new Promise(resolve => setTimeout(resolve, 100));
+        token = await getToken();
+      }
+      
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
+
       const response = await fetch(`/api/users/${username}/follow`, {
-        method: initialIsFollowing ? 'DELETE' : 'POST',
+        method: isFollowing ? 'DELETE' : 'POST',
         headers: {
-          'Authorization': `Bearer ${await getToken()}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -48,8 +61,10 @@ export function FollowButton({
       const data = await response.json();
       toast.success(data.message);
       
-      // Refresh the page to update the UI
-      window.location.reload();
+      // Update state locally instead of reloading
+      setIsFollowing(!isFollowing);
+      // Refresh router data without full page reload
+      router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -59,12 +74,12 @@ export function FollowButton({
 
   return (
     <Button 
-      variant={initialIsFollowing ? "outline" : variant}
+      variant={isFollowing ? "outline" : variant}
       size={size}
       onClick={handleFollowClick}
       disabled={isLoading}
     >
-      {isLoading ? 'Loading...' : (initialIsFollowing ? (
+      {isLoading ? 'Loading...' : (isFollowing ? (
         <>
           <Check className="h-4 w-4 mr-2" />
           Following
