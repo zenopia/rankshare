@@ -66,7 +66,8 @@ export function SubLayout({ children, title = "Page", action }: SubLayoutProps) 
       router.push(`/profile/${username}${from ? `?from=${from}` : ''}`);
     } 
     // If we're on a profile page
-    else if (pathname.startsWith('/profile') && pathname.split('/').length === 3) {
+    else if ((pathname.startsWith('/profile') && pathname.split('/').length === 3) || 
+         (pathname.startsWith('/profile/@') && pathname.split('/').length === 3)) {
       if (from) {
         // If there's a from parameter, go there
         router.push(decodeURIComponent(from));
