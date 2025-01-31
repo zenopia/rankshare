@@ -11,6 +11,7 @@ import type { EnhancedList } from "@/types/list";
 import { ListLayout } from "@/components/layout/list-layout";
 import { useProtectedFetch } from "@/hooks/use-protected-fetch";
 import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useUser } from "@clerk/nextjs";
 
 interface ListPageContentProps {
   list: EnhancedList;
@@ -40,15 +41,18 @@ export function ListPageContent({
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isCollaborator, setIsCollaborator] = useState(initialIsCollaborator);
   const { fetchWithAuth } = useProtectedFetch();
-  const { isReady } = useAuthGuard();
+  const { isSignedIn } = useAuthGuard();
+  const { user } = useUser();
 
-  // Fetch latest status when component mounts
+  // Only fetch status if user is signed in
   useEffect(() => {
     const fetchStatus = async () => {
-      if (!isReady) return;
+      if (!isSignedIn || !user) return;
       
       try {
-        const response = await fetchWithAuth(`/api/lists/${list.id}/status`);
+        const response = await fetchWithAuth(`/api/lists/${list.id}/status`, {
+          requireAuth: false // Don't require auth for public lists
+        });
         const data = await response.json();
         setIsPinned(data.isPinned);
         setIsFollowing(data.isFollowing);
@@ -60,7 +64,7 @@ export function ListPageContent({
     };
 
     fetchStatus();
-  }, [list.id, isReady, fetchWithAuth]);
+  }, [list.id, isSignedIn, user, fetchWithAuth]);
 
   if (isLoading) {
     return (
