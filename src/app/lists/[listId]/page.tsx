@@ -110,12 +110,11 @@ export default async function ListPage({ params, searchParams }: PageProps) {
       notFound();
     }
 
-    // Get auth only if needed (private list or tracking features)
-    let userId: string | null = null;
+    // Get auth state
+    const { userId } = await auth();
+
+    // For private lists, check authentication and access
     if (list.privacy === 'private') {
-      const { userId: authUserId } = await auth();
-      userId = authUserId;
-      
       if (!userId) {
         redirect('/sign-in');
       }
@@ -128,15 +127,16 @@ export default async function ListPage({ params, searchParams }: PageProps) {
       }
     }
 
-    // If list is public but user is logged in, get their ID for additional features
-    if (!userId && list.privacy === 'public') {
-      const { userId: authUserId } = await auth();
-      userId = authUserId;
+    // Increment view count if viewer is not the owner
+    const isOwner = userId === list.owner.clerkId;
+    if (!isOwner) {
+      await ListModel.findByIdAndUpdate(params.listId, {
+        $inc: { "stats.viewCount": 1 }
+      });
     }
 
     // Track list view if user is logged in and has access
     if (userId) {
-      const isOwner = userId === list.owner.clerkId;
       const isCollaborator = list.collaborators?.some(c => c.clerkId === userId && c.status === 'accepted');
       const isPinned = await PinModel.exists({ listId: params.listId, clerkId: userId });
 
@@ -176,7 +176,7 @@ export default async function ListPage({ params, searchParams }: PageProps) {
         }))
       })) || [],
       stats: {
-        viewCount: list.stats.viewCount,
+        viewCount: list.stats.viewCount + (!isOwner ? 1 : 0), // Add 1 to reflect the current view
         pinCount: list.stats.pinCount,
         copyCount: list.stats.copyCount
       },
