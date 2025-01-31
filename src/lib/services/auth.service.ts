@@ -93,19 +93,40 @@ export function useAuthService() {
           // First try to get the token directly
           const token = await clerk.session.getToken();
           if (token) {
+            // Validate token format
+            if (typeof token !== 'string' || token.trim() === '') {
+              throw new Error('Invalid token format');
+            }
             return token;
           }
 
           // If no token, try to refresh the session in production
           if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
+            console.debug('Attempting session refresh in production');
             try {
+              // Force a session touch
               await clerk.session.touch();
+              // Small delay to allow session update
+              await new Promise(resolve => setTimeout(resolve, 100));
               const refreshedToken = await clerk.session.getToken();
               if (refreshedToken) {
                 return refreshedToken;
               }
             } catch (refreshError) {
               console.warn('Session refresh failed:', refreshError);
+              // On mobile, try to get a new session
+              if (/Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
+                try {
+                  await clerk.session.remove();
+                  await clerk.openSignIn();
+                  const newToken = await clerk.session?.getToken();
+                  if (newToken) {
+                    return newToken;
+                  }
+                } catch (e) {
+                  console.warn('New session creation failed:', e);
+                }
+              }
             }
           }
 
@@ -117,10 +138,16 @@ export function useAuthService() {
           
           // Special handling for production token errors
           if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
-            if (error instanceof Error && error.message?.includes('token')) {
+            if (error instanceof Error && 
+               (error.message?.includes('token') || error.message?.includes('session'))) {
               console.warn('Production token error, attempting session refresh');
               try {
                 await clerk.session.touch();
+                // On mobile, be more aggressive with session refresh
+                if (/Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
+                  await clerk.session.remove();
+                  await clerk.openSignIn();
+                }
               } catch (refreshError) {
                 console.warn('Session refresh failed:', refreshError);
               }
@@ -148,7 +175,8 @@ export function useAuthService() {
           console.warn('Production session error, signing out and redirecting');
           try {
             // Force a complete session cleanup
-            await clerk.signOut({ sessionId: clerk.session?.id });
+            await clerk.session?.remove();
+            await clerk.signOut();
           } catch (e) {
             console.error("Error signing out:", e);
           }
