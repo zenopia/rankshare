@@ -64,7 +64,7 @@ export async function POST(req: Request) {
       const displayName = `${first_name || ''} ${last_name || ''}`.trim() || username || '';
       const searchIndex = `${username || ''} ${displayName}`.toLowerCase();
       
-      await UserModel.create({
+      const newUser = await UserModel.create({
         clerkId: id,
         username: username || '',
         displayName,
@@ -101,6 +101,7 @@ export async function POST(req: Request) {
             $set: {
               'collaborators.$.status': 'accepted',
               'collaborators.$.clerkId': id,
+              'collaborators.$.userId': newUser._id,
               'collaborators.$.username': username || '',
               'collaborators.$.acceptedAt': new Date(),
               'collaborators.$._isEmailInvite': false
