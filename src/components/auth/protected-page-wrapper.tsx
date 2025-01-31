@@ -50,54 +50,49 @@ export function ProtectedPageWrapper({
     const validateSession = async () => {
       try {
         if (!isLoaded || !user) {
+          if (mounted) {
+            setIsValidated(false);
+          }
           return;
         }
 
-        const token = await getToken();
-        
+        // Special handling for mobile browsers
+        const isMobile = typeof window !== 'undefined' && 
+          /Mobile|Android|iPhone/i.test(window.navigator.userAgent);
+
+        // Get token with retries for mobile
+        let token = null;
+        if (isMobile) {
+          let retryCount = 0;
+          const maxRetries = 3;
+          
+          while (retryCount < maxRetries) {
+            token = await getToken();
+            if (token) break;
+            
+            // Wait before retry with exponential backoff
+            await new Promise(resolve => 
+              setTimeout(resolve, Math.min(100 * Math.pow(2, retryCount), 1000))
+            );
+            retryCount++;
+          }
+        } else {
+          token = await getToken();
+        }
+
         if (mounted) {
           if (!token) {
-            // Store the current URL for return after sign in
-            const currentPath = window.location.pathname;
-            if (currentPath !== '/' && currentPath !== '/sign-in') {
-              sessionStorage.setItem('returnUrl', currentPath);
+            // Store current path for return after sign in
+            if (typeof window !== 'undefined' && window.location.pathname !== '/' && !window.location.pathname.startsWith('/sign-in')) {
+              sessionStorage.setItem('returnUrl', window.location.pathname);
             }
-            
-            // Special handling for mobile browsers
-            if (/Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
-              console.debug('Mobile browser detected, attempting session refresh before redirect');
-              try {
-                // Try multiple refresh attempts for mobile
-                let retryCount = 0;
-                const maxRetries = 3;
-                
-                while (retryCount < maxRetries) {
-                  // Try to refresh the session
-                  const refreshedToken = await getToken();
-                  if (refreshedToken) {
-                    setIsValidated(true);
-                    return;
-                  }
-                  
-                  // Wait before retry with exponential backoff
-                  await new Promise(resolve => setTimeout(resolve, Math.min(100 * Math.pow(2, retryCount), 1000)));
-                  retryCount++;
-                }
-                
-                console.warn('Mobile session refresh failed after retries');
-              } catch (e) {
-                console.warn('Mobile session refresh failed:', e);
-              }
-            }
-            
-            // If no valid token after retries, redirect to sign in
             router.push('/sign-in');
             return;
           }
 
           // Verify user matches with retry for mobile
           if (user.id !== initialUser.id) {
-            if (/Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
+            if (isMobile) {
               // On mobile, try one more token refresh before redirecting
               try {
                 const refreshedToken = await getToken();
@@ -111,9 +106,8 @@ export function ProtectedPageWrapper({
             }
 
             console.warn('User mismatch, redirecting to sign in');
-            const currentPath = window.location.pathname;
-            if (currentPath !== '/' && currentPath !== '/sign-in') {
-              sessionStorage.setItem('returnUrl', currentPath);
+            if (typeof window !== 'undefined' && window.location.pathname !== '/' && !window.location.pathname.startsWith('/sign-in')) {
+              sessionStorage.setItem('returnUrl', window.location.pathname);
             }
             router.push('/sign-in');
             return;
@@ -125,9 +119,8 @@ export function ProtectedPageWrapper({
         console.error('Session validation failed:', error);
         if (mounted) {
           // Store return URL before redirecting
-          const currentPath = window.location.pathname;
-          if (currentPath !== '/' && currentPath !== '/sign-in') {
-            sessionStorage.setItem('returnUrl', currentPath);
+          if (typeof window !== 'undefined' && window.location.pathname !== '/' && !window.location.pathname.startsWith('/sign-in')) {
+            sessionStorage.setItem('returnUrl', window.location.pathname);
           }
           router.push('/sign-in');
         }
@@ -139,7 +132,7 @@ export function ProtectedPageWrapper({
     return () => {
       mounted = false;
     };
-  }, [isLoaded, user, getToken, router, initialUser.id]);
+  }, [isLoaded, user, initialUser.id, router, getToken]);
 
   // Only show skeleton after a delay if still loading
   useEffect(() => {

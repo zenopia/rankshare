@@ -25,7 +25,8 @@ interface PageProps {
 
 export default async function UserPage({ params, searchParams }: PageProps) {
   try {
-    const { userId } = await auth();
+    // Get current user's auth state
+    const { userId: currentUserId } = await auth();
 
     // Remove @ if present and decode the username
     const username = decodeURIComponent(params.username).replace(/^@/, '');
@@ -83,8 +84,8 @@ export default async function UserPage({ params, searchParams }: PageProps) {
     ]);
 
     // Get follow status if logged in
-    const followStatus = userId ? await FollowModel.findOne({
-      followerId: userId,
+    const followStatus = currentUserId ? await FollowModel.findOne({
+      followerId: currentUserId,
       followingId: profileUser.id
     }).lean() : null;
 
@@ -106,6 +107,9 @@ export default async function UserPage({ params, searchParams }: PageProps) {
       }
     };
 
+    // Check if this is the current user's profile
+    const isOwnProfile = currentUserId === profileUser.id;
+
     const pageContent = (
       <div className="px-4 md:px-6 lg:px-8 pt-4 pb-20 sm:pb-8">
         <div className="max-w-4xl mx-auto space-y-8">
@@ -122,9 +126,9 @@ export default async function UserPage({ params, searchParams }: PageProps) {
               lists: lists.length,
             }}
             isFollowing={!!followStatus}
-            hideFollow={userId === profileUser.id}
+            hideFollow={isOwnProfile}
             userData={serializedUser}
-            showEditButton={userId === profileUser.id}
+            showEditButton={isOwnProfile}
             location={serializedUser?.location}
             dateOfBirth={serializedUser?.dateOfBirth}
             gender={serializedUser?.gender}
