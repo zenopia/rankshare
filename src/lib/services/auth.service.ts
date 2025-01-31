@@ -84,86 +84,68 @@ export function useAuthService() {
         return null;
       }
 
-      // Add retry logic for mobile browsers with production-specific handling
-      let retryCount = 0;
-      const maxRetries = 3;
+      // First try to get the token directly
+      let token = await clerk.session.getToken();
       
-      while (retryCount < maxRetries) {
+      // If we have a token, check if it's about to expire
+      if (token) {
         try {
-          // First try to get the token directly
-          const token = await clerk.session.getToken();
-          if (token) {
-            // Validate token format
-            if (typeof token !== 'string' || token.trim() === '') {
-              throw new Error('Invalid token format');
-            }
-            return token;
-          }
-
-          // If no token, try to refresh the session in production
-          if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
-            console.debug('Attempting session refresh in production');
-            try {
-              // Force a session touch
-              await clerk.session.touch();
-              // Small delay to allow session update
-              await new Promise(resolve => setTimeout(resolve, 100));
-              const refreshedToken = await clerk.session.getToken();
-              if (refreshedToken) {
-                return refreshedToken;
-              }
-            } catch (refreshError) {
-              console.warn('Session refresh failed:', refreshError);
-              // On mobile, try to get a new session
-              if (/Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
-                try {
-                  await clerk.session.remove();
-                  await clerk.openSignIn();
-                  const newToken = await clerk.session?.getToken();
-                  if (newToken) {
-                    return newToken;
-                  }
-                } catch (e) {
-                  console.warn('New session creation failed:', e);
-                }
-              }
-            }
-          }
-
-          retryCount++;
-          // Exponential backoff for retries
-          await new Promise(resolve => setTimeout(resolve, Math.min(100 * Math.pow(2, retryCount), 1000)));
-        } catch (error) {
-          console.warn(`Token fetch attempt ${retryCount + 1} failed:`, error);
+          const [, payload] = token.split('.');
+          const decodedPayload = JSON.parse(atob(payload));
+          const expiryTime = decodedPayload.exp * 1000;
+          const now = Date.now();
           
-          // Special handling for production token errors
-          if (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('.prod.')) {
-            if (error instanceof Error && 
-               (error.message?.includes('token') || error.message?.includes('session'))) {
-              console.warn('Production token error, attempting session refresh');
+          // If token expires in less than 30 seconds, try to refresh it
+          if (expiryTime - now < 30000) {
+            console.debug('Token near expiry, refreshing session...');
+            await clerk.session.touch();
+            token = await clerk.session.getToken();
+          }
+        } catch (e) {
+          console.warn('Error checking token expiry:', e);
+        }
+      }
+
+      // If still no token, try to refresh the session
+      if (!token) {
+        // Add retry logic for mobile browsers with production-specific handling
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
+          try {
+            // Force a session touch
+            await clerk.session.touch();
+            // Small delay to allow session update
+            await new Promise(resolve => setTimeout(resolve, 100));
+            token = await clerk.session.getToken();
+            if (token) {
+              return token;
+            }
+          } catch (refreshError) {
+            console.warn('Session refresh failed:', refreshError);
+            // On mobile, try to get a new session
+            if (/Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
               try {
-                await clerk.session.touch();
-                // On mobile, be more aggressive with session refresh
-                if (/Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
-                  await clerk.session.remove();
-                  await clerk.openSignIn();
+                await clerk.session.remove();
+                await clerk.openSignIn();
+                token = await clerk.session?.getToken();
+                if (token) {
+                  return token;
                 }
-              } catch (refreshError) {
-                console.warn('Session refresh failed:', refreshError);
+              } catch (e) {
+                console.warn('New session creation failed:', e);
               }
             }
           }
 
           retryCount++;
-          if (retryCount === maxRetries) {
-            throw error;
-          }
           // Exponential backoff for retries
           await new Promise(resolve => setTimeout(resolve, Math.min(100 * Math.pow(2, retryCount), 1000)));
         }
       }
-      
-      return null;
+
+      return token;
     } catch (error) {
       console.error("Error getting token:", error);
       
