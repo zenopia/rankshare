@@ -21,7 +21,7 @@ const securityHeaders = {
       "connect-src 'self' https://*.clerk.dev https://*.clerk.com https://*.clerk.accounts.dev https://*.favely.net https://*.cloudflare.com wss://*.clerk.com https://*.google-analytics.com https://*.googletagmanager.com https://*.analytics.google.com",
   'Permissions-Policy': 
     'camera=(), microphone=(), geolocation=()'
-};
+} as const;
 
 interface AuthObject {
   userId: string | null;
@@ -107,9 +107,18 @@ export default authMiddleware({
 
     // Handle protected routes
     const url = new URL(req.url);
-    const isProtectedRoute = url.pathname.startsWith('/profile/lists') || 
-                           url.pathname.includes('/pinned') || 
-                           url.pathname.includes('/collab');
+    const isProtectedRoute = 
+      // Profile management routes
+      (url.pathname.startsWith('/profile/lists') && !url.pathname.includes('/lists/')) ||
+      url.pathname.includes('/pinned') || 
+      url.pathname.includes('/collab') ||
+      url.pathname.includes('/create') ||
+      url.pathname.includes('/edit') ||
+      // API routes that require auth
+      (url.pathname.startsWith('/api/') && 
+       !url.pathname.startsWith('/api/lists/') && 
+       !url.pathname.startsWith('/api/users/') &&
+       !url.pathname.startsWith('/api/webhooks/'));
 
     if (isProtectedRoute && !auth.userId) {
       // Store the return URL in the URL parameters
