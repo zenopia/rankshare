@@ -36,18 +36,8 @@ export function ListView({
   onPinChange
 }: ListViewProps) {
   const { user, isSignedIn } = useUser();
-  const [localIsPinned, setLocalIsPinned] = useState(isPinned);
-  const [localPinCount, setLocalPinCount] = useState(list.stats.pinCount);
-
-  // Update local state when props change
-  useEffect(() => {
-    setLocalIsPinned(isPinned);
-    setLocalPinCount(list.stats.pinCount);
-  }, [isPinned, list.stats.pinCount]);
 
   const handlePinChange = (newPinned: boolean) => {
-    setLocalIsPinned(newPinned);
-    setLocalPinCount(prev => newPinned ? prev + 1 : prev - 1);
     onPinChange?.(newPinned);
   };
 
@@ -163,7 +153,7 @@ export function ListView({
             </div>
             <div key="pins" className="flex items-center gap-1">
               <Pin className="h-3 w-3" />
-              {localPinCount}
+              {list.stats.pinCount}
             </div>
             <div key="copies" className="flex items-center gap-1">
               <Copy className="h-3 w-3" />
@@ -196,7 +186,7 @@ export function ListView({
         {isSignedIn && user && (
           <ListActionBar
             listId={list.id}
-            isPinned={localIsPinned}
+            isPinned={isPinned}
             onPinChange={handlePinChange}
           />
         )}

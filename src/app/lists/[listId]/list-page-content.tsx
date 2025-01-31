@@ -44,25 +44,10 @@ export function ListPageContent({
   const { isSignedIn } = useAuthGuard({ protected: false }); // Don't force auth
   const { user } = useUser();
 
-  // Check pin status when component mounts
+  // Update local pin state when initial value changes
   useEffect(() => {
-    const checkPinStatus = async () => {
-      if (!isSignedIn || !user) return;
-      
-      try {
-        const response = await fetchWithAuth(`/api/lists/${list.id}/pin`, {
-          method: 'GET',
-          requireAuth: false
-        });
-        const data = await response.json();
-        setIsPinned(data.pinned);
-      } catch (error) {
-        console.error('Error checking pin status:', error);
-      }
-    };
-
-    checkPinStatus();
-  }, [list.id, isSignedIn, user, fetchWithAuth]);
+    setIsPinned(initialIsPinned);
+  }, [initialIsPinned]);
 
   const handlePinChange = (newPinned: boolean) => {
     setIsPinned(newPinned);
@@ -126,13 +111,7 @@ export function ListPageContent({
         <div className="flex-1 container px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 overflow-y-auto">
           <ErrorBoundaryWrapper>
             <ListView
-              list={{
-                ...list,
-                stats: {
-                  ...list.stats,
-                  pinCount: isPinned ? list.stats.pinCount : list.stats.pinCount - 1
-                }
-              }}
+              list={list}
               isOwner={isOwner}
               isPinned={isPinned}
               isFollowing={isFollowing}
