@@ -24,11 +24,7 @@ import { z } from "zod";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProtectedPageWrapper } from "@/components/auth/protected-page-wrapper";
 import { useClerk } from "@clerk/nextjs";
-import { ProfileUpdateInput } from '@/lib/validations/api';
 import { useProtectedFetch } from "@/hooks/use-protected-fetch";
-
-const genderEnum = z.enum(['male', 'female', 'other', 'prefer-not-to-say']);
-type Gender = z.infer<typeof genderEnum>;
 
 // Remove validation schema since fields are no longer required
 const profileSchema = z.object({

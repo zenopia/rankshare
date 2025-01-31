@@ -5,18 +5,37 @@ import { useAuthService } from "@/lib/services/auth.service";
 import { useClerk } from "@clerk/nextjs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 // Constants
 const LOG_STORAGE_KEY = 'auth_debug_logs';
 const STATE_STORAGE_KEY = 'auth_debug_states';
 const MAX_LOGS = 100;
 
+interface SessionState {
+  isLoaded: boolean;
+  isSignedIn: boolean;
+  hasUser: boolean;
+  hasSession: boolean;
+  sessionId?: string;
+  userId?: string;
+  username?: string | null;
+}
+
 export default function AuthTestPage() {
   const auth = useAuthService();
   const clerk = useClerk();
+  const router = useRouter();
   const [logs, setLogs] = useState<string[]>([]);
-  const [sessionState, setSessionState] = useState<any>(null);
-  const [stateHistory, setStateHistory] = useState<any[]>([]);
+  const [sessionState, setSessionState] = useState<SessionState | null>(null);
+  const [stateHistory, setStateHistory] = useState<(SessionState & { timestamp: string })[]>([]);
+
+  // Restrict access to development environment
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') {
+      router.push('/');
+    }
+  }, [router]);
 
   // Load persisted data on mount
   useEffect(() => {
@@ -40,32 +59,6 @@ export default function AuthTestPage() {
     }
   }, []);
 
-  const addLog = (message: string) => {
-    const timestamp = new Date().toISOString();
-    const newLog = `${timestamp}: ${message}`;
-    setLogs(prev => {
-      const updated = [newLog, ...prev.slice(0, MAX_LOGS - 1)];
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(updated));
-      }
-      return updated;
-    });
-  };
-
-  const addStateToHistory = (state: any) => {
-    const stateWithTimestamp = {
-      ...state,
-      timestamp: new Date().toISOString()
-    };
-    setStateHistory(prev => {
-      const updated = [stateWithTimestamp, ...prev.slice(0, 19)]; // Keep last 20 states
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(updated));
-      }
-      return updated;
-    });
-  };
-
   // Monitor auth state changes
   useEffect(() => {
     const state = {
@@ -82,18 +75,50 @@ export default function AuthTestPage() {
     addLog(`Auth state changed: ${JSON.stringify(state)}`);
   }, [auth.isLoaded, auth.isSignedIn, auth.user, clerk.session]);
 
+  // Don't render anything in production
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+
+  const addLog = (message: string) => {
+    const timestamp = new Date().toISOString();
+    const newLog = `${timestamp}: ${message}`;
+    setLogs(prev => {
+      const updated = [newLog, ...prev.slice(0, MAX_LOGS - 1)];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
+  const addStateToHistory = (state: SessionState) => {
+    const stateWithTimestamp = {
+      ...state,
+      timestamp: new Date().toISOString()
+    };
+    setStateHistory(prev => {
+      const updated = [stateWithTimestamp, ...prev.slice(0, 19)]; // Keep last 20 states
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
   // Test functions
   const checkToken = async () => {
     addLog('Checking token...');
     try {
       const token = await auth.getToken();
       if (token) {
-        // Decode JWT to check expiry
+        // Decode JWT to check expiry but only show safe information
         const [, payload] = token.split('.');
         const decoded = JSON.parse(atob(payload));
         const expiresIn = new Date(decoded.exp * 1000).getTime() - Date.now();
         addLog(`Token found! Expires in ${Math.round(expiresIn / 1000)}s`);
-        addLog(`Token payload: ${JSON.stringify(decoded, null, 2)}`);
+        // Only log non-sensitive token information
+        addLog(`Token info: { exp: ${decoded.exp}, iat: ${decoded.iat} }`);
       } else {
         addLog('No token found');
       }
