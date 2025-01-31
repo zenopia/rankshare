@@ -5,7 +5,6 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useUser } from "@clerk/clerk-react";
 
 function FeedbackButton() {
   const pathname = usePathname();
@@ -40,7 +39,6 @@ export function SubLayout({ children, title = "Page", action }: SubLayoutProps) 
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { user } = useUser();
 
   const handleBack = () => {
     const from = searchParams.get('from');
@@ -68,8 +66,8 @@ export function SubLayout({ children, title = "Page", action }: SubLayoutProps) 
     // If we're on a profile page
     else if (pathname.startsWith('/profile/') || pathname.startsWith('/profile/@')) {
       if (from) {
-        // Remove any 'profile/' prefix from the from parameter if it exists
-        router.push(decodeURIComponent(from));
+        // go to the from parameter if it exists
+        router.push(`/${decodeURIComponent(from)}`);
       } else {
         // If no from parameter, go to the lists page
         router.push('/lists');
