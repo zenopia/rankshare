@@ -197,7 +197,7 @@ export async function getSharedLists(userId: string) {
 
   // Get lists where:
   // 1. The user is a collaborator with accepted status OR
-  // 2. The user is the owner AND the list has at least one accepted collaborator
+  // 2. The user is the owner AND the list has any collaborators (regardless of status)
   const ListModel = await getListModel();
   return getEnhancedLists({
     $or: [
@@ -207,11 +207,7 @@ export async function getSharedLists(userId: string) {
       },
       {
         'owner.clerkId': userId,
-        collaborators: {
-          $elemMatch: {
-            status: 'accepted'
-          }
-        }
+        collaborators: { $exists: true, $not: { $size: 0 } }
       }
     ]
   });
