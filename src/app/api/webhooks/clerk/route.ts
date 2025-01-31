@@ -54,9 +54,10 @@ export async function POST(req: Request) {
 
     try {
       await connectToMongoDB();
-      const [UserModel, UserCacheModel] = await Promise.all([
+      const [UserModel, UserCacheModel, ListModel] = await Promise.all([
         getUserModel(),
-        getUserCacheModel()
+        getUserCacheModel(),
+        getListModel()
       ]);
 
       // Create the main user record
@@ -83,6 +84,30 @@ export async function POST(req: Request) {
         imageUrl: image_url,
         lastSynced: new Date()
       });
+
+      // Convert any pending email invites to accepted collaborations
+      if (primaryEmail) {
+        await ListModel.updateMany(
+          { 
+            'collaborators': {
+              $elemMatch: {
+                email: primaryEmail,
+                status: 'pending',
+                _isEmailInvite: true
+              }
+            }
+          },
+          {
+            $set: {
+              'collaborators.$.status': 'accepted',
+              'collaborators.$.clerkId': id,
+              'collaborators.$.username': username || '',
+              'collaborators.$.acceptedAt': new Date(),
+              'collaborators.$._isEmailInvite': false
+            }
+          }
+        );
+      }
 
       return new NextResponse('Success', { status: 200 });
     } catch (error) {

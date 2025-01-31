@@ -179,7 +179,7 @@ export async function POST(
       // Send invitation email
       await sendCollaborationInviteEmail({
         to: email,
-        inviterName: user.username || '',
+        inviterName: user.fullName || user.username || '',
         listTitle: list.title || '',
         listUrl: `${process.env.NEXT_PUBLIC_APP_URL}/lists/${list._id}`
       });

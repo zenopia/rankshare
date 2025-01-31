@@ -29,8 +29,7 @@ export default async function CollaborativeListsPage({ searchParams }: PageProps
         { 
           $or: [
             {
-              'collaborators.clerkId': userId,
-              'collaborators.status': 'accepted'
+              'collaborators.clerkId': userId
             },
             {
               $and: [
