@@ -26,6 +26,7 @@ const securityHeaders = {
 interface AuthObject {
   userId: string | null;
   isPublicRoute: boolean;
+  sessionId: string | null;
 }
 
 export const config = {
@@ -67,5 +68,43 @@ export default authMiddleware({
     "/feedback",
     "/feedback/(.*)"
   ],
-  debug: false
+  debug: false,
+  beforeAuth: (req: NextRequest) => {
+    // Handle preflight requests for mobile browsers
+    if (req.method === 'OPTIONS') {
+      return NextResponse.next();
+    }
+
+    // Add CORS headers for mobile browsers
+    const response = NextResponse.next();
+    
+    // Add security headers
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+
+    return response;
+  },
+  afterAuth: (auth: AuthObject, req: NextRequest) => {
+    // Handle authentication result
+    const response = NextResponse.next();
+    
+    // Add security headers
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+
+    // Special handling for mobile browsers to maintain session
+    const userAgent = req.headers.get('user-agent') || '';
+    const isMobile = /Mobile|Android|iPhone/i.test(userAgent);
+    
+    if (isMobile && auth.userId) {
+      // Add cache control headers to prevent session loss
+      response.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+      response.headers.set('Pragma', 'no-cache');
+      response.headers.set('Expires', '0');
+    }
+
+    return response;
+  }
 });

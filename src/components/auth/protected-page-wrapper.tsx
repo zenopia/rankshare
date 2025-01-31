@@ -67,24 +67,49 @@ export function ProtectedPageWrapper({
             if (/Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
               console.debug('Mobile browser detected, attempting session refresh before redirect');
               try {
-                // Try to refresh the session one last time
-                const refreshedToken = await getToken();
-                if (refreshedToken) {
-                  setIsValidated(true);
-                  return;
+                // Try multiple refresh attempts for mobile
+                let retryCount = 0;
+                const maxRetries = 3;
+                
+                while (retryCount < maxRetries) {
+                  // Try to refresh the session
+                  const refreshedToken = await getToken();
+                  if (refreshedToken) {
+                    setIsValidated(true);
+                    return;
+                  }
+                  
+                  // Wait before retry with exponential backoff
+                  await new Promise(resolve => setTimeout(resolve, Math.min(100 * Math.pow(2, retryCount), 1000)));
+                  retryCount++;
                 }
+                
+                console.warn('Mobile session refresh failed after retries');
               } catch (e) {
                 console.warn('Mobile session refresh failed:', e);
               }
             }
             
-            // If no valid token, redirect to sign in
+            // If no valid token after retries, redirect to sign in
             router.push('/sign-in');
             return;
           }
 
-          // Verify user matches
+          // Verify user matches with retry for mobile
           if (user.id !== initialUser.id) {
+            if (/Mobile|Android|iPhone/i.test(window.navigator.userAgent)) {
+              // On mobile, try one more token refresh before redirecting
+              try {
+                const refreshedToken = await getToken();
+                if (refreshedToken && user.id === initialUser.id) {
+                  setIsValidated(true);
+                  return;
+                }
+              } catch (e) {
+                console.warn('Mobile user verification failed:', e);
+              }
+            }
+
             console.warn('User mismatch, redirecting to sign in');
             const currentPath = window.location.pathname;
             if (currentPath !== '/' && currentPath !== '/sign-in') {
