@@ -54,6 +54,10 @@ export function ListPageContent({
     // Update the server state in the background using fetchWithAuth
     fetchWithAuth(`/api/lists/${list.id}/pin`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ pinned: newPinned }),
       requireAuth: true
     }).then(() => {
       // Only refresh the page data after the server update is complete
