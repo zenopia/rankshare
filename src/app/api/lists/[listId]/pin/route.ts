@@ -51,14 +51,8 @@ export async function POST(
     });
 
     if (existingPin) {
-      // If pin exists, remove it and decrement pin count
-      await Promise.all([
-        PinModel.findByIdAndDelete(existingPin._id),
-        ListModel.findByIdAndUpdate(list._id, {
-          $inc: { "stats.pinCount": -1 }
-        })
-      ]);
-
+      // If pin exists, remove it. Pin count will be decremented by the pre-hook
+      await existingPin.deleteOne();
       return NextResponse.json({ pinned: false });
     } else {
       // If pin doesn't exist, create it and increment pin count
