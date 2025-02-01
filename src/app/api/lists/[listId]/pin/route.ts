@@ -15,6 +15,8 @@ export async function POST(
   }
 
   try {
+    const { pinned } = await request.json();
+    
     await connectToMongoDB();
     const ListModel = await getListModel();
     const PinModel = await getPinModel();
@@ -50,29 +52,27 @@ export async function POST(
       clerkId: user.id
     });
 
-    if (existingPin) {
-      // If pin exists, remove it. Pin count will be decremented by the pre-hook
-      await existingPin.deleteOne();
-      return NextResponse.json({ pinned: false });
-    } else {
-      // If pin doesn't exist, create it and increment pin count
-      await Promise.all([
-        PinModel.create({
-          listId: list._id,
-          clerkId: user.id,
-          listInfo: {
-            title: list.title,
-            category: list.category,
-            ownerUsername: owner.username
-          },
-          lastViewedAt: new Date()
-        }),
-        ListModel.findByIdAndUpdate(list._id, {
-          $inc: { "stats.pinCount": 1 }
-        })
-      ]);
+    if (pinned && !existingPin) {
+      // Create new pin
+      await PinModel.create({
+        listId: list._id,
+        clerkId: user.id,
+        listInfo: {
+          title: list.title,
+          category: list.category,
+          ownerUsername: owner.username
+        },
+        lastViewedAt: new Date()
+      });
 
       return NextResponse.json({ pinned: true });
+    } else if (!pinned && existingPin) {
+      // Remove pin
+      await PinModel.deleteOne({ listId: list._id, clerkId: user.id });
+      return NextResponse.json({ pinned: false });
+    } else {
+      // No change needed
+      return NextResponse.json({ pinned: !!existingPin });
     }
   } catch (error) {
     console.error("Error toggling pin:", error);

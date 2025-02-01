@@ -50,6 +50,10 @@ export default function ListActionBar({
       setIsPinning(true);
       const response = await fetch(`/api/lists/${listId}/pin`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ pinned: !isPinned })
       });
 
       if (!response.ok) {
