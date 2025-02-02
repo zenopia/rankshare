@@ -220,8 +220,10 @@ export function CollaboratorManagement({
         throw new Error("Only the owner can transfer ownership");
       }
 
-      const response = await fetch(`/api/lists/${listId}/collaborators/${userId}`, {
-        method: "PUT",
+      // Use clerkId for the API call
+      const clerkId = targetCollaborator?.clerkId || userId;
+      const response = await fetch(`/api/lists/${listId}/collaborators/${clerkId}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
@@ -321,12 +323,12 @@ export function CollaboratorManagement({
   };
 
   return (
-    <div className="fixed inset-0 z-[100]">
+    <div className="fixed inset-0 z-[100] pointer-events-none">
       {/* Backdrop */}
       <div 
         className={cn(
           "fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity duration-300",
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0"
         )}
         onClick={handleClose}
       />
@@ -334,7 +336,7 @@ export function CollaboratorManagement({
       {/* Collaborator Sheet */}
       <div 
         className={cn(
-          "fixed inset-y-0 right-0 w-[400px] bg-background shadow-lg",
+          "fixed inset-y-0 right-0 w-[400px] bg-background shadow-lg pointer-events-auto",
           "border-l transition-transform duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
