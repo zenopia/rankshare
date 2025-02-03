@@ -1,7 +1,7 @@
 import { SubLayout, type SubLayoutProps } from "@/components/layout/sub-layout";
 import { UserProfile } from "@/components/users/user-profile";
 import { ListGrid } from "@/components/lists/list-grid";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { connectToMongoDB } from "@/lib/db/client";
 import { serializeUser } from "@/lib/utils";
@@ -11,6 +11,7 @@ import { getUserModel } from "@/lib/db/models-v2/user";
 import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
 import { getEnhancedLists } from "@/lib/actions/lists";
 import type { ListCategory } from "@/types/list";
+import { AuthService } from "@/lib/services/auth.service";
 
 interface PageProps {
   params: {
@@ -26,7 +27,8 @@ interface PageProps {
 export default async function UserPage({ params, searchParams }: PageProps) {
   try {
     // Get current user's auth state
-    const { userId: currentUserId } = await auth();
+    const currentUser = await AuthService.getCurrentUser();
+    const currentUserId = currentUser?.id;
 
     // Remove @ if present and decode the username
     const username = decodeURIComponent(params.username).replace(/^@/, '');

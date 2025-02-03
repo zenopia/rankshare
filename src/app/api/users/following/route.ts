@@ -1,20 +1,49 @@
-import { NextResponse } from "next/server";
-import { AuthService } from "@/lib/services/auth.service";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { clerkClient } from "@clerk/clerk-sdk-node";
+import { AuthService } from "@/lib/services/auth.service";
 
-export const dynamic = 'force-dynamic';
+interface FollowingResponse {
+  following: Array<{
+    id: string;
+    followerId: string;
+    followingId: string;
+    createdAt: Date;
+    following: {
+      id: string;
+      username: string;
+      displayName: string;
+      bio: string;
+      imageUrl: string | null;
+      followersCount: number;
+      followingCount: number;
+    } | null;
+  }>;
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
 
-export async function GET(request: Request) {
-  const user = await AuthService.getCurrentUser();
-  if (!user) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+interface ErrorResponse {
+  error: string;
+}
 
+export async function GET(
+  req: NextRequest
+): Promise<NextResponse<FollowingResponse | ErrorResponse>> {
   try {
-    const { searchParams } = new URL(request.url);
+    const user = await AuthService.getCurrentUser();
+    if (!user) {
+      return NextResponse.json<ErrorResponse>(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "20");
     const page = parseInt(searchParams.get("page") || "1");
     const skip = (page - 1) * limit;
@@ -77,14 +106,18 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({
+    return NextResponse.json<FollowingResponse>({
       following: enhancedFollowing,
       total,
       page,
-      pageSize: limit
+      limit,
+      hasMore: total > skip + following.length
     });
   } catch (error) {
     console.error("Error fetching following:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json<ErrorResponse>(
+      { error: "Failed to fetch following" },
+      { status: 500 }
+    );
   }
 } 

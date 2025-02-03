@@ -18,6 +18,7 @@ interface Collaborator {
   role: 'owner' | 'admin' | 'editor' | 'viewer';
   status?: 'pending' | 'accepted' | 'rejected';
   _isEmailInvite?: boolean;
+  displayName?: string;
 }
 
 interface FollowingResult {
@@ -40,6 +41,7 @@ interface CollaboratorManagementProps {
     clerkId: string;
     username: string;
     imageUrl?: string;
+    displayName?: string;
   };
 }
 
@@ -127,20 +129,34 @@ export function CollaboratorManagement({
         throw new Error("You don't have permission to add collaborators");
       }
 
+      console.log("Value object:", value);  // Debug log
+
+      if (value.type === 'user' && !value.userId) {
+        throw new Error("User ID is required for user invites");
+      }
+
+      const requestBody = {
+        type: value.type,
+        targetUserId: value.userId,  // This is already the Clerk ID
+        email: value.email,
+        role: 'viewer',
+        status: value.type === 'user' ? 'accepted' : 'pending'
+      };
+
+      console.log("Request body:", requestBody);  // Debug log
+
       const response = await fetch(`/api/lists/${listId}/collaborators`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          ...value,
-          role: 'viewer',
-          status: value.type === 'user' ? 'accepted' : 'pending'
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add collaborator');
+        const errorData = await response.json();
+        console.error("Response error:", errorData);  // Debug log
+        throw new Error(errorData.error || 'Failed to add collaborator');
       }
 
       // Fetch fresh collaborator data to ensure we have all the latest information including images
@@ -437,6 +453,7 @@ export function CollaboratorManagement({
                       clerkId={owner.clerkId}
                       canManageRoles={false}
                       isOwner={isOwner}
+                      displayName={owner.displayName}
                     />
 
                     {/* Show other collaborators */}
@@ -461,6 +478,7 @@ export function CollaboratorManagement({
                           currentUserRole={isCurrentUser ? collaborator.role : undefined}
                           onRoleChange={(newRole) => handleRoleChange(collaborator.userId, newRole)}
                           onRemove={() => handleRemoveCollaborator(collaborator.userId)}
+                          displayName={collaborator.displayName}
                         />
                       );
                     })}

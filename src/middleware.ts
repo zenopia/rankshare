@@ -1,5 +1,7 @@
-import { authMiddleware } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
+import { authMiddleware } from "@clerk/nextjs/server";
+import { AuthFactory } from "@/lib/auth/factory";
+import { authConfig } from "@/lib/auth/config";
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
@@ -23,112 +25,96 @@ const securityHeaders = {
     'camera=(), microphone=(), geolocation=()'
 } as const;
 
-interface AuthObject {
-  userId: string | null;
-  isPublicRoute: boolean;
-  sessionId: string | null;
-}
+// Apply Clerk's auth middleware first
+const clerkMiddleware = authMiddleware({
+  publicRoutes: [
+    ...authConfig.publicRoutes,
+    "/profile/:username/followers",
+    "/profile/:username/following"
+  ],
+  ignoredRoutes: [
+    "/_next",
+    "/favicon.ico",
+    "/api/webhooks(.*)"
+  ]
+});
 
+// Export the config separately for Next.js
 export const config = {
   matcher: [
     "/((?!.+\\.[\\w]+$|_next|_vercel|[\\w-]+\\.\\w+).*)",
     "/(api|trpc)(.*)",
-    "/profile/:username(.*)"
+    "/profile/lists(.*)",
+    "/profile/edit(.*)",
+    "/profile/settings(.*)",
+    "/create(.*)",
+    "/lists/create(.*)",
+    "/lists/edit/(.*)"
   ]
 };
 
-export default authMiddleware({
-  publicRoutes: [
-    "/",
-    "/sign-in",
-    "/sign-up",
-    "/search",
-    "/lists/:path*",
-    "/api/lists/:path*",
-    "/api/users/:path*",
-    "/api/webhooks/clerk",
-    "/api/webhooks/user",
-    "/manifest.json",
-    "/api/health",
-    "/:path/_rsc",
-    "/profile/:username/_rsc",
-    // Only allow public access to user list pages
-    "/profile/:username/lists/:listId",
-    // Add auth-related routes
-    "/sso-callback",
-    "/sign-in/(.*)",
-    "/sign-up/(.*)",
-    // Add user profile routes
-    "/profile/:username/following",
-    "/profile/:username/followers",
-    "/profile/:username",
-    // Add public pages
-    "/about",
-    "/about/(.*)",
-    "/feedback",
-    "/feedback/(.*)"
-  ],
-  debug: false,
-  beforeAuth: (req: NextRequest) => {
-    // Handle preflight requests for mobile browsers
-    if (req.method === 'OPTIONS') {
-      return NextResponse.next();
-    }
+export default async function middleware(req: NextRequest) {
+  // Handle preflight requests for mobile browsers
+  if (req.method === 'OPTIONS') {
+    return NextResponse.next();
+  }
 
-    // Add CORS headers for mobile browsers
-    const response = NextResponse.next();
+  // Apply Clerk's auth middleware
+  const clerkResponse = await clerkMiddleware(req);
+  if (clerkResponse) {
+    return clerkResponse;
+  }
+
+  // Initialize response with security headers
+  const response = NextResponse.next();
+  Object.entries(securityHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+
+  // Get auth provider instance
+  const auth = await AuthFactory.getProvider('clerk', authConfig);
+
+  // Handle API routes
+  if (req.nextUrl.pathname.startsWith('/api/')) {
+    const authResult = await auth.handleApiAuth(req);
     
-    // Add security headers
-    Object.entries(securityHeaders).forEach(([key, value]) => {
-      response.headers.set(key, value);
-    });
-
-    return response;
-  },
-  afterAuth: (auth: AuthObject, req: NextRequest) => {
-    // Handle authentication result
-    const response = NextResponse.next();
-    
-    // Add security headers
-    Object.entries(securityHeaders).forEach(([key, value]) => {
-      response.headers.set(key, value);
-    });
-
-    // Special handling for mobile browsers to maintain session
-    const userAgent = req.headers.get('user-agent') || '';
-    const isMobile = /Mobile|Android|iPhone/i.test(userAgent);
-    
-    if (isMobile && auth.userId) {
-      // Add cache control headers to prevent session loss
-      response.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
-      response.headers.set('Pragma', 'no-cache');
-      response.headers.set('Expires', '0');
+    if (!authResult.isAuthenticated) {
+      return new NextResponse(
+        JSON.stringify({ 
+          error: authResult.error || 'Unauthorized',
+          status: 401 
+        }),
+        { 
+          status: 401,
+          headers: {
+            'Content-Type': 'application/json',
+            ...Object.fromEntries(response.headers)
+          }
+        }
+      );
     }
-
-    // Handle protected routes
-    const url = new URL(req.url);
-    const isProtectedRoute = 
-      // Profile management routes
-      (url.pathname.startsWith('/profile/lists') && !url.pathname.includes('/lists/')) ||
-      url.pathname.includes('/pinned') || 
-      url.pathname.includes('/collab') ||
-      url.pathname.includes('/create') ||
-      url.pathname.includes('/edit') ||
-      // API routes that require auth
-      (url.pathname.startsWith('/api/') && 
-       !url.pathname.startsWith('/api/lists/') && 
-       !url.pathname.startsWith('/api/users/') &&
-       !url.pathname.startsWith('/api/webhooks/') &&
-       // Allow access to following/followers API routes
-       !url.pathname.includes('/following') &&
-       !url.pathname.includes('/followers'));
-
-    if (isProtectedRoute && !auth.userId) {
-      // Store the return URL in the URL parameters
-      const returnUrl = encodeURIComponent(url.pathname + url.search);
-      return NextResponse.redirect(new URL(`/sign-in?returnUrl=${returnUrl}`, req.url));
-    }
-
     return response;
   }
-});
+
+  // Handle page routes
+  const authResult = await auth.validateSession();
+  const url = new URL(req.url);
+
+  // Special handling for mobile browsers to maintain session
+  const userAgent = req.headers.get('user-agent') || '';
+  const isMobile = /Mobile|Android|iPhone/i.test(userAgent);
+  
+  if (isMobile && authResult.userId) {
+    response.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+  }
+
+  // Check if the route requires authentication
+  if (auth.requiresAuth(url.pathname) && !authResult.isAuthenticated) {
+    const returnUrl = encodeURIComponent(url.pathname + url.search);
+    return NextResponse.redirect(new URL(`/sign-in?returnUrl=${returnUrl}`, req.url));
+  }
+
+  return response;
+}

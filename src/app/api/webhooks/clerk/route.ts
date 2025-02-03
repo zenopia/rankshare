@@ -1,5 +1,5 @@
 import { headers } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Webhook } from 'svix';
 import { WebhookEvent } from '@clerk/backend';
 import { connectToMongoDB } from '@/lib/db/client';
@@ -7,8 +7,10 @@ import { getUserModel } from '@/lib/db/models-v2/user';
 import { getUserCacheModel } from '@/lib/db/models-v2/user-cache';
 import { getListModel } from '@/lib/db/models-v2/list';
 import { getFollowModel } from '@/lib/db/models-v2/follow';
+import { withAuth } from '@/lib/auth/api-utils';
 
-export async function POST(req: Request) {
+// Webhook endpoint is public but verified using Svix
+export const POST = withAuth(async (req: NextRequest) => {
   // Get the headers
   const headerPayload = headers();
   const svix_id = headerPayload.get("svix-id");
@@ -257,4 +259,4 @@ export async function POST(req: Request) {
   }
 
   return new NextResponse('Success', { status: 200 });
-} 
+}, { requireAuth: false }); 

@@ -1,17 +1,13 @@
-import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
+import { withAuth, getUserId } from "@/lib/auth/api-utils";
 
-export async function PUT(request: Request) {
+export const PUT = withAuth(async (req: NextRequest) => {
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    const body = await request.json();
+    const clerkId = getUserId(req);
+    const body = await req.json();
     const { userId, settings } = body;
 
     if (!userId || !settings) {
@@ -51,4 +47,4 @@ export async function PUT(request: Request) {
     console.error("Error updating privacy settings:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
-} 
+}); 

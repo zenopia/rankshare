@@ -6,6 +6,7 @@ import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import type { ActiveSessionResource, TokenResource } from '@clerk/types';
 import React from 'react';
+import { clerkClient } from "@clerk/clerk-sdk-node";
 
 export class AuthService {
   static async getCurrentUser(): Promise<AuthUser | null> {
@@ -53,6 +54,89 @@ export class AuthService {
       };
     } catch (error) {
       console.error("Error getting user by username:", error);
+      return null;
+    }
+  }
+
+  static async getUserByClerkId(clerkId: string): Promise<AuthUser | null> {
+    try {
+      await connectToMongoDB();
+      const UserModel = await getUserModel();
+      const user = await UserModel.findOne({ clerkId }).lean();
+      
+      if (!user) return null;
+      
+      return {
+        id: user.clerkId,
+        email: user.email || null,
+        username: user.username,
+        firstName: null, // We don't store these separately
+        lastName: null,  // We don't store these separately
+        fullName: user.displayName,
+        imageUrl: user.imageUrl,
+      };
+    } catch (error) {
+      console.error("Error getting user by clerk ID:", error);
+      return null;
+    }
+  }
+
+  static async getUserById(userId: string): Promise<AuthUser | null> {
+    try {
+      await connectToMongoDB();
+      const UserModel = await getUserModel();
+      const user = await UserModel.findOne({ clerkId: userId }).lean();
+      
+      if (!user) {
+        // Try to get user from Clerk as fallback
+        const clerkUser = await clerkClient.users.getUser(userId);
+        if (!clerkUser) return null;
+        
+        return this.transformClerkUser(clerkUser);
+      }
+      
+      return {
+        id: user.clerkId,
+        email: user.email || null,
+        username: user.username,
+        firstName: null,
+        lastName: null,
+        fullName: user.displayName,
+        imageUrl: user.imageUrl,
+      };
+    } catch (error) {
+      console.error("Error getting user by ID:", error);
+      return null;
+    }
+  }
+
+  static async getUserByEmail(email: string): Promise<AuthUser | null> {
+    try {
+      await connectToMongoDB();
+      const UserModel = await getUserModel();
+      const user = await UserModel.findOne({ email }).lean();
+      
+      if (!user) {
+        // Try to get user from Clerk as fallback
+        const users = await clerkClient.users.getUserList({
+          emailAddress: [email]
+        });
+        if (users.length === 0) return null;
+        
+        return this.transformClerkUser(users[0]);
+      }
+      
+      return {
+        id: user.clerkId,
+        email: user.email || null,
+        username: user.username,
+        firstName: null,
+        lastName: null,
+        fullName: user.displayName,
+        imageUrl: user.imageUrl,
+      };
+    } catch (error) {
+      console.error("Error getting user by email:", error);
       return null;
     }
   }

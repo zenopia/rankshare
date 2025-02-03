@@ -1,8 +1,8 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getEnhancedLists } from "@/lib/actions/lists";
 import { MyListsLayout } from "@/components/lists/my-lists-layout";
 import { ListCategory } from "@/types/list";
+import { AuthService } from "@/lib/services/auth.service";
 
 interface PageProps {
   searchParams: {
@@ -14,34 +14,31 @@ interface PageProps {
 
 export default async function CollaborativeListsPage({ searchParams }: PageProps) {
   console.log('Accessing Collaborative Lists Page');
-  const { userId } = auth();
+  const user = await AuthService.getCurrentUser();
 
-  if (!userId) {
+  if (!user) {
     console.log('No user found, redirecting to sign-in');
     redirect('/sign-in');
   }
 
   try {
-    console.log('Fetching data for user:', userId);
-    const [user, { lists: unsortedLists }] = await Promise.all([
-      clerkClient.users.getUser(userId),
-      getEnhancedLists(
-        { 
-          $or: [
-            {
-              'collaborators.clerkId': userId
-            },
-            {
-              $and: [
-                { 'owner.clerkId': userId },
-                { collaborators: { $type: 'array', $ne: [] } }
-              ]
-            }
-          ]
-        },
-        { lean: true }
-      )
-    ]);
+    console.log('Fetching data for user:', user.id);
+    const { lists: unsortedLists } = await getEnhancedLists(
+      { 
+        $or: [
+          {
+            'collaborators.clerkId': user.id
+          },
+          {
+            $and: [
+              { 'owner.clerkId': user.id },
+              { collaborators: { $type: 'array', $ne: [] } }
+            ]
+          }
+        ]
+      },
+      { lean: true }
+    );
     
     console.log('Found lists:', unsortedLists.length);
     
@@ -66,9 +63,9 @@ export default async function CollaborativeListsPage({ searchParams }: PageProps
         lists={sortedLists}
         initialUser={{
           id: user.id,
-          username: user.username,
-          fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || null,
-          imageUrl: user.imageUrl,
+          username: user.username || null,
+          fullName: user.fullName || null,
+          imageUrl: user.imageUrl || "",
         }}
       />
     );

@@ -3,7 +3,6 @@ import { AuthService } from "@/lib/services/auth.service";
 import { getPinnedLists } from "@/lib/actions/lists";
 import { MyListsLayout } from "@/components/lists/my-lists-layout";
 import { ListCategory } from "@/types/list";
-import { auth as getAuth } from "@clerk/nextjs/server";
 
 interface PageProps {
   searchParams: {
@@ -14,29 +13,21 @@ interface PageProps {
 }
 
 export default async function PinnedListsPage({ searchParams }: PageProps) {
-  // Use Clerk's auth directly to check authentication
-  const { userId } = getAuth();
-  if (!userId) {
-    // Store the current URL for return after sign in
-    const returnUrl = encodeURIComponent(`/profile/lists/pinned${
-      searchParams.q || searchParams.category || searchParams.sort 
-        ? `?${new URLSearchParams(searchParams as Record<string, string>).toString()}`
-        : ''
-    }`);
-    redirect(`/sign-in?returnUrl=${returnUrl}`);
-  }
-
   try {
-    // Get user details and lists in parallel
-    const [user, listsData] = await Promise.all([
-      AuthService.getCurrentUser(),
-      getPinnedLists(userId)
-    ]);
-
+    // Get user details
+    const user = await AuthService.getCurrentUser();
     if (!user) {
-      throw new Error('User not found');
+      // Store the current URL for return after sign in
+      const returnUrl = encodeURIComponent(`/profile/lists/pinned${
+        searchParams.q || searchParams.category || searchParams.sort 
+          ? `?${new URLSearchParams(searchParams as Record<string, string>).toString()}`
+          : ''
+      }`);
+      redirect(`/sign-in?returnUrl=${returnUrl}`);
     }
 
+    // Get lists
+    const listsData = await getPinnedLists(user.id);
     const { lists: unsortedLists } = listsData;
     
     // Apply sorting

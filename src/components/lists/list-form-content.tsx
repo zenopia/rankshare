@@ -298,7 +298,7 @@ export function ListFormContent({ defaultValues, mode = 'create', returnPath }: 
                   <FormControl>
                     <Input
                       placeholder="List title"
-                      className="text-4xl font-bold h-14 text-foreground"
+                      className="text-2xl font-bold h-14 text-foreground"
                       {...field}
                     />
                   </FormControl>

@@ -48,6 +48,8 @@ export interface ListOwner {
   id: string;
   clerkId: string;
   username: string;
+  displayName?: string;
+  imageUrl?: string | null;
   joinedAt: string;
 }
 

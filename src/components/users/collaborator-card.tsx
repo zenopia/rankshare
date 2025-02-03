@@ -36,6 +36,7 @@ export interface CollaboratorCardProps {
   onAcceptInvite?: () => void;
   onRejectInvite?: () => void;
   className?: string;
+  displayName?: string;
 }
 
 export function CollaboratorCard({ 
@@ -55,7 +56,8 @@ export function CollaboratorCard({
   onCancelInvite,
   onAcceptInvite,
   onRejectInvite,
-  className
+  className,
+  displayName
 }: CollaboratorCardProps) {
   const isEmailInvite = !clerkId;
   const { data: users, isLoading } = useUsers(isEmailInvite ? [] : [userId]);
@@ -77,8 +79,6 @@ export function CollaboratorCard({
       </div>
     );
   }
-
-  const [firstName, lastName] = userData?.displayName?.split(' ') || [null, null];
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
@@ -168,8 +168,7 @@ export function CollaboratorCard({
         ) : (
           <UserProfileBase
             username={username || userData?.username || ''}
-            firstName={firstName}
-            lastName={lastName}
+            firstName={displayName || userData?.displayName}
             imageUrl={imageUrl || userData?.imageUrl}
             variant="compact"
             hideFollow={true}
@@ -183,9 +182,9 @@ export function CollaboratorCard({
     </div>
   );
 
-  if (status === 'accepted') {
+  if (linkToProfile && status === 'accepted') {
     return (
-      <Link href={`/${usernameWithAt}?from=${relativePath}`}>
+      <Link href={`/profile/${usernameWithAt}?from=${relativePath}`}>
         {content}
       </Link>
     );

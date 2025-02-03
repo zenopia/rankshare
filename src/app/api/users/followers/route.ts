@@ -1,20 +1,16 @@
-import { NextResponse } from "next/server";
-import { AuthService } from "@/lib/services/auth.service";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { clerkClient } from "@clerk/clerk-sdk-node";
+import { withAuth, getUserId } from "@/lib/auth/api-utils";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
-  const user = await AuthService.getCurrentUser();
-  if (!user) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
-
+export const GET = withAuth(async (req: NextRequest) => {
   try {
-    const { searchParams } = new URL(request.url);
+    const userId = getUserId(req);
+    const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "20");
     const page = parseInt(searchParams.get("page") || "1");
     const skip = (page - 1) * limit;
@@ -25,12 +21,12 @@ export async function GET(request: Request) {
 
     // Get followers
     const [followers, total] = await Promise.all([
-      FollowModel.find({ followingId: user.id })
+      FollowModel.find({ followingId: userId })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      FollowModel.countDocuments({ followingId: user.id })
+      FollowModel.countDocuments({ followingId: userId })
     ]);
 
     // Get follower details
@@ -87,4 +83,4 @@ export async function GET(request: Request) {
     console.error("Error fetching followers:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
-} 
+}); 

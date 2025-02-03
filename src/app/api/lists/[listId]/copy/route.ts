@@ -1,19 +1,22 @@
-import { NextResponse } from "next/server";
-import { AuthService } from "@/lib/services/auth.service";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel, ListDocument } from "@/lib/db/models-v2/list";
 import { getUserModel } from "@/lib/db/models-v2/user";
+import { withAuth, getUserId } from "@/lib/auth/api-utils";
 
-export async function POST(
-  request: Request,
-  { params }: { params: { listId: string } }
-) {
-  const user = await AuthService.getCurrentUser();
-  if (!user) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+export const dynamic = 'force-dynamic';
 
+interface RouteParams {
+  listId: string;
+}
+
+export const POST = withAuth<RouteParams>(async (
+  req: NextRequest,
+  { params }: { params: RouteParams }
+) => {
   try {
+    const userId = getUserId(req);
+    
     await connectToMongoDB();
     const [ListModel, UserModel] = await Promise.all([
       getListModel(),
@@ -21,77 +24,85 @@ export async function POST(
     ]);
 
     // Get MongoDB user document
-    const mongoUser = await UserModel.findOne({ clerkId: user.id });
+    const mongoUser = await UserModel.findOne({ clerkId: userId });
     if (!mongoUser) {
-      return new NextResponse("User not found", { status: 404 });
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
     }
 
     // Find the original list
     const originalList = await ListModel.findById(params.listId).lean();
     if (!originalList) {
-      return new NextResponse("List not found", { status: 404 });
+      return NextResponse.json(
+        { error: "List not found" },
+        { status: 404 }
+      );
     }
 
     // Check if the list is public or if the user has access
     const hasAccess =
       originalList.privacy === "public" ||
-      originalList.owner.clerkId === user.id ||
+      originalList.owner.clerkId === userId ||
       originalList.collaborators?.some(
-        (c) => c.clerkId === user.id && c.status === "accepted"
+        (c) => c.clerkId === userId && c.status === "accepted"
       );
 
     if (!hasAccess) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
     // Create a copy of the list
-    const copiedList = await ListModel.create({
-      ...originalList,
-      _id: undefined,
-      title: `Copy of ${originalList.title}`,
+    const list = await ListModel.create({
+      title: `${originalList.title} (Copy)`,
+      description: originalList.description,
+      category: originalList.category,
+      privacy: "private", // Always create copies as private
+      listType: originalList.listType,
+      items: originalList.items || [],
       owner: {
-        clerkId: user.id,
+        clerkId: userId,
         userId: mongoUser._id,
-        username: user.username || "",
+        username: mongoUser.username || "",
         joinedAt: new Date()
       },
-      items: originalList.items?.map((item, index) => ({
-        ...item,
-        rank: item.rank || index + 1
-      })) || [],
       collaborators: [],
       stats: {
         viewCount: 0,
         pinCount: 0,
         copyCount: 0
-      },
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      editedAt: new Date()
+      }
     }) as ListDocument;
 
-    // Increment the copy count of the original list
-    await ListModel.findByIdAndUpdate(params.listId, {
+    // Increment copy count on original list
+    await ListModel.findByIdAndUpdate(originalList._id, {
       $inc: { "stats.copyCount": 1 }
     });
 
     // Convert _id to string for the response
-    const { _id, ...rest } = copiedList.toObject();
+    const { _id, ...rest } = list.toObject();
     const responseList = {
       ...rest,
       id: _id.toString(),
-      createdAt: copiedList.createdAt?.toISOString(),
-      updatedAt: copiedList.updatedAt?.toISOString(),
-      editedAt: copiedList.editedAt?.toISOString(),
+      createdAt: list.createdAt?.toISOString(),
+      updatedAt: list.updatedAt?.toISOString(),
+      editedAt: list.editedAt?.toISOString(),
       owner: {
-        ...copiedList.owner,
-        id: copiedList.owner.userId?.toString()
+        ...list.owner,
+        id: list.owner.userId?.toString()
       }
     };
 
-    return NextResponse.json({ list: responseList });
+    return NextResponse.json(responseList);
   } catch (error) {
     console.error("Error copying list:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to copy list" },
+      { status: 500 }
+    );
   }
-} 
+}, { requireAuth: true }); 

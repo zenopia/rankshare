@@ -1,23 +1,30 @@
-import { NextResponse } from "next/server";
-import { AuthService } from "@/lib/services/auth.service";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getListModel } from "@/lib/db/models-v2/list";
 import type { UserDocument } from "@/lib/db/models-v2/user";
 import type { ListDocument } from "@/lib/db/models-v2/list";
+import { withAuth, getUserId } from "@/lib/auth/api-utils";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
-  const user = await AuthService.getCurrentUser();
-
+// Search is public but can return more results when authenticated
+export const GET = withAuth(async (req: NextRequest) => {
   try {
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(req.url);
     const query = searchParams.get("q") || "";
     const type = searchParams.get("type") || "all";
     const limit = parseInt(searchParams.get("limit") || "20");
     const page = parseInt(searchParams.get("page") || "1");
     const skip = (page - 1) * limit;
+
+    // Get user ID if authenticated
+    let userId: string | undefined;
+    try {
+      userId = getUserId(req);
+    } catch {
+      // User is not authenticated - this is fine for search
+    }
 
     await connectToMongoDB();
     const UserModel = await getUserModel();
@@ -57,13 +64,13 @@ export async function GET(request: Request) {
           {
             $or: [
               { privacy: "public" },
-              ...(user
+              ...(userId
                 ? [
-                    { "owner.clerkId": user.id },
+                    { "owner.clerkId": userId },
                     {
                       collaborators: {
                         $elemMatch: {
-                          clerkId: user.id,
+                          clerkId: userId,
                           status: "accepted"
                         }
                       }
@@ -96,4 +103,4 @@ export async function GET(request: Request) {
     console.error("Error searching:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
-} 
+}, { requireAuth: false }); 

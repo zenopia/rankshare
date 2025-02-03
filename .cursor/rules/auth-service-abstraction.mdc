@@ -1,0 +1,9 @@
+---
+description: Make sure that auth calls are abstrracted to the AuthService rather than directly calling an auth service like Clerk.
+globs: 
+---
+
+# Your rule content
+Make sure that auth calls are abstrracted to the AuthService rather than directly calling an auth service like Clerk.
+
+- [auth.service.ts](mdc:src/lib/services/auth.service.ts)

@@ -1,16 +1,16 @@
-import { NextResponse } from "next/server";
-import { AuthService } from "@/lib/services/auth.service";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getPinModel } from "@/lib/db/models-v2/pin";
+import { withAuth, getUserId } from "@/lib/auth/api-utils";
 
-export async function GET(request: Request) {
-  const user = await AuthService.getCurrentUser();
-  if (!user) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+export const dynamic = 'force-dynamic';
 
+type RouteParams = Record<string, never>;
+
+export const GET = withAuth<RouteParams>(async (req: NextRequest) => {
   try {
-    const { searchParams } = new URL(request.url);
+    const userId = getUserId(req);
+    const { searchParams } = new URL(req.url);
     const listIds = searchParams.get("listIds")?.split(",") || [];
 
     if (listIds.length === 0) {
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     const PinModel = await getPinModel();
 
     const pins = await PinModel.find({
-      clerkId: user.id,
+      clerkId: userId,
       listId: { $in: listIds }
     }).lean();
 
@@ -34,6 +34,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ pins: pinMap });
   } catch (error) {
     console.error("Error fetching pins:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch pins" },
+      { status: 500 }
+    );
   }
-} 
+}, { requireAuth: true }); 

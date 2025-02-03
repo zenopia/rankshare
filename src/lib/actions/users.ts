@@ -17,7 +17,13 @@ export interface EnhancedUser {
 }
 
 export async function getEnhancedUsers(filter: any = {}, options: { sort?: any } = {}): Promise<EnhancedUser[]> {
-  const user = await AuthService.getCurrentUser();
+  let user = null;
+  try {
+    user = await AuthService.getCurrentUser();
+  } catch (error) {
+    // Ignore auth errors - function should work without authentication
+    console.debug('No authenticated user found');
+  }
   
   await connectToMongoDB();
   

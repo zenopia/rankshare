@@ -1,17 +1,17 @@
-import { NextResponse } from "next/server";
-import { AuthService } from "@/lib/services/auth.service";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel } from "@/lib/db/models-v2/list";
 import { getEnhancedLists } from "@/lib/actions/lists";
+import { withAuth, getUserId } from "@/lib/auth/api-utils";
 
-export async function GET(request: Request) {
-  const user = await AuthService.getCurrentUser();
-  if (!user) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+export const dynamic = 'force-dynamic';
 
+type RouteParams = Record<string, never>;
+
+export const GET = withAuth<RouteParams>(async (req: NextRequest) => {
   try {
-    const { searchParams } = new URL(request.url);
+    const userId = getUserId(req);
+    const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "20");
     const page = parseInt(searchParams.get("page") || "1");
     const skip = (page - 1) * limit;
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
       {
         "collaborators": {
           $elemMatch: {
-            clerkId: user.id,
+            clerkId: userId,
             status: "pending"
           }
         }
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     const total = await ListModel.countDocuments({
       "collaborators": {
         $elemMatch: {
-          clerkId: user.id,
+          clerkId: userId,
           status: "pending"
         }
       }
@@ -52,4 +52,4 @@ export async function GET(request: Request) {
     console.error("Error fetching pending collaborations:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
-} 
+}); 

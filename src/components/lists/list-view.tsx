@@ -57,7 +57,8 @@ export function ListView({
             owner={{
               clerkId: list.owner.clerkId,
               username: list.owner.username,
-              imageUrl: list.owner.imageUrl || undefined
+              imageUrl: list.owner.imageUrl || undefined,
+              displayName: list.owner.displayName
             }}
           />
         </ErrorBoundaryWrapper>

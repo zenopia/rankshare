@@ -2,12 +2,12 @@
 
 import { createContext, useContext } from 'react';
 import { AuthContextType, AuthProviderProps } from '@/types/auth';
-import { useAuthService } from '@/lib/services/auth.service';
+import { useAuth as useAuthHook } from '@/lib/auth/hooks';
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const auth = useAuthService();
+  const auth = useAuthHook();
 
   return (
     <AuthContext.Provider value={auth}>

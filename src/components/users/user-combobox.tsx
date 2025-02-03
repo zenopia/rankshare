@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { isValidEmail, cn } from "@/lib/utils";
@@ -18,7 +18,7 @@ interface User {
 }
 
 interface ApiUser {
-  clerkId: string;
+  id: string;
   username: string;
   displayName: string;
   imageUrl?: string;
@@ -112,16 +112,28 @@ export function UserCombobox({
         const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchValue)}`);
         if (!response.ok) throw new Error();
         const { users: data } = await response.json();
-        setUsers(data
-          .filter((user: ApiUser) => !excludeUserIds.includes(user.clerkId))
-          .map((user: ApiUser) => ({
-            id: user.clerkId,
-            username: user.username,
-            displayName: user.displayName,
-            imageUrl: user.imageUrl,
-            avatarUrl: user.avatarUrl
-          }))
-        );
+
+        // Debug log to see what we're getting from the API
+        console.log("Search API response:", data);
+
+        const mappedUsers = data
+          .filter((user: ApiUser) => !excludeUserIds.includes(user.id))
+          .map((user: ApiUser) => {
+            // Log the raw user data from API
+            console.log("Raw user from API:", user);
+            
+            const mappedUser = {
+              id: user.id,
+              username: user.username,
+              displayName: user.displayName,
+              imageUrl: user.imageUrl,
+              avatarUrl: user.avatarUrl
+            };
+            console.log("Mapped user:", mappedUser);
+            return mappedUser;
+          });
+
+        setUsers(mappedUsers);
       } catch (error) {
         console.error('Failed to search users:', error);
       } finally {
@@ -134,6 +146,8 @@ export function UserCombobox({
   }, [searchValue, initialUsers, excludeUserIds]);
 
   const handleSelect = (user: User) => {
+    // Debug log to see what we're passing to onSelect
+    console.log("Selecting user:", user);
     onSelect({ type: 'user', userId: user.id, username: user.username });
     setSearchValue("");
     setShowDropdown(false);
@@ -179,38 +193,47 @@ export function UserCombobox({
               </div>
             ) : (
               <>
-                {users.map((user) => (
-                  <div
-                    key={user.id}
-                    className={cn(
-                      "flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-accent",
-                      "transition-colors"
-                    )}
-                    onClick={() => handleSelect(user)}
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.avatarUrl || user.imageUrl} />
-                      <AvatarFallback>
-                        {user.username.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-medium truncate">
-                        {user.displayName}
-                      </span>
-                      <span className="text-xs text-muted-foreground truncate">
-                        @{user.username}
-                      </span>
-                    </div>
+                {users.length > 0 && (
+                  <div className="py-1" role="group">
+                    {users.map((user) => (
+                      <div
+                        key={`user-${user.id}`}
+                        className={cn(
+                          "flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-accent",
+                          "transition-colors"
+                        )}
+                        onClick={() => handleSelect(user)}
+                        role="option"
+                        aria-selected={false}
+                      >
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={user.avatarUrl || user.imageUrl} alt={user.username} />
+                          <AvatarFallback>
+                            {user.username.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-medium truncate">
+                            {user.displayName}
+                          </span>
+                          <span className="text-xs text-muted-foreground truncate">
+                            @{user.username}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
                 {isValidEmail(searchValue) && (
                   <div
+                    key="email-invite-option"
                     className={cn(
                       "flex items-center gap-2 px-2 py-2 cursor-pointer hover:bg-accent",
                       "transition-colors"
                     )}
                     onClick={handleEmailSelect}
+                    role="option"
+                    aria-selected={false}
                   >
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>
@@ -225,6 +248,11 @@ export function UserCombobox({
                         {searchValue}
                       </span>
                     </div>
+                  </div>
+                )}
+                {users.length === 0 && !isValidEmail(searchValue) && searchValue && (
+                  <div key="no-results" className="px-2 py-4 text-sm text-muted-foreground text-center">
+                    No users found
                   </div>
                 )}
               </>

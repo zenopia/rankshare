@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProtectedPageWrapper } from "@/components/auth/protected-page-wrapper";
 import { useClerk } from "@clerk/nextjs";
 import { useProtectedFetch } from "@/hooks/use-protected-fetch";
+import { useRouter } from "next/navigation";
 
 // Remove validation schema since fields are no longer required
 const profileSchema = z.object({
@@ -77,6 +78,7 @@ function ProfileSkeleton() {
 }
 
 export function ProfilePage({ initialUser }: ProfilePageProps) {
+  const router = useRouter();
   const { isReady } = useAuthGuard({ protected: true });
   const { user: clerkUser } = useUser();
   const { openUserProfile } = useClerk();
@@ -105,12 +107,14 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
 
   // Check if profile is complete
   useEffect(() => {
+    let isMounted = true;
+
     async function checkProfile() {
       try {
         const response = await fetchWithAuth('/api/profile');
         const { user, profile } = await response.json();
         
-        if (user) {
+        if (user && isMounted) {
           setProfileData({
             bio: profile?.bio || "",
             location: profile?.location || "",
@@ -122,14 +126,20 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
-        toast.error('Failed to load profile data');
+        if (isMounted) {
+          toast.error('Failed to load profile data');
+        }
       }
     }
 
     if (clerkUser && isReady) {
       checkProfile();
     }
-  }, [clerkUser, isReady, fetchWithAuth]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isReady]); // Only depend on isReady since we only need to fetch once when the component is ready
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -152,6 +162,8 @@ export function ProfilePage({ initialUser }: ProfilePageProps) {
       if (user) {
         toast.success('Profile updated successfully');
         setIsProfileComplete(true);
+        // Navigate to the user's profile page
+        router.push(`/profile/${clerkUser?.username}`);
       } else {
         toast.error('Failed to update profile');
       }

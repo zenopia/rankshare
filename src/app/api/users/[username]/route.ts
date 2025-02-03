@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
+import { withAuth } from "@/lib/auth/api-utils";
+
+interface RouteParams {
+  username: string;
+}
 
 interface UserResponse {
   id: string;
@@ -13,10 +18,10 @@ interface ErrorResponse {
   error: string;
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { username: string } }
-): Promise<NextResponse<UserResponse | ErrorResponse>> {
+export const GET = withAuth<RouteParams>(async (
+  req: NextRequest,
+  { params }: { params: RouteParams }
+): Promise<NextResponse<UserResponse | ErrorResponse>> => {
   try {
     // Remove @ if present and decode the username
     const username = decodeURIComponent(params.username).replace(/^@/, '');
@@ -48,4 +53,4 @@ export async function GET(
       { status: 500 }
     );
   }
-} 
+}, { requireAuth: false }); 

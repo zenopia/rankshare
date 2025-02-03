@@ -1,25 +1,28 @@
-import { NextResponse } from "next/server";
-import { AuthService } from "@/lib/services/auth.service";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel } from "@/lib/db/models-v2/list";
+import { withAuth, getUserId } from "@/lib/auth/api-utils";
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(
-  request: Request,
-  { params }: { params: { listId: string } }
-) {
-  const user = await AuthService.getCurrentUser();
-  if (!user) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+interface RouteParams {
+  listId: string;
+}
 
+export const POST = withAuth<RouteParams>(async (
+  req: NextRequest,
+  { params }: { params: RouteParams }
+) => {
   try {
-    const body = await request.json();
+    const userId = getUserId(req);
+    const body = await req.json();
     const { action } = body;
 
     if (!action || !["accept", "decline"].includes(action)) {
-      return new NextResponse("Invalid action", { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid action" },
+        { status: 400 }
+      );
     }
 
     await connectToMongoDB();
@@ -27,16 +30,22 @@ export async function POST(
 
     const list = await ListModel.findById(params.listId);
     if (!list) {
-      return new NextResponse("List not found", { status: 404 });
+      return NextResponse.json(
+        { error: "List not found" },
+        { status: 404 }
+      );
     }
 
     // Find the collaboration invitation
     const collaborator = list.collaborators?.find(
-      (c) => c.clerkId === user.id && c.status === "pending"
+      (c) => c.clerkId === userId && c.status === "pending"
     );
 
     if (!collaborator) {
-      return new NextResponse("No pending invitation found", { status: 404 });
+      return NextResponse.json(
+        { error: "No pending invitation found" },
+        { status: 404 }
+      );
     }
 
     if (action === "accept") {
@@ -44,7 +53,7 @@ export async function POST(
       await ListModel.findOneAndUpdate(
         {
           _id: params.listId,
-          "collaborators.clerkId": user.id,
+          "collaborators.clerkId": userId,
         },
         {
           $set: {
@@ -61,7 +70,7 @@ export async function POST(
         { _id: params.listId },
         {
           $pull: {
-            collaborators: { clerkId: user.id },
+            collaborators: { clerkId: userId },
           },
         }
       );
@@ -70,6 +79,9 @@ export async function POST(
     }
   } catch (error) {
     console.error("Error responding to collaboration:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to respond to collaboration" },
+      { status: 500 }
+    );
   }
-} 
+}, { requireAuth: true }); 

@@ -1,38 +1,66 @@
-import { NextResponse } from "next/server";
-import { AuthService } from "@/lib/services/auth.service";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
+import { getUserModel } from "@/lib/db/models-v2/user";
+import { AuthService } from "@/lib/services/auth.service";
+
+interface RouteParams {
+  username: string;
+}
+
+interface FollowStatusResponse {
+  isFollowing: boolean;
+}
+
+interface ErrorResponse {
+  error: string;
+}
 
 export async function GET(
-  request: Request,
-  { params }: { params: { username: string } }
-) {
-  const user = await AuthService.getCurrentUser();
-  if (!user) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
-
+  req: NextRequest,
+  { params }: { params: RouteParams }
+): Promise<NextResponse<FollowStatusResponse | ErrorResponse>> {
   try {
-    const { username } = params;
-
-    // Get the target user's Clerk ID
-    const targetUser = await AuthService.getUserByUsername(username);
-    if (!targetUser) {
-      return new NextResponse("User not found", { status: 404 });
+    const user = await AuthService.getCurrentUser();
+    if (!user) {
+      return NextResponse.json<ErrorResponse>(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
+    const { username } = params;
+
     await connectToMongoDB();
-    const FollowModel = await getFollowModel();
+    const [FollowModel, UserModel] = await Promise.all([
+      getFollowModel(),
+      getUserModel()
+    ]);
 
-    // Check if the current user is following the target user
-    const follow = await FollowModel.findOne({
+    // Get target user's Clerk ID from username
+    const targetUser = await UserModel.findOne({ username }).lean();
+    if (!targetUser) {
+      return NextResponse.json<ErrorResponse>(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check if current user is following target user
+    const isFollowing = await FollowModel.exists({
       followerId: user.id,
-      followingId: targetUser.id
-    }).lean();
+      followingId: targetUser.clerkId,
+      status: 'accepted'
+    });
 
-    return NextResponse.json({ isFollowing: !!follow });
+    return NextResponse.json<FollowStatusResponse>({
+      isFollowing: !!isFollowing
+    });
   } catch (error) {
     console.error("Error checking follow status:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json<ErrorResponse>(
+      { error: "Failed to check follow status" },
+      { status: 500 }
+    );
   }
 } 

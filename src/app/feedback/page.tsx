@@ -1,7 +1,7 @@
 import { Metadata } from "next";
-import { currentUser } from "@clerk/nextjs/server";
 import { FeedbackForm } from "@/components/feedback/feedback-form";
 import { SubLayout } from "@/components/layout/sub-layout";
+import { AuthService } from "@/lib/services/auth.service";
 
 export const metadata: Metadata = {
   title: "Feedback - Favely",
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function FeedbackPage() {
-  const user = await currentUser();
+  const user = await AuthService.getCurrentUser();
 
   return (
     <SubLayout title="Feedback">

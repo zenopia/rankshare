@@ -6,7 +6,7 @@ import { PeopleTabs } from "@/components/users/people-tabs";
 import { SearchInput } from "@/components/search/search-input";
 import { UserList } from "@/components/users/user-list";
 import { useEffect, useState } from "react";
-import { ProtectedPageWrapper } from "@/components/auth/protected-page-wrapper";
+import { PublicPageWrapper } from "@/components/auth/public-page-wrapper";
 
 interface PeoplePageLayoutProps {
   profileUserId: string;
@@ -61,17 +61,11 @@ export function PeoplePageLayout({
   }
 
   return (
-    <ProtectedPageWrapper 
-      initialUser={{
-        id: profileUserId,
-        username,
-        fullName: displayName,
-        imageUrl: user?.imageUrl || ""
-      }}
+    <PublicPageWrapper 
       layoutType={isOwnProfile ? "main" : "sub"}
       title={displayName}
     >
       {PageContent}
-    </ProtectedPageWrapper>
+    </PublicPageWrapper>
   );
 } 

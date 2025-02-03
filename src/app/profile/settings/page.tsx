@@ -1,14 +1,14 @@
 import { SubLayout, type SubLayoutProps } from "@/components/layout/sub-layout";
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
 import { getUserProfileModel } from "@/lib/db/models-v2/user-profile";
 import { PrivacySettingsForm } from "@/components/settings/privacy-settings-form";
+import { AuthService } from "@/lib/services/auth.service";
 
 export default async function SettingsPage() {
-  const { userId } = await auth();
-  if (!userId) {
+  const user = await AuthService.getCurrentUser();
+  if (!user) {
     redirect('/sign-in');
   }
 
@@ -19,7 +19,7 @@ export default async function SettingsPage() {
     const UserProfileModel = await getUserProfileModel();
 
     // Get user data
-    const mongoUser = await UserModel.findOne({ clerkId: userId }).lean();
+    const mongoUser = await UserModel.findOne({ clerkId: user.id }).lean();
     if (!mongoUser) {
       console.error('User not found in MongoDB');
       redirect('/sign-in');

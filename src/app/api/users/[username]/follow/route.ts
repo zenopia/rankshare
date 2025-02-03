@@ -1,17 +1,18 @@
-import { NextResponse } from "next/server";
-import { AuthService } from "@/lib/services/auth.service";
+import { NextRequest, NextResponse } from "next/server";
 import { getFollowModel } from "@/lib/db/models-v2/follow";
 import { getUserModel } from "@/lib/db/models-v2/user";
+import { withAuth, getUserId } from "@/lib/auth/api-utils";
 
-export async function POST(
-  req: Request,
-  { params }: { params: { username: string } }
-) {
+interface RouteParams {
+  username: string;
+}
+
+export const POST = withAuth<RouteParams>(async (
+  req: NextRequest,
+  { params }: { params: RouteParams }
+) => {
   try {
-    const user = await AuthService.getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const userId = getUserId(req);
 
     // Remove @ if present and decode the username
     const username = decodeURIComponent(params.username).replace(/^@/, '');
@@ -30,7 +31,7 @@ export async function POST(
 
     // Check if already following
     const existingFollow = await FollowModel.findOne({
-      followerId: user.id,
+      followerId: userId,
       followingId: userToFollow.clerkId,
     });
 
@@ -41,13 +42,22 @@ export async function POST(
       );
     }
 
+    // Get current user details
+    const currentUser = await UserModel.findOne({ clerkId: userId }).lean();
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: "Current user not found" },
+        { status: 404 }
+      );
+    }
+
     // Create follow relationship
     await FollowModel.create({
-      followerId: user.id,
+      followerId: userId,
       followingId: userToFollow.clerkId,
       followerInfo: {
-        username: user.username || "",
-        displayName: user.fullName || user.username || "",
+        username: currentUser.username || "",
+        displayName: currentUser.displayName || "",
       },
       followingInfo: {
         username: userToFollow.username,
@@ -61,7 +71,7 @@ export async function POST(
     // Update follower counts
     await Promise.all([
       UserModel.updateOne(
-        { clerkId: user.id },
+        { clerkId: userId },
         { $inc: { followingCount: 1 } }
       ),
       UserModel.updateOne(
@@ -80,17 +90,14 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+});
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: { username: string } }
-) {
+export const DELETE = withAuth<RouteParams>(async (
+  req: NextRequest,
+  { params }: { params: RouteParams }
+) => {
   try {
-    const user = await AuthService.getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const userId = getUserId(req);
 
     // Remove @ if present and decode the username
     const username = decodeURIComponent(params.username).replace(/^@/, '');
@@ -109,7 +116,7 @@ export async function DELETE(
 
     // Delete follow relationship
     const result = await FollowModel.deleteOne({
-      followerId: user.id,
+      followerId: userId,
       followingId: userToUnfollow.clerkId,
       status: 'accepted'
     });
@@ -124,7 +131,7 @@ export async function DELETE(
     // Update follower counts
     await Promise.all([
       UserModel.updateOne(
-        { clerkId: user.id },
+        { clerkId: userId },
         { $inc: { followingCount: -1 } }
       ),
       UserModel.updateOne(
@@ -143,4 +150,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-} 
+}); 

@@ -1,58 +1,73 @@
-import { NextResponse } from "next/server";
-import { AuthService } from "@/lib/services/auth.service";
+import { NextRequest, NextResponse } from "next/server";
+import { connectToMongoDB } from "@/lib/db/client";
 import { getUserModel } from "@/lib/db/models-v2/user";
-import { getFollowModel } from "@/lib/db/models-v2/follow";
+import { AuthService } from "@/lib/services/auth.service";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+interface UserSearchResponse {
+  users: Array<{
+    id: string;
+    username: string;
+    displayName: string;
+    imageUrl?: string;
+  }>;
+}
+
+interface ErrorResponse {
+  error: string;
+}
+
+export async function GET(
+  req: NextRequest
+): Promise<NextResponse<UserSearchResponse | ErrorResponse>> {
   try {
     const user = await AuthService.getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json<ErrorResponse>(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-    const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q')?.toLowerCase() || '';
-
-    if (!query) {
-      return NextResponse.json({ users: [] });
+    const searchQuery = req.nextUrl.searchParams.get('q');
+    if (!searchQuery) {
+      return NextResponse.json<ErrorResponse>(
+        { error: "Search query is required" },
+        { status: 400 }
+      );
     }
 
+    await connectToMongoDB();
     const UserModel = await getUserModel();
-    const FollowModel = await getFollowModel();
 
-    console.log('Searching for users with query:', query);
+    // Search for users by username or displayName, excluding the current user
     const users = await UserModel.find({
-      searchIndex: { $regex: query, $options: 'i' }
-    }).limit(20).lean();
-    console.log('Found users:', users.length);
+      $and: [
+        { clerkId: { $ne: user.id } }, // Exclude current user
+        {
+          $or: [
+            { username: { $regex: searchQuery, $options: 'i' } },
+            { displayName: { $regex: searchQuery, $options: 'i' } }
+          ]
+        }
+      ]
+    })
+    .select('clerkId username displayName imageUrl')
+    .limit(10)
+    .lean();
 
-    // Get follow status for each user
-    const usersWithFollowStatus = await Promise.all(
-      users.map(async (foundUser) => {
-        const isFollowing = await FollowModel.exists({
-          followerId: user.id,
-          followingId: foundUser.clerkId,
-          status: 'accepted'
-        });
-
-        return {
-          _id: foundUser._id,
-          clerkId: foundUser.clerkId,
-          username: foundUser.username,
-          displayName: foundUser.displayName,
-          bio: foundUser.bio,
-          imageUrl: foundUser.imageUrl,
-          isFollowing: !!isFollowing
-        };
-      })
-    );
-
-    return NextResponse.json({ users: usersWithFollowStatus });
+    return NextResponse.json<UserSearchResponse>({
+      users: users.map(user => ({
+        id: user.clerkId,
+        username: user.username,
+        displayName: user.displayName || user.username,
+        imageUrl: user.imageUrl
+      }))
+    });
   } catch (error) {
-    console.error("[USERS_SEARCH]", error);
-    return NextResponse.json(
+    console.error("Error searching users:", error);
+    return NextResponse.json<ErrorResponse>(
       { error: "Failed to search users" },
       { status: 500 }
     );

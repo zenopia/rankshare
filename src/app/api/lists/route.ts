@@ -1,21 +1,21 @@
-import { NextResponse } from "next/server";
-import { AuthService } from "@/lib/services/auth.service";
+import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/lib/db/client";
 import { getListModel, ListDocument } from "@/lib/db/models-v2/list";
 import { getEnhancedLists } from "@/lib/actions/lists";
 import { getUserModel } from "@/lib/db/models-v2/user";
+import { withAuth, getUserId } from "@/lib/auth/api-utils";
 
-export async function GET(request: Request) {
-  const user = await AuthService.getCurrentUser();
-  if (!user) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+export const dynamic = 'force-dynamic';
 
+type RouteParams = Record<string, never>;
+
+export const GET = withAuth<RouteParams>(async (req: NextRequest) => {
   try {
-    const { searchParams } = new URL(request.url);
+    const userId = getUserId(req);
+    const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
     const privacy = searchParams.get("privacy");
-    const query: any = { "owner.clerkId": user.id };
+    const query: any = { "owner.clerkId": userId };
 
     if (category) {
       query.category = category;
@@ -28,22 +28,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ lists });
   } catch (error) {
     console.error("Error fetching lists:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch lists" },
+      { status: 500 }
+    );
   }
-}
+}, { requireAuth: true });
 
-export async function POST(request: Request) {
-  const user = await AuthService.getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const POST = withAuth<RouteParams>(async (req: NextRequest) => {
   try {
-    const body = await request.json();
+    const userId = getUserId(req);
+    const body = await req.json();
     const { title, description, category, privacy, items, listType = 'ordered' } = body;
 
     if (!title || !category || !privacy) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
     await connectToMongoDB();
@@ -53,9 +55,12 @@ export async function POST(request: Request) {
     ]);
 
     // Get MongoDB user document
-    const mongoUser = await UserModel.findOne({ clerkId: user.id });
+    const mongoUser = await UserModel.findOne({ clerkId: userId });
     if (!mongoUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
     }
 
     const list = await ListModel.create({
@@ -66,9 +71,9 @@ export async function POST(request: Request) {
       listType,
       items: items || [],
       owner: {
-        clerkId: user.id,
+        clerkId: userId,
         userId: mongoUser._id,
-        username: user.username || "",
+        username: mongoUser.username || "",
         joinedAt: new Date()
       },
       collaborators: [],
@@ -101,4 +106,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-} 
+}, { requireAuth: true }); 
